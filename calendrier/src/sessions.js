@@ -1,29 +1,46 @@
-/* Séances du calendrier : validation, unicité et CRUD.
+/* Séances du calendrier : validation, unicité, statuts et CRUD.
 
    Une séance = un lieu, un jour, une heure (18:00 ou 18:30). Deux séances ne
    peuvent pas occuper le même lieu au même créneau ; en revanche les 5 lieux
-   peuvent tourner en parallèle sur le même créneau. */
+   peuvent tourner en parallèle sur le même créneau.
+
+   Rien n'est jamais effacé : une séance supprimée est archivée (elle sort de
+   la grille mais reste dans le fichier, avec son historique de statuts et ses
+   notes vocales), et chaque changement de statut est daté. */
 
 const crypto = require('node:crypto');
 const { isValidDateISO } = require('./dates');
-const { findLocation, isValidTime, TIMES, LOCATIONS } = require('./reference');
+const {
+  findLocation,
+  findStatut,
+  isValidTime,
+  TIMES,
+  LOCATIONS,
+  STATUTS,
+  STATUT_PAR_DEFAUT
+} = require('./reference');
 const { badRequest, notFound, conflict } = require('./errors');
 
 const MAX_TITLE = 120;
 const MAX_COACH = 80;
-const MAX_NOTES = 500;
+const MAX_NOTES = 2000;
 const MAX_CAPACITY = 200;
 const MAX_PARTICIPANTS = 200;
 const DEFAULT_TITLE = 'Entraînement';
 const DEFAULT_CAPACITY = 20;
+
+/** Une séance annulée ou archivée libère son créneau. */
+function occupeLeCreneau(session) {
+  return !session.archivee && session.statut !== 'annulee';
+}
 
 class SessionService {
   constructor(store) {
     this.store = store;
   }
 
-  /** Liste filtrée et triée (date, heure, lieu). */
-  list({ from, to, locationId, time } = {}) {
+  /** Liste filtrée et triée (date, heure, lieu). Les archives sont exclues par défaut. */
+  list({ from, to, locationId, time, statut, archivees = false } = {}) {
     if (from !== undefined && !isValidDateISO(from)) {
       throw badRequest('Le paramètre « from » doit être une date au format YYYY-MM-DD.');
     }
@@ -35,23 +52,31 @@ class SessionService {
     }
     if (locationId !== undefined && !findLocation(locationId)) {
       throw badRequest('Le paramètre « location » ne correspond à aucun lieu connu.', {
-        locationsDisponibles: LOCATIONS.map((l) => l.id)
+        lieuxPossibles: LOCATIONS.map((l) => l.id)
+      });
+    }
+    if (statut !== undefined && !findStatut(statut)) {
+      throw badRequest('Le paramètre « statut » ne correspond à aucun statut connu.', {
+        statutsPossibles: STATUTS.map((s) => s.id)
       });
     }
 
     return this.store
       .all()
       .filter((session) => {
+        if (!archivees && session.archivee) return false;
         if (from && session.date < from) return false;
         if (to && session.date > to) return false;
         if (locationId && session.locationId !== locationId) return false;
         if (time && session.time !== time) return false;
+        if (statut && session.statut !== statut) return false;
         return true;
       })
       .map(decorate)
       .sort(compareSessions);
   }
 
+  /** Une séance archivée reste accessible par son identifiant. */
   get(id) {
     const session = this.store.find(id);
     if (!session) throw notFound(`Aucune séance avec l'identifiant « ${id} ».`);
@@ -60,57 +85,130 @@ class SessionService {
 
   create(payload) {
     const input = validate(payload, { partial: false });
-    const clash = this.store
-      .all()
-      .find((s) => s.date === input.date && s.time === input.time && s.locationId === input.locationId);
-    if (clash) {
-      throw conflict('Ce lieu est déjà occupé sur ce créneau.', { sessionExistante: clash.id });
-    }
+    this.verifierCreneauLibre(input, null);
 
     const now = new Date().toISOString();
-    const session = { id: `ses_${crypto.randomUUID()}`, ...input, createdAt: now, updatedAt: now };
+    const session = {
+      id: `ses_${crypto.randomUUID()}`,
+      ...input,
+      notesVocales: [],
+      historique: [{ statut: input.statut, at: now }],
+      archivee: false,
+      archiveeLe: null,
+      createdAt: now,
+      updatedAt: now
+    };
     this.store.replaceAll([...this.store.all(), session]);
     return decorate(session);
   }
 
   update(id, payload) {
-    const existing = this.store.find(id);
-    if (!existing) throw notFound(`Aucune séance avec l'identifiant « ${id} ».`);
-
+    const existing = this.mustFind(id);
     const changes = validate(payload, { partial: true });
-    const updated = { ...existing, ...changes, updatedAt: new Date().toISOString() };
+    const now = new Date().toISOString();
+    const updated = { ...existing, ...changes, updatedAt: now };
 
-    const clash = this.store
-      .all()
-      .find(
-        (s) =>
-          s.id !== id &&
-          s.date === updated.date &&
-          s.time === updated.time &&
-          s.locationId === updated.locationId
-      );
-    if (clash) {
-      throw conflict('Ce lieu est déjà occupé sur ce créneau.', { sessionExistante: clash.id });
+    this.verifierCreneauLibre(updated, id);
+
+    // Chaque passage « prévue → effectuée » (ou autre) est daté et conservé.
+    if (changes.statut && changes.statut !== existing.statut) {
+      updated.historique = [...(existing.historique ?? []), { statut: changes.statut, at: now }];
     }
 
     this.store.replaceAll(this.store.all().map((s) => (s.id === id ? updated : s)));
     return decorate(updated);
   }
 
-  remove(id) {
-    const existing = this.store.find(id);
-    if (!existing) throw notFound(`Aucune séance avec l'identifiant « ${id} ».`);
-    this.store.replaceAll(this.store.all().filter((s) => s.id !== id));
-    return decorate(existing);
+  /** Retire la séance de la grille sans rien perdre. */
+  archive(id) {
+    const existing = this.mustFind(id);
+    if (existing.archivee) return decorate(existing);
+
+    const now = new Date().toISOString();
+    const archivee = { ...existing, archivee: true, archiveeLe: now, updatedAt: now };
+    this.store.replaceAll(this.store.all().map((s) => (s.id === id ? archivee : s)));
+    return decorate(archivee);
+  }
+
+  /** Remet une séance archivée dans la grille, si son créneau est resté libre. */
+  restore(id) {
+    const existing = this.mustFind(id);
+    if (!existing.archivee) return decorate(existing);
+
+    const now = new Date().toISOString();
+    const restauree = { ...existing, archivee: false, archiveeLe: null, updatedAt: now };
+    this.verifierCreneauLibre(restauree, id);
+
+    this.store.replaceAll(this.store.all().map((s) => (s.id === id ? restauree : s)));
+    return decorate(restauree);
+  }
+
+  /** Attache les métadonnées d'une note vocale (le son est stocké par VoiceStore). */
+  ajouterNoteVocale(id, note) {
+    const existing = this.mustFind(id);
+    const updated = {
+      ...existing,
+      notesVocales: [...(existing.notesVocales ?? []), note],
+      updatedAt: new Date().toISOString()
+    };
+    this.store.replaceAll(this.store.all().map((s) => (s.id === id ? updated : s)));
+    return decorate(updated);
+  }
+
+  trouverNoteVocale(id, noteId) {
+    const session = this.mustFind(id);
+    const note = (session.notesVocales ?? []).find((n) => n.id === noteId);
+    if (!note) throw notFound(`Aucune note vocale « ${noteId} » sur cette séance.`);
+    return note;
+  }
+
+  supprimerNoteVocale(id, noteId) {
+    const existing = this.mustFind(id);
+    this.trouverNoteVocale(id, noteId);
+    const updated = {
+      ...existing,
+      notesVocales: (existing.notesVocales ?? []).filter((n) => n.id !== noteId),
+      updatedAt: new Date().toISOString()
+    };
+    this.store.replaceAll(this.store.all().map((s) => (s.id === id ? updated : s)));
+    return decorate(updated);
+  }
+
+  mustFind(id) {
+    const session = this.store.find(id);
+    if (!session) throw notFound(`Aucune séance avec l'identifiant « ${id} ».`);
+    return session;
+  }
+
+  /** @param {string|null} idIgnore identifiant à ne pas considérer (mise à jour). */
+  verifierCreneauLibre(session, idIgnore) {
+    if (!occupeLeCreneau(session)) return;
+    const clash = this.store
+      .all()
+      .find(
+        (s) =>
+          s.id !== idIgnore &&
+          occupeLeCreneau(s) &&
+          s.date === session.date &&
+          s.time === session.time &&
+          s.locationId === session.locationId
+      );
+    if (clash) throw conflict('Ce lieu est déjà occupé sur ce créneau.', { sessionExistante: clash.id });
   }
 }
 
-/** Ajoute le lieu complet et les places restantes — jamais stockés, toujours dérivés. */
+/** Ajoute les champs dérivés — jamais stockés, toujours recalculés. */
 function decorate(session) {
   const participants = session.participants ?? [];
+  const statut = session.statut ?? STATUT_PAR_DEFAUT;
   return {
     ...session,
     participants,
+    statut,
+    statutLabel: findStatut(statut)?.label ?? statut,
+    notesVocales: session.notesVocales ?? [],
+    historique: session.historique ?? [],
+    archivee: Boolean(session.archivee),
     location: findLocation(session.locationId) ?? null,
     placesRestantes: Math.max(0, session.capacity - participants.length)
   };
@@ -163,6 +261,18 @@ function validate(payload, { partial }) {
     result.locationId = location.id;
   }
 
+  if (has('statut')) {
+    const statut = findStatut(payload.statut);
+    if (!statut) {
+      throw badRequest('Le champ « statut » ne correspond à aucun statut connu.', {
+        statutsPossibles: STATUTS.map((s) => ({ id: s.id, label: s.label }))
+      });
+    }
+    result.statut = statut.id;
+  } else if (!partial) {
+    result.statut = STATUT_PAR_DEFAUT;
+  }
+
   if (has('title')) result.title = text(payload.title, 'title', MAX_TITLE);
   else if (!partial) result.title = DEFAULT_TITLE;
 
@@ -206,4 +316,4 @@ function text(value, label, max, { allowEmpty = false } = {}) {
   return trimmed;
 }
 
-module.exports = { SessionService };
+module.exports = { SessionService, occupeLeCreneau, MAX_NOTES };

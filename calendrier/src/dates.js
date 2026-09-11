@@ -52,6 +52,39 @@ function dateRange(startISO, count) {
   return Array.from({ length: count }, (_, index) => addDays(startISO, index));
 }
 
+function pad(nombre) {
+  return String(nombre).padStart(2, '0');
+}
+
+/** Premier jour du mois de `iso`. */
+function premierJourDuMois(iso) {
+  return `${iso.slice(0, 8)}01`;
+}
+
+/** Dernier jour du mois de `iso`. */
+function dernierJourDuMois(iso) {
+  const date = toDate(iso);
+  const fin = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0));
+  return toISO(fin);
+}
+
+/** Ajoute `count` mois, en restant dans le mois visé (31 janvier + 1 mois = 28/29 février). */
+function ajouterMois(iso, count) {
+  const date = toDate(iso);
+  const total = date.getUTCFullYear() * 12 + date.getUTCMonth() + count;
+  const annee = Math.floor(total / 12);
+  const mois = ((total % 12) + 12) % 12;
+  const dernier = new Date(Date.UTC(annee, mois + 1, 0)).getUTCDate();
+  return `${annee}-${pad(mois + 1)}-${pad(Math.min(date.getUTCDate(), dernier))}`;
+}
+
+const MOIS_FMT = new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', month: 'long', year: 'numeric' });
+
+/** Libellé « septembre 2026 ». */
+function libelleMois(iso) {
+  return MOIS_FMT.format(toDate(iso));
+}
+
 const WEEKDAY_FMT = new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', weekday: 'long' });
 const SHORT_FMT = new Intl.DateTimeFormat('fr-FR', {
   timeZone: 'UTC',
@@ -85,5 +118,9 @@ module.exports = {
   addDays,
   daysBetween,
   dateRange,
-  describeDay
+  describeDay,
+  premierJourDuMois,
+  dernierJourDuMois,
+  ajouterMois,
+  libelleMois
 };

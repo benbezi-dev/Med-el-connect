@@ -1,14 +1,27 @@
-/* Construction de la vue calendrier sur 7 jours.
+/* Construction de la vue calendrier.
 
    La réponse est déjà structurée comme le tableau affiché : une ligne par
    heure (colonne « Heure » à gauche), une cellule par jour. Le client n'a
-   donc aucun regroupement à refaire. */
+   donc aucun regroupement à refaire.
+
+   La planification couvre l'année (`days` jusqu'à 366), mais la page n'en
+   montre que 7 jours à la fois. */
 
 const { isValidDateISO, todayISO, addDays, dateRange, describeDay } = require('./dates');
-const { LOCATIONS, TIMES, TIMEZONE, DAYS_IN_VIEW } = require('./reference');
+const { LOCATIONS, TIMES, TIMEZONE, DAYS_IN_VIEW, STATUTS } = require('./reference');
+const { occupeLeCreneau } = require('./sessions');
 const { badRequest } = require('./errors');
 
-const MAX_DAYS = 31;
+const MAX_DAYS = 366;
+
+/** Compte les séances par statut : { prevue, effectuee, annulee, total }. */
+function compter(sessions) {
+  const totaux = { total: sessions.length };
+  for (const statut of STATUTS) {
+    totaux[statut.id] = sessions.filter((s) => s.statut === statut.id).length;
+  }
+  return totaux;
+}
 
 /**
  * @param {import('./sessions').SessionService} sessionService
@@ -33,24 +46,28 @@ function buildCalendar(sessionService, { start, days } = {}) {
 
   // Index (date|heure) -> séances, pour remplir les cellules en une passe.
   const byCell = new Map();
+  const byDay = new Map();
   for (const session of sessions) {
-    const key = `${session.date}|${session.time}`;
-    const bucket = byCell.get(key);
-    if (bucket) bucket.push(session);
-    else byCell.set(key, [session]);
+    const cellKey = `${session.date}|${session.time}`;
+    if (byCell.has(cellKey)) byCell.get(cellKey).push(session);
+    else byCell.set(cellKey, [session]);
+
+    if (byDay.has(session.date)) byDay.get(session.date).push(session);
+    else byDay.set(session.date, [session]);
   }
 
   const rows = TIMES.map((time) => ({
     time,
     cells: dates.map((date) => {
       const cellSessions = byCell.get(`${date}|${time}`) ?? [];
-      const taken = new Set(cellSessions.map((s) => s.locationId));
+      const occupes = new Set(cellSessions.filter(occupeLeCreneau).map((s) => s.locationId));
       return {
         date,
         time,
         sessions: cellSessions,
-        lieuxLibres: LOCATIONS.filter((l) => !taken.has(l.id)).map((l) => l.id),
-        complet: taken.size === LOCATIONS.length
+        totaux: compter(cellSessions),
+        lieuxLibres: LOCATIONS.filter((l) => !occupes.has(l.id)).map((l) => l.id),
+        complet: occupes.size === LOCATIONS.length
       };
     })
   }));
@@ -63,11 +80,16 @@ function buildCalendar(sessionService, { start, days } = {}) {
     previousStart: addDays(startDate, -dayCount),
     nextStart: addDays(startDate, dayCount),
     times: TIMES,
+    statuts: STATUTS,
     locations: LOCATIONS,
-    days: dates.map((date) => describeDay(date, today)),
+    days: dates.map((date) => ({
+      ...describeDay(date, today),
+      totaux: compter(byDay.get(date) ?? [])
+    })),
     rows,
+    totaux: compter(sessions),
     total: sessions.length
   };
 }
 
-module.exports = { buildCalendar, MAX_DAYS };
+module.exports = { buildCalendar, compter, MAX_DAYS };

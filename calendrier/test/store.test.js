@@ -22,8 +22,12 @@ test('les séances survivent à un redémarrage', (t) => {
   assert.equal(second.list().length, 1);
   assert.equal(second.get(seance.id).title, 'Piste');
 
-  second.remove(seance.id);
-  assert.equal(new SessionService(new Store(fichier)).list().length, 0);
+  // Archivée, la séance reste sur le disque après un nouveau redémarrage.
+  second.archive(seance.id);
+  const troisieme = new SessionService(new Store(fichier));
+  assert.equal(troisieme.list().length, 0);
+  assert.equal(troisieme.list({ archivees: true }).length, 1);
+  assert.equal(troisieme.get(seance.id).title, 'Piste');
 });
 
 test('un fichier absent, vide ou sans clé sessions démarre à vide', (t) => {

@@ -5,7 +5,7 @@
   <title>Calendrier — 7 jours</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0A1220">
-  <meta name="description" content="Calendrier des entraînements sur 7 jours : créneaux 18h00 et 18h30, 5 lieux possibles.">
+  <meta name="description" content="Calendrier des entraînements : semaine visible, planification sur un an, créneaux 18h00 et 18h30, 5 lieux.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap">
@@ -36,6 +36,14 @@
     </div>
 
     <ul class="legende" id="legende" aria-label="Lieux possibles"></ul>
+
+    <!-- Repliée par défaut : les utilisateurs ne voient que leur semaine. -->
+    <details class="annee" id="panneau-annee">
+      <summary>Vue année — planification sur 12 mois</summary>
+      <div id="annee-contenu" class="annee-contenu">
+        <p class="etat">Chargement…</p>
+      </div>
+    </details>
   </main>
 
   <dialog id="dialogue">
@@ -46,6 +54,10 @@
       </div>
 
       <p class="message erreur" id="dialogue-alerte" role="alert" hidden></p>
+
+      <label>Statut
+        <select id="champ-statut" name="statut" required></select>
+      </label>
 
       <label>Lieu
         <select id="champ-lieu" name="locationId" required></select>
@@ -68,11 +80,21 @@
       </label>
 
       <label>Notes
-        <textarea id="champ-notes" name="notes" maxlength="500" placeholder="Optionnel"></textarea>
+        <textarea id="champ-notes" name="notes" maxlength="2000" placeholder="Optionnel"></textarea>
       </label>
 
+      <section class="vocal" aria-labelledby="vocal-titre">
+        <h3 id="vocal-titre">Notes vocales</h3>
+        <div class="vocal-barre">
+          <button type="button" id="enregistrer-voix">● Enregistrer</button>
+          <span class="vocal-etat" id="vocal-etat">Prêt</span>
+        </div>
+        <p class="vocal-aide" id="vocal-aide" hidden></p>
+        <ul class="vocal-liste" id="vocal-liste"></ul>
+      </section>
+
       <div class="actions">
-        <button type="button" class="danger a-gauche" id="supprimer" hidden>Supprimer</button>
+        <button type="button" class="danger a-gauche" id="archiver" hidden>Archiver</button>
         <button type="button" id="annuler">Annuler</button>
         <button type="submit" class="principal" id="enregistrer">Enregistrer</button>
       </div>

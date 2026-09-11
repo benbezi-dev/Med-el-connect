@@ -1,3 +1,4 @@
-# Les séances enregistrées restent locales au serveur.
+# Les séances et les notes vocales restent locales au serveur.
 sessions.json
+notes-vocales/
 *.tmp

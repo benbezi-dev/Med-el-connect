@@ -24,7 +24,7 @@ async function demarrer() {
     };
   };
 
-  return { appeler, fermer: () => new Promise((resolve) => serveur.close(resolve)) };
+  return { appeler, base, fermer: () => new Promise((resolve) => serveur.close(resolve)) };
 }
 
 const base = { date: '2026-09-14', time: '18:30', locationId: 'valbonne-city-workout' };
@@ -36,7 +36,9 @@ test('GET /api décrit les endpoints, les heures et les lieux', async (t) => {
   const { status, body } = await appeler('/api');
   assert.equal(status, 200);
   assert.deepEqual(body.heuresPossibles, ['18:00', '18:30']);
-  assert.equal(body.joursAffiches, 7);
+  assert.equal(body.joursVisibles, 7, 'les utilisateurs ne voient qu’une semaine');
+  assert.equal(body.moisHorizon, 12, 'la planification couvre un an');
+  assert.deepEqual(body.statuts, ['prevue', 'effectuee', 'annulee']);
   assert.equal(body.lieux.length, 5);
   assert.ok(body.endpoints.some((e) => e.path.startsWith('/api/calendar')));
 });
@@ -103,10 +105,19 @@ test('cycle de vie complet d’une séance via l’API', async (t) => {
   assert.equal(grille.body.rows[1].cells[0].sessions[0].id, id);
   assert.equal(grille.body.rows[1].cells[0].lieuxLibres.length, 4);
 
-  const suppression = await appeler(`/api/sessions/${id}`, { method: 'DELETE' });
-  assert.equal(suppression.status, 200);
-  assert.equal(suppression.body.deleted, true);
-  assert.equal((await appeler(`/api/sessions/${id}`)).status, 404);
+  // DELETE archive : la séance sort de la grille mais reste consultable.
+  const archivage = await appeler(`/api/sessions/${id}`, { method: 'DELETE' });
+  assert.equal(archivage.status, 200);
+  assert.equal(archivage.body.session.archivee, true);
+  assert.equal((await appeler(`/api/sessions/${id}`)).status, 200, 'rien n’est effacé');
+  assert.equal((await appeler('/api/sessions')).body.total, 0);
+  assert.equal((await appeler('/api/sessions?archivees=true')).body.total, 1);
+  assert.equal((await appeler('/api/export')).body.total, 1);
+
+  const restauration = await appeler(`/api/sessions/${id}/restaurer`, { method: 'POST' });
+  assert.equal(restauration.status, 200);
+  assert.equal(restauration.body.session.archivee, false);
+  assert.equal((await appeler('/api/sessions')).body.total, 1);
 });
 
 test('POST /api/sessions valide l’entrée et signale les conflits', async (t) => {
@@ -139,6 +150,102 @@ test('GET /api/sessions filtre par période, lieu et heure', async (t) => {
   assert.equal((await appeler('/api/sessions?location=grasse-stadium')).body.total, 1);
   assert.equal((await appeler('/api/sessions?time=18:30')).body.total, 1);
   assert.equal((await appeler('/api/sessions?time=17:00')).status, 400);
+});
+
+test('GET /api/annee suit la planification sur 12 mois', async (t) => {
+  const { appeler, fermer } = await demarrer();
+  t.after(fermer);
+
+  await appeler('/api/sessions', { method: 'POST', body: { date: '2026-11-05', time: '18:00', locationId: 'valbonne-hill', statut: 'effectuee' } });
+
+  const { status, body } = await appeler('/api/annee?start=2026-09-11');
+  assert.equal(status, 200);
+  assert.equal(body.mois.length, 12);
+  assert.equal(body.joursVisibles, 7);
+  assert.equal(body.totaux.effectuee, 1);
+  assert.equal(body.mois[2].totaux.total, 1, 'novembre porte la séance');
+
+  assert.equal((await appeler('/api/annee?mois=40')).status, 400);
+  assert.deepEqual((await appeler('/api/statuts')).body.statuts.map((s) => s.id), ['prevue', 'effectuee', 'annulee']);
+});
+
+test('le statut se change par PATCH et se filtre dans la grille', async (t) => {
+  const { appeler, fermer } = await demarrer();
+  t.after(fermer);
+
+  const creation = await appeler('/api/sessions', { method: 'POST', body: base });
+  const id = creation.body.session.id;
+  assert.equal(creation.body.session.statut, 'prevue');
+
+  const maj = await appeler(`/api/sessions/${id}`, { method: 'PATCH', body: { statut: 'effectuee' } });
+  assert.equal(maj.status, 200);
+  assert.equal(maj.body.session.statut, 'effectuee');
+  assert.deepEqual(maj.body.session.historique.map((h) => h.statut), ['prevue', 'effectuee']);
+
+  const grille = await appeler('/api/calendar?start=2026-09-14');
+  assert.deepEqual(grille.body.days[0].totaux, { total: 1, prevue: 0, effectuee: 1, annulee: 0 });
+  assert.deepEqual(grille.body.totaux, { total: 1, prevue: 0, effectuee: 1, annulee: 0 });
+
+  assert.equal((await appeler('/api/sessions?statut=effectuee')).body.total, 1);
+  assert.equal((await appeler('/api/sessions?statut=prevue')).body.total, 0);
+  assert.equal((await appeler('/api/sessions?statut=reportee')).status, 400);
+  assert.equal((await appeler(`/api/sessions/${id}`, { method: 'PATCH', body: { statut: 'reportee' } })).status, 400);
+});
+
+test('cycle de vie d’une note vocale', async (t) => {
+  const { appeler, fermer, base: racine } = await demarrer();
+  t.after(fermer);
+
+  const id = (await appeler('/api/sessions', { method: 'POST', body: base })).body.session.id;
+  const son = Buffer.from('bip bip bip');
+
+  const ajout = await appeler(`/api/sessions/${id}/notes-vocales`, {
+    method: 'POST',
+    body: { audio: son.toString('base64'), mimeType: 'audio/webm', duree: 5.5, transcription: 'Penser aux plots' }
+  });
+  assert.equal(ajout.status, 201);
+  const note = ajout.body.noteVocale;
+  assert.equal(note.duree, 5.5);
+  assert.equal(note.transcription, 'Penser aux plots');
+  assert.equal(ajout.body.session.notesVocales.length, 1);
+  assert.equal(ajout.headers.get('location'), `/api/sessions/${id}/notes-vocales/${note.id}`);
+
+  // La liste et la séance portent la note.
+  assert.equal((await appeler(`/api/sessions/${id}/notes-vocales`)).body.notesVocales.length, 1);
+  assert.equal((await appeler(`/api/sessions/${id}`)).body.session.notesVocales[0].id, note.id);
+
+  // Le son se relit tel quel, avec son type.
+  const lecture = await fetch(`${racine}/api/sessions/${id}/notes-vocales/${note.id}`);
+  assert.equal(lecture.status, 200);
+  assert.equal(lecture.headers.get('content-type'), 'audio/webm');
+  assert.deepEqual(Buffer.from(await lecture.arrayBuffer()), son);
+
+  const suppression = await appeler(`/api/sessions/${id}/notes-vocales/${note.id}`, { method: 'DELETE' });
+  assert.equal(suppression.status, 200);
+  assert.equal(suppression.body.session.notesVocales.length, 0);
+  assert.equal((await appeler(`/api/sessions/${id}/notes-vocales/${note.id}`)).status, 404);
+});
+
+test('une note vocale invalide ou orpheline est refusée', async (t) => {
+  const { appeler, fermer } = await demarrer();
+  t.after(fermer);
+
+  const id = (await appeler('/api/sessions', { method: 'POST', body: base })).body.session.id;
+
+  assert.equal((await appeler('/api/sessions/ses_inconnu/notes-vocales', { method: 'POST', body: { audio: 'AAAA' } })).status, 404);
+
+  const sansAudio = await appeler(`/api/sessions/${id}/notes-vocales`, { method: 'POST', body: { duree: 3 } });
+  assert.equal(sansAudio.status, 400);
+
+  const mauvaisFormat = await appeler(`/api/sessions/${id}/notes-vocales`, {
+    method: 'POST',
+    body: { audio: Buffer.from('x').toString('base64'), mimeType: 'audio/aiff' }
+  });
+  assert.equal(mauvaisFormat.status, 400);
+  assert.ok(mauvaisFormat.body.error.details.formatsAcceptes.includes('audio/webm'));
+
+  // La séance reste propre après ces refus.
+  assert.deepEqual((await appeler(`/api/sessions/${id}`)).body.session.notesVocales, []);
 });
 
 test('route inconnue et méthode interdite', async (t) => {

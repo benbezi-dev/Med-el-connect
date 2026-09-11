@@ -97,13 +97,91 @@ test('update modifie partiellement et contrôle les conflits', () => {
   assert.equal(svc.update(seance.id, { time: '18:30' }).time, '18:30');
 });
 
-test('remove supprime puis renvoie 404', () => {
+test('archive sort la séance de la grille sans rien perdre', () => {
+  const svc = service();
+  const seance = svc.create({ ...base, title: 'Piste', notes: 'À refaire' });
+
+  const archivee = svc.archive(seance.id);
+  assert.equal(archivee.archivee, true);
+  assert.ok(archivee.archiveeLe);
+  assert.equal(svc.list().length, 0, 'plus dans la grille');
+  assert.equal(svc.list({ archivees: true }).length, 1, 'toujours dans les données');
+  assert.equal(svc.get(seance.id).title, 'Piste', 'toujours lisible par identifiant');
+  assert.equal(svc.get(seance.id).notes, 'À refaire');
+
+  // Le créneau est de nouveau libre, et la restauration le vérifie.
+  const remplacante = svc.create(base);
+  attendreErreur(() => svc.restore(seance.id), 409);
+  svc.archive(remplacante.id);
+  assert.equal(svc.restore(seance.id).archivee, false);
+  assert.equal(svc.list().length, 1);
+
+  attendreErreur(() => svc.archive('ses_inconnu'), 404);
+});
+
+test('le statut par défaut est « prévue » et chaque changement est daté', () => {
   const svc = service();
   const seance = svc.create(base);
-  assert.equal(svc.remove(seance.id).id, seance.id);
-  assert.equal(svc.list().length, 0);
-  attendreErreur(() => svc.remove(seance.id), 404);
-  attendreErreur(() => svc.get(seance.id), 404);
+  assert.equal(seance.statut, 'prevue');
+  assert.equal(seance.statutLabel, 'Prévue');
+  assert.deepEqual(seance.historique.map((h) => h.statut), ['prevue']);
+
+  const effectuee = svc.update(seance.id, { statut: 'effectuee' });
+  assert.equal(effectuee.statut, 'effectuee');
+  assert.equal(effectuee.statutLabel, 'Effectuée');
+  assert.deepEqual(effectuee.historique.map((h) => h.statut), ['prevue', 'effectuee']);
+  assert.ok(effectuee.historique[1].at, 'le passage à « effectuée » est horodaté');
+
+  // Repasser au même statut n'ajoute pas de ligne d'historique.
+  assert.equal(svc.update(seance.id, { statut: 'effectuee' }).historique.length, 2);
+  attendreErreur(() => svc.update(seance.id, { statut: 'reportee' }), 400);
+  attendreErreur(() => svc.create({ ...base, date: '2026-09-20', statut: 'faite' }), 400);
+});
+
+test('une séance annulée libère son créneau', () => {
+  const svc = service();
+  const seance = svc.create(base);
+  attendreErreur(() => svc.create(base), 409);
+
+  svc.update(seance.id, { statut: 'annulee' });
+  const remplacante = svc.create(base);
+  assert.equal(remplacante.locationId, base.locationId);
+
+  // La séance annulée reste visible dans la grille, elle n'est pas effacée.
+  assert.equal(svc.list().length, 2);
+  assert.equal(svc.list({ statut: 'annulee' }).length, 1);
+  // Et elle ne peut pas redevenir « prévue » tant que le créneau est repris.
+  attendreErreur(() => svc.update(seance.id, { statut: 'prevue' }), 409);
+});
+
+test('les notes vocales sont attachées, listées puis retirées', () => {
+  const svc = service();
+  const seance = svc.create(base);
+  assert.deepEqual(seance.notesVocales, []);
+
+  const note = { id: 'voc_1', fichier: 'voc_1.webm', mimeType: 'audio/webm', taille: 42, duree: 3.2,
+                 transcription: 'Séance de côtes', createdAt: new Date().toISOString() };
+  const avec = svc.ajouterNoteVocale(seance.id, note);
+  assert.equal(avec.notesVocales.length, 1);
+  assert.equal(svc.trouverNoteVocale(seance.id, 'voc_1').transcription, 'Séance de côtes');
+  attendreErreur(() => svc.trouverNoteVocale(seance.id, 'voc_absent'), 404);
+
+  assert.equal(svc.supprimerNoteVocale(seance.id, 'voc_1').notesVocales.length, 0);
+  attendreErreur(() => svc.supprimerNoteVocale(seance.id, 'voc_1'), 404);
+});
+
+test('list filtre par statut et peut inclure les archives', () => {
+  const svc = service();
+  const faite = svc.create({ ...base, statut: 'effectuee' });
+  svc.create({ ...base, locationId: 'grasse-stadium' });
+  const archivee = svc.create({ ...base, locationId: 'valbonne-hill' });
+  svc.archive(archivee.id);
+
+  assert.equal(svc.list().length, 2);
+  assert.equal(svc.list({ statut: 'effectuee' })[0].id, faite.id);
+  assert.equal(svc.list({ statut: 'prevue' }).length, 1);
+  assert.equal(svc.list({ archivees: true }).length, 3);
+  attendreErreur(() => svc.list({ statut: 'inconnu' }), 400);
 });
 
 test('list filtre par période, lieu et heure, et trie le résultat', () => {

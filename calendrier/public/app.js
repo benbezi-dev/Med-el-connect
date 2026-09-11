@@ -1,37 +1,33 @@
 /* Présentation 7 jours du calendrier, branchée sur l'API /api.
 
    Le DOM est construit nœud par nœud (textContent) plutôt qu'en innerHTML :
-   les intitulés et noms d'encadrants viennent de l'API et ne doivent jamais
-   pouvoir injecter du balisage. */
+   les intitulés, noms d'encadrants et transcriptions viennent de l'API et ne
+   doivent jamais pouvoir injecter du balisage. */
 (function () {
   'use strict';
 
   // ?api=https://mon-serveur/api permet d'héberger la page et l'API séparément.
   var API = new URLSearchParams(location.search).get('api') || './api';
 
-  var etat = { start: new URLSearchParams(location.search).get('start') || null, calendrier: null, edition: null };
-
-  var els = {
-    periode: document.getElementById('periode'),
-    alerte: document.getElementById('alerte'),
-    etatTable: document.getElementById('etat'),
-    enteteJours: document.getElementById('entete-jours'),
-    corps: document.getElementById('corps'),
-    legende: document.getElementById('legende'),
-    dialogue: document.getElementById('dialogue'),
-    formulaire: document.getElementById('formulaire'),
-    dialogueTitre: document.getElementById('dialogue-titre'),
-    dialogueContexte: document.getElementById('dialogue-contexte'),
-    dialogueAlerte: document.getElementById('dialogue-alerte'),
-    lieu: document.getElementById('champ-lieu'),
-    heure: document.getElementById('champ-heure'),
-    titre: document.getElementById('champ-titre'),
-    coach: document.getElementById('champ-coach'),
-    capacite: document.getElementById('champ-capacite'),
-    notes: document.getElementById('champ-notes'),
-    supprimer: document.getElementById('supprimer'),
-    enregistrer: document.getElementById('enregistrer')
+  var etat = {
+    start: new URLSearchParams(location.search).get('start') || null,
+    calendrier: null,
+    edition: null,
+    noteEnAttente: null,   // note vocale enregistrée avant que la séance n'existe
+    anneeChargee: false
   };
+
+  var els = {};
+  [
+    'periode', 'alerte', 'etat', 'entete-jours', 'corps', 'legende',
+    'panneau-annee', 'annee-contenu',
+    'dialogue', 'formulaire', 'dialogue-titre', 'dialogue-contexte', 'dialogue-alerte',
+    'champ-statut', 'champ-lieu', 'champ-heure', 'champ-titre', 'champ-coach', 'champ-capacite', 'champ-notes',
+    'enregistrer-voix', 'vocal-etat', 'vocal-aide', 'vocal-liste',
+    'archiver', 'enregistrer', 'annuler', 'precedent', 'suivant', 'aujourdhui'
+  ].forEach(function (id) {
+    els[id] = document.getElementById(id);
+  });
 
   /* ---------- Appels API ---------- */
 
@@ -58,22 +54,25 @@
         etat.calendrier = calendrier;
         etat.start = calendrier.start;
         dessiner(calendrier);
+        if (etat.anneeChargee) chargerAnnee();
       })
       .catch(function (erreur) {
-        els.etatTable.textContent = 'Calendrier indisponible.';
+        els.etat.textContent = 'Calendrier indisponible.';
         afficherAlerte(erreur.message + ' — le serveur de l’API est-il démarré ?');
       });
   }
 
-  /* ---------- Rendu ---------- */
+  /* ---------- Rendu de la semaine ---------- */
 
   function dessiner(calendrier) {
+    var t = calendrier.totaux;
     els.periode.textContent =
       'Du ' + formaterDate(calendrier.start) + ' au ' + formaterDate(calendrier.end) +
-      ' · créneaux ' + calendrier.times.join(' et ') + ' · ' + calendrier.total +
-      (calendrier.total > 1 ? ' séances' : ' séance');
-    els.etatTable.textContent = '';
-    els.etatTable.hidden = true;
+      ' · créneaux ' + calendrier.times.join(' et ') +
+      ' · ' + pluriel(t.total, 'séance') +
+      ' (' + pluriel(t.effectuee, 'effectuée') + ', ' + pluriel(t.prevue, 'prévue') + ')';
+    els.etat.textContent = '';
+    els.etat.hidden = true;
 
     dessinerEntete(calendrier);
     dessinerCorps(calendrier);
@@ -81,8 +80,8 @@
   }
 
   function dessinerEntete(calendrier) {
-    vider(els.enteteJours);
-    els.enteteJours.appendChild(creer('th', { className: 'col-heure', scope: 'col', textContent: 'Heure' }));
+    vider(els['entete-jours']);
+    els['entete-jours'].appendChild(creer('th', { className: 'col-heure', scope: 'col', textContent: 'Heure' }));
 
     calendrier.days.forEach(function (jour) {
       var cellule = creer('th', { scope: 'col' });
@@ -90,7 +89,15 @@
       else if (jour.isWeekend) cellule.classList.add('weekend');
       cellule.appendChild(creer('span', { className: 'jour', textContent: jour.weekday }));
       cellule.appendChild(creer('span', { className: 'date', textContent: jour.dayLabel }));
-      els.enteteJours.appendChild(cellule);
+      if (jour.totaux.total) {
+        cellule.appendChild(creer('span', {
+          className: 'compteur',
+          textContent: jour.totaux.effectuee + '/' + jour.totaux.total + (jour.totaux.total > 1 ? ' effectuées' : ' effectuée'),
+          title: pluriel(jour.totaux.prevue, 'prévue') + ', ' + pluriel(jour.totaux.effectuee, 'effectuée') +
+            ', ' + pluriel(jour.totaux.annulee, 'annulée')
+        }));
+      }
+      els['entete-jours'].appendChild(cellule);
     });
   }
 
@@ -100,34 +107,19 @@
     calendrier.rows.forEach(function (ligne) {
       var tr = creer('tr');
       tr.appendChild(creer('th', { className: 'col-heure', scope: 'row', textContent: ligne.time }));
-
       ligne.cells.forEach(function (cellule, index) {
-        tr.appendChild(dessinerCellule(cellule, calendrier.days[index]));
+        tr.appendChild(dessinerCellule(cellule, calendrier.days[index], calendrier.statuts));
       });
       els.corps.appendChild(tr);
     });
   }
 
-  function dessinerCellule(cellule, jour) {
+  function dessinerCellule(cellule, jour, statuts) {
     var td = creer('td', { className: 'creneau' });
     if (jour.isPast) td.classList.add('passe');
 
     cellule.sessions.forEach(function (seance) {
-      var bouton = creer('button', { type: 'button', className: 'seance', 'data-lieu': seance.locationId });
-      bouton.appendChild(creer('span', {
-        className: 'lieu',
-        textContent: seance.location ? seance.location.name : seance.locationId
-      }));
-      if (seance.title) bouton.appendChild(creer('span', { className: 'titre', textContent: seance.title }));
-      var places = creer('span', {
-        className: 'places' + (seance.placesRestantes === 0 ? ' complet' : ''),
-        textContent: seance.placesRestantes === 0
-          ? 'Complet'
-          : seance.placesRestantes + ' place' + (seance.placesRestantes > 1 ? 's' : '') + ' libres'
-      });
-      bouton.appendChild(places);
-      bouton.addEventListener('click', function () { ouvrirEdition(seance); });
-      td.appendChild(bouton);
+      td.appendChild(dessinerSeance(seance, statuts));
     });
 
     if (cellule.complet) {
@@ -145,6 +137,58 @@
     return td;
   }
 
+  function dessinerSeance(seance, statuts) {
+    var carte = creer('article', {
+      className: 'seance',
+      'data-lieu': seance.locationId,
+      'data-statut': seance.statut
+    });
+
+    var ouvrir = creer('button', { type: 'button', className: 'seance-ouvrir' });
+    ouvrir.appendChild(creer('span', {
+      className: 'lieu',
+      textContent: seance.location ? seance.location.name : seance.locationId
+    }));
+    if (seance.title) ouvrir.appendChild(creer('span', { className: 'titre', textContent: seance.title }));
+    ouvrir.appendChild(creer('span', {
+      className: 'places' + (seance.placesRestantes === 0 ? ' complet' : ''),
+      textContent: seance.placesRestantes === 0
+        ? 'Complet'
+        : pluriel(seance.placesRestantes, 'place') + (seance.placesRestantes > 1 ? ' libres' : ' libre')
+    }));
+    if (seance.notesVocales.length) {
+      ouvrir.appendChild(creer('span', {
+        className: 'vocal-indicateur',
+        textContent: '♪ ' + pluriel(seance.notesVocales.length, 'note vocale', 'notes vocales')
+      }));
+    }
+    ouvrir.addEventListener('click', function () { ouvrirEdition(seance); });
+    carte.appendChild(ouvrir);
+
+    // Le menu déroulant : indiquer d'un geste si la séance est faite ou prévue.
+    var menu = creer('select', {
+      className: 'statut-select',
+      title: 'Statut de la séance'
+    });
+    menu.setAttribute('aria-label', 'Statut de la séance du ' + formaterDate(seance.date) + ' à ' + seance.time);
+    statuts.forEach(function (statut) {
+      var option = creer('option', { value: statut.id, textContent: statut.label });
+      if (statut.id === seance.statut) option.selected = true;
+      menu.appendChild(option);
+    });
+    menu.addEventListener('change', function () {
+      menu.disabled = true;
+      appeler('/sessions/' + seance.id, { method: 'PATCH', body: { statut: menu.value } })
+        .then(charger)
+        .catch(function (erreur) {
+          afficherAlerte(erreur.message);
+          return charger();
+        });
+    });
+    carte.appendChild(menu);
+    return carte;
+  }
+
   function dessinerLegende(calendrier) {
     vider(els.legende);
     calendrier.locations.forEach(function (lieu) {
@@ -155,55 +199,118 @@
     });
   }
 
+  /* ---------- Vue année (repliée par défaut) ---------- */
+
+  function chargerAnnee() {
+    return Promise.all([appeler('/annee'), appeler('/sessions?archivees=true')])
+      .then(function (reponses) { dessinerAnnee(reponses[0], reponses[1].sessions); })
+      .catch(function (erreur) {
+        vider(els['annee-contenu']);
+        els['annee-contenu'].appendChild(creer('p', { className: 'etat', textContent: erreur.message }));
+      });
+  }
+
+  function dessinerAnnee(annee, toutes) {
+    var contenu = els['annee-contenu'];
+    vider(contenu);
+
+    contenu.appendChild(creer('p', {
+      className: 'annee-resume',
+      textContent: 'Du ' + formaterDateAnnee(annee.debut) + ' au ' + formaterDateAnnee(annee.fin) + ' · ' +
+        pluriel(annee.totaux.total, 'séance') + ' : ' + pluriel(annee.totaux.effectuee, 'effectuée') + ', ' +
+        pluriel(annee.totaux.prevue, 'prévue') + ', ' + pluriel(annee.totaux.annulee, 'annulée') + '.'
+    }));
+
+    var grille = creer('ul', { className: 'annee-mois' });
+    annee.mois.forEach(function (mois) {
+      var item = creer('li', { className: 'mois' + (mois.estMoisCourant ? ' courant' : '') });
+      item.appendChild(creer('b', { textContent: mois.label }));
+      item.appendChild(creer('span', {
+        className: 'mois-total',
+        textContent: mois.totaux.total ? pluriel(mois.totaux.total, 'séance') : '—'
+      }));
+      if (mois.totaux.total) {
+        item.appendChild(creer('span', {
+          className: 'mois-detail',
+          textContent: pluriel(mois.totaux.effectuee, 'effectuée') + ' · ' + pluriel(mois.totaux.prevue, 'prévue') +
+            (mois.totaux.annulee ? ' · ' + pluriel(mois.totaux.annulee, 'annulée') : '')
+        }));
+      }
+      var aller = creer('button', { type: 'button', className: 'mois-aller', textContent: 'Voir la semaine' });
+      aller.addEventListener('click', function () {
+        etat.start = mois.jours.length ? mois.jours[0].date : mois.debut;
+        charger();
+        els['panneau-annee'].open = false;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+      item.appendChild(aller);
+      grille.appendChild(item);
+    });
+    contenu.appendChild(grille);
+
+    var archivees = toutes.filter(function (s) { return s.archivee; });
+    var bloc = creer('div', { className: 'archives' });
+    bloc.appendChild(creer('h3', { textContent: 'Archives (' + archivees.length + ')' }));
+    bloc.appendChild(creer('p', {
+      className: 'archives-aide',
+      textContent: 'Les séances archivées quittent la grille mais restent enregistrées, avec leur historique et leurs notes vocales.'
+    }));
+
+    if (archivees.length) {
+      var liste = creer('ul', { className: 'archives-liste' });
+      archivees.forEach(function (seance) {
+        var item = creer('li', { 'data-lieu': seance.locationId });
+        item.appendChild(creer('span', {
+          textContent: formaterDateAnnee(seance.date) + ' · ' + seance.time + ' · ' +
+            (seance.location ? seance.location.name : seance.locationId) + ' — ' + seance.title
+        }));
+        var restaurer = creer('button', { type: 'button', textContent: 'Restaurer' });
+        restaurer.addEventListener('click', function () {
+          restaurer.disabled = true;
+          appeler('/sessions/' + seance.id + '/restaurer', { method: 'POST' })
+            .then(charger)
+            .catch(function (erreur) {
+              afficherAlerte(erreur.message);
+              restaurer.disabled = false;
+            });
+        });
+        item.appendChild(restaurer);
+        liste.appendChild(item);
+      });
+      bloc.appendChild(liste);
+    }
+    contenu.appendChild(bloc);
+  }
+
   /* ---------- Boîte de dialogue ---------- */
 
-  function remplirSelects(lieuxAutorises, lieuChoisi, heureChoisie) {
-    vider(els.lieu);
+  function remplirSelects(lieuxAutorises, lieuChoisi, heureChoisie, statutChoisi) {
+    vider(els['champ-lieu']);
     etat.calendrier.locations.forEach(function (lieu) {
       var libre = !lieuxAutorises || lieuxAutorises.indexOf(lieu.id) !== -1 || lieu.id === lieuChoisi;
       var option = creer('option', { value: lieu.id, textContent: lieu.name + ' (' + lieu.city + ')' });
       option.disabled = !libre;
       if (lieu.id === lieuChoisi) option.selected = true;
-      els.lieu.appendChild(option);
+      els['champ-lieu'].appendChild(option);
     });
     if (!lieuChoisi) {
-      var premierLibre = els.lieu.querySelector('option:not([disabled])');
+      var premierLibre = els['champ-lieu'].querySelector('option:not([disabled])');
       if (premierLibre) premierLibre.selected = true;
     }
 
-    vider(els.heure);
+    vider(els['champ-heure']);
     etat.calendrier.times.forEach(function (heure) {
       var option = creer('option', { value: heure, textContent: heure });
       if (heure === heureChoisie) option.selected = true;
-      els.heure.appendChild(option);
+      els['champ-heure'].appendChild(option);
     });
-  }
 
-  function ouvrirCreation(cellule) {
-    etat.edition = { mode: 'creation', date: cellule.date };
-    els.dialogueTitre.textContent = 'Nouvelle séance';
-    els.dialogueContexte.textContent = formaterDate(cellule.date, true) + ' à ' + cellule.time;
-    remplirSelects(cellule.lieuxLibres, null, cellule.time);
-    els.titre.value = '';
-    els.coach.value = '';
-    els.capacite.value = '20';
-    els.notes.value = '';
-    els.supprimer.hidden = true;
-    ouvrirDialogue();
-  }
-
-  function ouvrirEdition(seance) {
-    etat.edition = { mode: 'edition', date: seance.date, id: seance.id };
-    els.dialogueTitre.textContent = 'Modifier la séance';
-    els.dialogueContexte.textContent = formaterDate(seance.date, true) + ' à ' + seance.time;
-    // Les lieux déjà pris sur ce créneau sont grisés ; celui de la séance reste choisi.
-    remplirSelects(lieuxLibresDe(seance.date, seance.time), seance.locationId, seance.time);
-    els.titre.value = seance.title || '';
-    els.coach.value = seance.coach || '';
-    els.capacite.value = String(seance.capacity);
-    els.notes.value = seance.notes || '';
-    els.supprimer.hidden = false;
-    ouvrirDialogue();
+    vider(els['champ-statut']);
+    etat.calendrier.statuts.forEach(function (statut) {
+      var option = creer('option', { value: statut.id, textContent: statut.label });
+      if (statut.id === statutChoisi) option.selected = true;
+      els['champ-statut'].appendChild(option);
+    });
   }
 
   /** Lieux encore libres sur une cellule de la grille courante. */
@@ -213,22 +320,53 @@
     return cellule ? cellule.lieuxLibres : null;
   }
 
+  function ouvrirCreation(cellule) {
+    etat.edition = { mode: 'creation', date: cellule.date, seance: null };
+    els['dialogue-titre'].textContent = 'Nouvelle séance';
+    els['dialogue-contexte'].textContent = formaterDate(cellule.date, true) + ' à ' + cellule.time;
+    remplirSelects(cellule.lieuxLibres, null, cellule.time, 'prevue');
+    els['champ-titre'].value = '';
+    els['champ-coach'].value = '';
+    els['champ-capacite'].value = '20';
+    els['champ-notes'].value = '';
+    els.archiver.hidden = true;
+    ouvrirDialogue();
+  }
+
+  function ouvrirEdition(seance) {
+    etat.edition = { mode: 'edition', date: seance.date, id: seance.id, seance: seance };
+    els['dialogue-titre'].textContent = 'Modifier la séance';
+    els['dialogue-contexte'].textContent = formaterDate(seance.date, true) + ' à ' + seance.time;
+    // Les lieux déjà pris sur ce créneau sont grisés ; celui de la séance reste choisi.
+    remplirSelects(lieuxLibresDe(seance.date, seance.time), seance.locationId, seance.time, seance.statut);
+    els['champ-titre'].value = seance.title || '';
+    els['champ-coach'].value = seance.coach || '';
+    els['champ-capacite'].value = String(seance.capacity);
+    els['champ-notes'].value = seance.notes || '';
+    els.archiver.hidden = false;
+    ouvrirDialogue();
+  }
+
   function ouvrirDialogue() {
-    afficherAlerte(null, els.dialogueAlerte);
+    afficherAlerte(null, els['dialogue-alerte']);
+    etat.noteEnAttente = null;
+    dessinerNotesVocales();
+    reinitialiserEnregistreur();
     els.dialogue.showModal();
-    els.lieu.focus();
+    els['champ-statut'].focus();
   }
 
   function enregistrer(evenement) {
     evenement.preventDefault();
     var corps = {
       date: etat.edition.date,
-      time: els.heure.value,
-      locationId: els.lieu.value,
-      title: els.titre.value.trim() || 'Entraînement',
-      coach: els.coach.value.trim(),
-      notes: els.notes.value.trim(),
-      capacity: Number(els.capacite.value)
+      time: els['champ-heure'].value,
+      locationId: els['champ-lieu'].value,
+      statut: els['champ-statut'].value,
+      title: els['champ-titre'].value.trim() || 'Entraînement',
+      coach: els['champ-coach'].value.trim(),
+      notes: els['champ-notes'].value.trim(),
+      capacity: Number(els['champ-capacite'].value)
     };
 
     var requete = etat.edition.mode === 'creation'
@@ -237,19 +375,239 @@
 
     basculerChargement(true);
     requete
+      .then(function (reponse) { return televerserNoteEnAttente(reponse.session.id); })
       .then(function () { els.dialogue.close(); return charger(); })
-      .catch(function (erreur) { afficherAlerte(erreur.message, els.dialogueAlerte); })
+      .catch(function (erreur) { afficherAlerte(erreur.message, els['dialogue-alerte']); })
       .then(function () { basculerChargement(false); });
   }
 
-  function supprimer() {
+  function archiver() {
     if (!etat.edition || etat.edition.mode !== 'edition') return;
-    if (!confirm('Supprimer définitivement cette séance ?')) return;
+    if (!confirm('Archiver cette séance ? Elle quitte la grille mais reste enregistrée.')) return;
     basculerChargement(true);
     appeler('/sessions/' + etat.edition.id, { method: 'DELETE' })
       .then(function () { els.dialogue.close(); return charger(); })
-      .catch(function (erreur) { afficherAlerte(erreur.message, els.dialogueAlerte); })
+      .catch(function (erreur) { afficherAlerte(erreur.message, els['dialogue-alerte']); })
       .then(function () { basculerChargement(false); });
+  }
+
+  /* ---------- Notes vocales ---------- */
+
+  var enregistreur = { media: null, flux: null, morceaux: [], debut: 0, minuteur: null, dictee: null, texte: '' };
+
+  function micDisponible() {
+    return Boolean(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+  }
+
+  function reinitialiserEnregistreur() {
+    arreterFlux();
+    enregistreur.morceaux = [];
+    enregistreur.texte = '';
+    els['enregistrer-voix'].textContent = '● Enregistrer';
+    els['enregistrer-voix'].classList.remove('actif');
+    els['vocal-etat'].textContent = 'Prêt';
+
+    if (!micDisponible()) {
+      els['enregistrer-voix'].disabled = true;
+      afficherAide('Ce navigateur ne permet pas l’enregistrement audio (il faut une connexion sécurisée ou localhost).');
+    } else {
+      els['enregistrer-voix'].disabled = false;
+      afficherAide(reconnaissanceDisponible() ? '' : 'Transcription automatique indisponible sur ce navigateur : seul le son sera enregistré.');
+    }
+  }
+
+  function afficherAide(message) {
+    els['vocal-aide'].textContent = message || '';
+    els['vocal-aide'].hidden = !message;
+  }
+
+  function reconnaissanceDisponible() {
+    return Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
+  }
+
+  function basculerEnregistrement() {
+    if (enregistreur.media && enregistreur.media.state === 'recording') {
+      enregistreur.media.stop();
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(demarrerEnregistrement)
+      .catch(function () {
+        afficherAlerte('Micro inaccessible : autorisez l’accès au microphone.', els['dialogue-alerte']);
+      });
+  }
+
+  function demarrerEnregistrement(flux) {
+    enregistreur.flux = flux;
+    enregistreur.morceaux = [];
+    enregistreur.texte = '';
+    enregistreur.media = new MediaRecorder(flux);
+    enregistreur.debut = Date.now();
+
+    enregistreur.media.addEventListener('dataavailable', function (evenement) {
+      if (evenement.data && evenement.data.size) enregistreur.morceaux.push(evenement.data);
+    });
+    enregistreur.media.addEventListener('stop', function () {
+      var duree = (Date.now() - enregistreur.debut) / 1000;
+      var blob = new Blob(enregistreur.morceaux, { type: enregistreur.media.mimeType || 'audio/webm' });
+      arreterFlux();
+      els['enregistrer-voix'].textContent = '● Enregistrer';
+      els['enregistrer-voix'].classList.remove('actif');
+      els['vocal-etat'].textContent = 'Envoi…';
+      conserverNote(blob, duree, enregistreur.texte.trim());
+    });
+
+    enregistreur.media.start();
+    demarrerDictee();
+    els['enregistrer-voix'].textContent = '■ Arrêter';
+    els['enregistrer-voix'].classList.add('actif');
+    enregistreur.minuteur = setInterval(function () {
+      els['vocal-etat'].textContent = 'Enregistrement… ' + Math.round((Date.now() - enregistreur.debut) / 1000) + ' s';
+    }, 250);
+  }
+
+  /** Transcription en direct quand le navigateur sait le faire (Chrome, Safari). */
+  function demarrerDictee() {
+    if (!reconnaissanceDisponible()) return;
+    var Reconnaissance = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var dictee = new Reconnaissance();
+    dictee.lang = 'fr-FR';
+    dictee.continuous = true;
+    dictee.interimResults = false;
+    dictee.addEventListener('result', function (evenement) {
+      for (var i = evenement.resultIndex; i < evenement.results.length; i += 1) {
+        if (evenement.results[i].isFinal) enregistreur.texte += evenement.results[i][0].transcript + ' ';
+      }
+    });
+    dictee.addEventListener('error', function () { /* le son reste enregistré */ });
+    try {
+      dictee.start();
+      enregistreur.dictee = dictee;
+    } catch (erreur) {
+      enregistreur.dictee = null;
+    }
+  }
+
+  function arreterFlux() {
+    if (enregistreur.minuteur) clearInterval(enregistreur.minuteur);
+    enregistreur.minuteur = null;
+    if (enregistreur.dictee) {
+      try { enregistreur.dictee.stop(); } catch (erreur) { /* déjà arrêtée */ }
+      enregistreur.dictee = null;
+    }
+    if (enregistreur.flux) {
+      enregistreur.flux.getTracks().forEach(function (piste) { piste.stop(); });
+      enregistreur.flux = null;
+    }
+  }
+
+  /** Envoie la note si la séance existe, sinon la garde jusqu'à l'enregistrement. */
+  function conserverNote(blob, duree, transcription) {
+    return blobEnBase64(blob)
+      .then(function (audio) {
+        var note = { audio: audio, mimeType: blob.type || 'audio/webm', duree: duree, transcription: transcription };
+        if (etat.edition && etat.edition.mode === 'edition') return televerser(etat.edition.id, note);
+
+        etat.noteEnAttente = note;
+        etat.noteEnAttente.apercu = URL.createObjectURL(blob);
+        els['vocal-etat'].textContent = 'Note prête — elle partira avec la séance';
+        dessinerNotesVocales();
+      })
+      .catch(function (erreur) {
+        els['vocal-etat'].textContent = 'Prêt';
+        afficherAlerte(erreur.message, els['dialogue-alerte']);
+      });
+  }
+
+  function televerser(sessionId, note) {
+    return appeler('/sessions/' + sessionId + '/notes-vocales', { method: 'POST', body: note })
+      .then(function (reponse) {
+        etat.edition.seance = reponse.session;
+        els['vocal-etat'].textContent = 'Note ajoutée';
+        dessinerNotesVocales();
+        return reponse;
+      });
+  }
+
+  function televerserNoteEnAttente(sessionId) {
+    if (!etat.noteEnAttente) return Promise.resolve();
+    var note = etat.noteEnAttente;
+    etat.noteEnAttente = null;
+    return appeler('/sessions/' + sessionId + '/notes-vocales', {
+      method: 'POST',
+      body: { audio: note.audio, mimeType: note.mimeType, duree: note.duree, transcription: note.transcription }
+    });
+  }
+
+  function dessinerNotesVocales() {
+    var liste = els['vocal-liste'];
+    vider(liste);
+
+    var seance = etat.edition && etat.edition.seance;
+    var notes = seance ? seance.notesVocales : [];
+
+    notes.forEach(function (note) {
+      liste.appendChild(dessinerNote(note, seance.id, false));
+    });
+    if (etat.noteEnAttente) {
+      liste.appendChild(dessinerNote({
+        id: 'en-attente',
+        duree: etat.noteEnAttente.duree,
+        transcription: etat.noteEnAttente.transcription,
+        createdAt: new Date().toISOString(),
+        apercu: etat.noteEnAttente.apercu
+      }, null, true));
+    }
+    if (!liste.children.length) {
+      liste.appendChild(creer('li', { className: 'vocal-vide', textContent: 'Aucune note vocale.' }));
+    }
+  }
+
+  function dessinerNote(note, sessionId, enAttente) {
+    var item = creer('li', { className: 'vocal-note' });
+
+    var son = creer('audio', { controls: true, preload: 'none' });
+    son.src = enAttente ? note.apercu : API + '/sessions/' + sessionId + '/notes-vocales/' + note.id;
+    item.appendChild(son);
+
+    item.appendChild(creer('span', {
+      className: 'vocal-meta',
+      textContent: (note.duree ? Math.round(note.duree) + ' s · ' : '') +
+        formaterHorodatage(note.createdAt) + (enAttente ? ' · en attente' : '')
+    }));
+
+    if (note.transcription) {
+      item.appendChild(creer('p', { className: 'vocal-transcription', textContent: '« ' + note.transcription + ' »' }));
+    }
+
+    if (!enAttente) {
+      var supprimer = creer('button', { type: 'button', className: 'danger', textContent: 'Supprimer' });
+      supprimer.addEventListener('click', function () {
+        if (!confirm('Supprimer cette note vocale ?')) return;
+        supprimer.disabled = true;
+        appeler('/sessions/' + sessionId + '/notes-vocales/' + note.id, { method: 'DELETE' })
+          .then(function (reponse) {
+            etat.edition.seance = reponse.session;
+            dessinerNotesVocales();
+            return charger();
+          })
+          .catch(function (erreur) {
+            afficherAlerte(erreur.message, els['dialogue-alerte']);
+            supprimer.disabled = false;
+          });
+      });
+      item.appendChild(supprimer);
+    }
+    return item;
+  }
+
+  function blobEnBase64(blob) {
+    return new Promise(function (resoudre, rejeter) {
+      var lecteur = new FileReader();
+      lecteur.onload = function () { resoudre(String(lecteur.result).split(',')[1]); };
+      lecteur.onerror = function () { rejeter(new Error('Lecture de l’enregistrement impossible.')); };
+      lecteur.readAsDataURL(blob);
+    });
   }
 
   /* ---------- Utilitaires ---------- */
@@ -281,6 +639,23 @@
     });
   }
 
+  /** « 1 séance », « 3 séances » — le pluriel irrégulier peut être passé. */
+  function pluriel(nombre, singulier, pluriels) {
+    return nombre + ' ' + (nombre > 1 ? (pluriels || singulier + 's') : singulier);
+  }
+
+  /** « 1 sept. 2026 » : la vue année traverse deux années civiles. */
+  function formaterDateAnnee(iso) {
+    return new Date(iso + 'T00:00:00Z').toLocaleDateString('fr-FR', {
+      timeZone: 'UTC', day: 'numeric', month: 'short', year: 'numeric'
+    });
+  }
+
+  function formaterHorodatage(iso) {
+    var date = new Date(iso);
+    return isNaN(date.getTime()) ? '' : date.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+  }
+
   function afficherAlerte(message, cible) {
     var element = cible || els.alerte;
     element.textContent = message || '';
@@ -289,26 +664,38 @@
 
   function basculerChargement(actif) {
     els.enregistrer.disabled = actif;
-    els.supprimer.disabled = actif;
+    els.archiver.disabled = actif;
   }
 
   /* ---------- Branchements ---------- */
 
-  document.getElementById('precedent').addEventListener('click', function () {
+  els.precedent.addEventListener('click', function () {
     etat.start = etat.calendrier ? etat.calendrier.previousStart : null;
     charger();
   });
-  document.getElementById('suivant').addEventListener('click', function () {
+  els.suivant.addEventListener('click', function () {
     etat.start = etat.calendrier ? etat.calendrier.nextStart : null;
     charger();
   });
-  document.getElementById('aujourdhui').addEventListener('click', function () {
+  els.aujourdhui.addEventListener('click', function () {
     etat.start = null;
     charger();
   });
-  document.getElementById('annuler').addEventListener('click', function () { els.dialogue.close(); });
-  els.supprimer.addEventListener('click', supprimer);
+  els.annuler.addEventListener('click', function () { els.dialogue.close(); });
+  els.archiver.addEventListener('click', archiver);
   els.formulaire.addEventListener('submit', enregistrer);
+  els['enregistrer-voix'].addEventListener('click', basculerEnregistrement);
+  els.dialogue.addEventListener('close', function () {
+    arreterFlux();
+    if (etat.noteEnAttente && etat.noteEnAttente.apercu) URL.revokeObjectURL(etat.noteEnAttente.apercu);
+    etat.noteEnAttente = null;
+  });
+  els['panneau-annee'].addEventListener('toggle', function () {
+    if (els['panneau-annee'].open && !etat.anneeChargee) {
+      etat.anneeChargee = true;
+      chargerAnnee();
+    }
+  });
 
   charger();
 })();

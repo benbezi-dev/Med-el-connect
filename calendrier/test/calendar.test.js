@@ -73,10 +73,11 @@ test('les séances hors fenêtre sont ignorées', () => {
 
 test('les paramètres invalides sont rejetés en 400', () => {
   const svc = service();
-  for (const options of [{ start: 'lundi' }, { start: '2026-09-31' }, { days: 0 }, { days: 40 }, { days: 'sept' }]) {
+  for (const options of [{ start: 'lundi' }, { start: '2026-09-31' }, { days: 0 }, { days: 400 }, { days: 'sept' }]) {
     assert.throws(() => buildCalendar(svc, options), (error) => error.status === 400);
   }
   assert.equal(buildCalendar(svc, { days: 14 }).days.length, 14);
+  assert.equal(buildCalendar(svc, { days: 366 }).days.length, 366, 'la grille peut couvrir une année');
 });
 
 test('sans start, la fenêtre démarre aujourd’hui', () => {
