@@ -1,0 +1,3 @@
+# Les séances enregistrées restent locales au serveur.
+sessions.json
+*.tmp
