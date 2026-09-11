@@ -29,6 +29,10 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+/* Un `display` posé par une classe l'emporterait sur la feuille du navigateur :
+   sans cette règle, l'attribut hidden ne masquerait rien. */
+[hidden] { display: none !important; }
+
 body {
   background: var(--nuit);
   color: var(--encre);
@@ -44,7 +48,16 @@ body {
 .entete h1::before { content: ''; display: block; width: 44px; height: 5px; border-radius: 3px; background: var(--fluo); margin-bottom: 10px; }
 .entete p { color: var(--encre-douce); font-size: 14px; margin-top: 4px; font-variant-numeric: tabular-nums; }
 
+.entete-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 .navigation { display: flex; gap: 8px; align-items: center; }
+
+/* Bascule coach : les notes vocales n'existent que dans ce mode. */
+.coach-bascule { font-size: 12px; padding: 5px 12px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--encre-douce); }
+.coach-bascule::before { content: '○ '; }
+.coach-bascule.actif { color: var(--fluo); border-color: var(--fluo); }
+.coach-bascule.actif::before { content: '● '; }
+.coach-aide { font-size: 12px; color: var(--encre-douce); margin-top: -6px; }
+.coach-aide code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--encre); }
 
 button {
   font: inherit;
@@ -198,6 +211,7 @@ textarea { resize: vertical; min-height: 64px; }
 @media (max-width: 640px) {
   .page { padding: 16px 12px 48px; }
   .entete h1 { font-size: 21px; }
+  .entete-actions { width: 100%; align-items: stretch; }
   .navigation { width: 100%; }
   .navigation button { flex: 1; padding: 9px 8px; }
 }

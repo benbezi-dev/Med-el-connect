@@ -7,8 +7,9 @@ une **colonne « Heure »** à gauche, deux créneaux possibles (**18:00** et
 La planification court sur **12 mois**, mais la page n'affiche jamais qu'une
 **semaine** ; la vue année, repliée en bas de page, sert au suivi. Chaque
 séance porte un **statut** (prévue, effectuée, annulée) réglable depuis un
-menu déroulant posé sur sa carte, et peut recevoir des **notes vocales**.
-Rien n'est jamais effacé : supprimer une séance l'archive.
+menu déroulant posé sur sa carte, et peut recevoir des **notes vocales —
+réservées au coach** : les athlètes ne les voient nulle part. Rien n'est
+jamais effacé : supprimer une séance l'archive.
 
 Le module est autonome : il ne dépend d'aucun paquet npm et n'a aucun lien avec
 le reste de l'application MED-EL Connect à la racine du dépôt.
@@ -17,7 +18,7 @@ le reste de l'application MED-EL Connect à la racine du dépôt.
 calendrier/
 ├── src/          API HTTP (node:http) + logique calendrier
 ├── public/       Présentation 7 jours (HTML/CSS/JS, sans framework)
-├── test/         55 tests (node:test)
+├── test/         61 tests (node:test)
 └── data/         Séances (JSON) et notes vocales (audio), ignorées par git
 ```
 
@@ -43,7 +44,8 @@ npm test                  # lance la suite de tests
 ```
 
 Variables d'environnement : `PORT` (3000), `HOST` (0.0.0.0),
-`CALENDAR_DATA_FILE` (`data/sessions.json`).
+`CALENDAR_DATA_FILE` (`data/sessions.json`), `CALENDAR_COACH_KEY` (voir
+« Accès coach »).
 
 La page peut aussi être hébergée séparément de l'API : ouvrez-la avec
 `?api=https://mon-serveur/api`.
@@ -81,12 +83,42 @@ calculé sur `Europe/Paris`.
 | `PATCH` | `/api/sessions/:id` | Modification partielle (dont le statut) |
 | `DELETE` | `/api/sessions/:id` | **Archive** la séance (rien n'est effacé) |
 | `POST` | `/api/sessions/:id/restaurer` | Sort une séance des archives |
-| `GET` | `/api/sessions/:id/notes-vocales` | Notes vocales de la séance |
-| `POST` | `/api/sessions/:id/notes-vocales` | Ajoute une note vocale |
-| `GET` | `/api/sessions/:id/notes-vocales/:noteId` | Renvoie le son |
-| `DELETE` | `/api/sessions/:id/notes-vocales/:noteId` | Supprime une note vocale |
+| `GET` | `/api/sessions/:id/notes-vocales` | Notes vocales de la séance — **coach** |
+| `POST` | `/api/sessions/:id/notes-vocales` | Ajoute une note vocale — **coach** |
+| `GET` | `/api/sessions/:id/notes-vocales/:noteId` | Renvoie le son — **coach** |
+| `DELETE` | `/api/sessions/:id/notes-vocales/:noteId` | Supprime une note vocale — **coach** |
 
 CORS est ouvert (`*`) sur toutes les routes `/api`.
+
+## Accès coach
+
+Les notes vocales sont privées : elles n'apparaissent **ni dans la grille, ni
+dans `/api/sessions`, ni dans `/api/export`** sans la clé coach, et leurs
+quatre routes répondent `401`. Tout le reste — grille, statuts, séances, vue
+année — reste ouvert à vos athlètes.
+
+La clé vient, dans l'ordre : de `CALENDAR_COACH_KEY`, du fichier
+`data/cle-coach.txt`, ou d'un tirage au sort au premier démarrage (le serveur
+l'affiche alors une fois et l'écrit dans ce fichier, en `0600`).
+
+```bash
+# En ligne de commande
+curl -H "X-Cle-Coach: $(cat calendrier/data/cle-coach.txt)" \
+  http://localhost:3000/api/sessions
+```
+
+Dans la page, le bouton **Mode athlète / Mode coach** (en haut à droite) ouvre
+la saisie de la clé. Elle est gardée dans le `localStorage` de ce navigateur —
+donc sur votre appareil seulement — et accompagne chaque requête ; le son des
+notes est chargé par `fetch` authentifié, jamais par une URL contenant la clé.
+« Oublier la clé » revient à la vue athlète.
+
+En mode athlète, la section « Notes vocales » du formulaire n'existe pas et
+aucune séance n'indique qu'elle en porte.
+
+> La clé protège les notes vocales, pas l'écriture : n'importe qui peut encore
+> créer ou modifier une séance. Si le calendrier doit être ouvert en lecture
+> seule aux athlètes, c'est une étape à ajouter.
 
 ### `GET /api/calendar`
 
@@ -227,7 +259,10 @@ Le fichier est écrit sous `data/notes-vocales/<séance>/<note>.<ext>` et se
 relit sur `GET /api/sessions/:id/notes-vocales/:noteId`, avec son type — de
 quoi le passer directement à une balise `<audio src=…>`.
 
-Dans la page, le bouton **Enregistrer** capte le micro (`MediaRecorder`) et,
+Ces quatre routes exigent la clé coach (voir « Accès coach ») ; sans elle,
+`401 cle_coach_requise`.
+
+Dans la page — **en mode coach uniquement** — le bouton **Enregistrer** capte le micro (`MediaRecorder`) et,
 quand le navigateur sait le faire (Chrome, Safari), transcrit en direct via
 l'API `SpeechRecognition` : le texte est attaché à la note. Sans micro
 disponible — navigateur ancien, ou page servie en HTTP sur autre chose que
@@ -249,9 +284,10 @@ Toutes les erreurs partagent la même forme, avec un message en français :
 }
 ```
 
-`400` saisie invalide · `404` séance, note ou route inconnue · `405` méthode
-non autorisée · `409` créneau déjà pris · `413` corps trop volumineux (64 Ko,
-8 Mo sur l'envoi d'une note vocale) · `500` erreur interne.
+`400` saisie invalide · `401` clé coach requise (notes vocales) · `404` séance,
+note ou route inconnue · `405` méthode non autorisée · `409` créneau déjà pris ·
+`413` corps trop volumineux (64 Ko, 8 Mo sur l'envoi d'une note vocale) · `500`
+erreur interne.
 
 ## Persistance
 
@@ -261,7 +297,8 @@ renommé, pour ne jamais laisser un fichier tronqué. Tout est rechargé au
 démarrage : séances passées, historiques de statut, archives et notes vocales
 restent disponibles d'une exécution à l'autre.
 
-Ces fichiers sont ignorés par git ; les supprimer repart d'un calendrier vide.
+La clé coach vit dans `data/cle-coach.txt`. Ces fichiers sont ignorés par
+git ; les supprimer repart d'un calendrier vide (et d'une nouvelle clé).
 Passer `dataFile: null` à `createApp()` garde tout en mémoire — c'est ce que
 font les tests.
 

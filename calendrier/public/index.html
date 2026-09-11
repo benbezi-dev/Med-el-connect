@@ -18,11 +18,14 @@
         <h1>Calendrier des entraînements</h1>
         <p id="periode">Chargement…</p>
       </div>
-      <nav class="navigation" aria-label="Navigation par semaine">
-        <button type="button" id="precedent" aria-label="7 jours précédents">‹ Précédent</button>
-        <button type="button" id="aujourdhui">Aujourd’hui</button>
-        <button type="button" id="suivant" aria-label="7 jours suivants">Suivant ›</button>
-      </nav>
+      <div class="entete-actions">
+        <nav class="navigation" aria-label="Navigation par semaine">
+          <button type="button" id="precedent" aria-label="7 jours précédents">‹ Précédent</button>
+          <button type="button" id="aujourdhui">Aujourd’hui</button>
+          <button type="button" id="suivant" aria-label="7 jours suivants">Suivant ›</button>
+        </nav>
+        <button type="button" id="bouton-coach" class="coach-bascule">Mode athlète</button>
+      </div>
     </header>
 
     <p class="message erreur" id="alerte" role="alert" hidden></p>
@@ -45,6 +48,28 @@
       </div>
     </details>
   </main>
+
+  <dialog id="dialogue-coach">
+    <form method="dialog" id="formulaire-coach">
+      <div>
+        <h2>Mode coach</h2>
+        <p class="contexte">Les notes vocales ne sont visibles qu’avec la clé coach. Vos athlètes voient la grille, les statuts et les séances — jamais les notes.</p>
+      </div>
+
+      <p class="message erreur" id="coach-alerte" role="alert" hidden></p>
+
+      <label>Clé coach
+        <input id="champ-cle" name="cle" type="password" autocomplete="current-password" placeholder="Affichée au premier démarrage du serveur">
+      </label>
+      <p class="coach-aide">Elle est aussi enregistrée dans <code>data/cle-coach.txt</code>, côté serveur. La clé reste dans ce navigateur.</p>
+
+      <div class="actions">
+        <button type="button" class="danger a-gauche" id="oublier-cle">Oublier la clé</button>
+        <button type="button" id="coach-annuler">Annuler</button>
+        <button type="submit" class="principal">Valider</button>
+      </div>
+    </form>
+  </dialog>
 
   <dialog id="dialogue">
     <form method="dialog" id="formulaire">
@@ -83,7 +108,7 @@
         <textarea id="champ-notes" name="notes" maxlength="2000" placeholder="Optionnel"></textarea>
       </label>
 
-      <section class="vocal" aria-labelledby="vocal-titre">
+      <section class="vocal" id="vocal" aria-labelledby="vocal-titre">
         <h3 id="vocal-titre">Notes vocales</h3>
         <div class="vocal-barre">
           <button type="button" id="enregistrer-voix">● Enregistrer</button>

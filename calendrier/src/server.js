@@ -12,6 +12,7 @@ const { VoiceStore } = require('./voix');
 const { buildCalendar } = require('./calendar');
 const { buildAnnee } = require('./annee');
 const { LOCATIONS, TIMES, STATUTS, TIMEZONE, DAYS_IN_VIEW, MOIS_HORIZON } = require('./reference');
+const { resoudreCle, estCoach, protege, ENTETE } = require('./acces');
 const { ApiError, badRequest, notFound } = require('./errors');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -32,15 +33,16 @@ const MIME_TYPES = {
 };
 
 /**
- * @param {{dataFile?: string|null, voiceDir?: string|null}} options
+ * @param {{dataFile?: string|null, voiceDir?: string|null, cleCoach?: string}} options
  *   `dataFile: null` garde tout en mémoire (tests).
  */
-function createApp({ dataFile = DEFAULT_DATA_FILE, voiceDir } = {}) {
+function createApp({ dataFile = DEFAULT_DATA_FILE, voiceDir, cleCoach } = {}) {
   const store = new Store(dataFile);
   const sessions = new SessionService(store);
   const voix = new VoiceStore(
     voiceDir !== undefined ? voiceDir : dataFile && path.join(path.dirname(dataFile), 'notes-vocales')
   );
+  const acces = resoudreCle({ cleCoach, dataFile });
 
   const handler = async (req, res) => {
     setCorsHeaders(res);
@@ -52,7 +54,7 @@ function createApp({ dataFile = DEFAULT_DATA_FILE, voiceDir } = {}) {
     const url = new URL(req.url, `http://${req.headers.host ?? 'localhost'}`);
     try {
       if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
-        await handleApi(req, res, url, sessions, voix);
+        await handleApi(req, res, url, sessions, voix, estCoach(req, url, acces.cle));
       } else {
         serveStatic(req, res, url);
       }
@@ -64,10 +66,11 @@ function createApp({ dataFile = DEFAULT_DATA_FILE, voiceDir } = {}) {
   handler.sessions = sessions;
   handler.voix = voix;
   handler.store = store;
+  handler.acces = acces;
   return handler;
 }
 
-async function handleApi(req, res, url, sessions, voix) {
+async function handleApi(req, res, url, sessions, voix, coach) {
   const route = url.pathname.replace(/^\/api\/?/, '').replace(/\/$/, '');
   const segments = route ? route.split('/') : [];
   const { method } = req;
@@ -81,26 +84,24 @@ async function handleApi(req, res, url, sessions, voix) {
 
   // Les séances ont leur propre routeur : POST /api/sessions ne doit pas
   // tomber dans le garde « lecture seule » des ressources ci-dessous.
-  if (resource === 'sessions') return handleSessions(req, res, url, segments, sessions, voix);
+  if (resource === 'sessions') return handleSessions(req, res, url, segments, sessions, voix, coach);
 
   if (segments.length === 1) {
     if (method !== 'GET') throw methodNotAllowed(method, ['GET']);
 
     if (resource === 'health') {
-      return sendJson(res, 200, { status: 'ok', timezone: TIMEZONE, now: new Date().toISOString() });
+      return sendJson(res, 200, { status: 'ok', timezone: TIMEZONE, coach, now: new Date().toISOString() });
     }
     if (resource === 'locations') return sendJson(res, 200, { locations: LOCATIONS, total: LOCATIONS.length });
     if (resource === 'times') return sendJson(res, 200, { times: TIMES, timezone: TIMEZONE });
     if (resource === 'statuts') return sendJson(res, 200, { statuts: STATUTS });
     if (resource === 'calendar') {
-      return sendJson(
-        res,
-        200,
-        buildCalendar(sessions, {
-          start: url.searchParams.get('start') ?? undefined,
-          days: url.searchParams.get('days') ?? undefined
-        })
-      );
+      const grille = buildCalendar(sessions, {
+        start: url.searchParams.get('start') ?? undefined,
+        days: url.searchParams.get('days') ?? undefined
+      });
+      // `coach` dit à la page si elle doit proposer les notes vocales.
+      return sendJson(res, 200, protege({ ...grille, coach }, coach));
     }
     if (resource === 'annee') {
       return sendJson(
@@ -115,14 +116,18 @@ async function handleApi(req, res, url, sessions, voix) {
     if (resource === 'export') {
       // Tout, archives comprises : rien de ce qui a été saisi n'est perdu.
       const toutes = sessions.list({ archivees: true });
-      return sendJson(res, 200, { exporteLe: new Date().toISOString(), total: toutes.length, sessions: toutes });
+      return sendJson(
+        res,
+        200,
+        protege({ exporteLe: new Date().toISOString(), total: toutes.length, sessions: toutes }, coach)
+      );
     }
   }
 
   throw notFound(`Route inconnue : ${url.pathname}`);
 }
 
-async function handleSessions(req, res, url, segments, sessions, voix) {
+async function handleSessions(req, res, url, segments, sessions, voix, coach) {
   const { method } = req;
   const [, id, sub, subId] = segments;
 
@@ -136,34 +141,37 @@ async function handleSessions(req, res, url, segments, sessions, voix) {
         statut: url.searchParams.get('statut') ?? undefined,
         archivees: url.searchParams.get('archivees') === 'true'
       });
-      return sendJson(res, 200, { sessions: list, total: list.length });
+      return sendJson(res, 200, protege({ sessions: list, total: list.length }, coach));
     }
     if (method === 'POST') {
       const created = sessions.create(await readJsonBody(req));
       res.setHeader('Location', `/api/sessions/${created.id}`);
-      return sendJson(res, 201, { session: created });
+      return sendJson(res, 201, protege({ session: created }, coach));
     }
     throw methodNotAllowed(method, ['GET', 'POST']);
   }
 
   if (!sub) {
-    if (method === 'GET') return sendJson(res, 200, { session: sessions.get(id) });
+    if (method === 'GET') return sendJson(res, 200, protege({ session: sessions.get(id) }, coach));
     if (method === 'PATCH' || method === 'PUT') {
-      return sendJson(res, 200, { session: sessions.update(id, await readJsonBody(req)) });
+      return sendJson(res, 200, protege({ session: sessions.update(id, await readJsonBody(req)) }, coach));
     }
     if (method === 'DELETE') {
       // Archivage, pas suppression : la séance reste dans le fichier.
-      return sendJson(res, 200, { session: sessions.archive(id), archivee: true });
+      return sendJson(res, 200, protege({ session: sessions.archive(id), archivee: true }, coach));
     }
     throw methodNotAllowed(method, ['GET', 'PATCH', 'DELETE']);
   }
 
   if (sub === 'restaurer' && !subId) {
     if (method !== 'POST') throw methodNotAllowed(method, ['POST']);
-    return sendJson(res, 200, { session: sessions.restore(id) });
+    return sendJson(res, 200, protege({ session: sessions.restore(id) }, coach));
   }
 
   if (sub === 'notes-vocales') {
+    // Les notes vocales sont réservées au coach, en lecture comme en écriture.
+    if (!coach) throw cleCoachRequise();
+
     if (!subId) {
       if (method === 'GET') {
         return sendJson(res, 200, { notesVocales: sessions.get(id).notesVocales });
@@ -195,6 +203,11 @@ function apiIndex() {
   return {
     name: 'API Calendrier — planification sur un an, présentation sur 7 jours',
     timezone: TIMEZONE,
+    notesVocales: {
+      acces: 'coach',
+      entete: ENTETE,
+      description: 'Les notes vocales ne sont ni listées ni lisibles sans la clé coach.'
+    },
     joursVisibles: DAYS_IN_VIEW,
     moisHorizon: MOIS_HORIZON,
     heuresPossibles: TIMES,
@@ -229,17 +242,17 @@ function apiIndex() {
       {
         method: 'POST',
         path: '/api/sessions/:id/notes-vocales',
-        description: 'Ajoute une note vocale ({ audio: base64, mimeType, duree, transcription }).'
+        description: 'Ajoute une note vocale ({ audio: base64, mimeType, duree, transcription }). Coach uniquement.'
       },
       {
         method: 'GET',
         path: '/api/sessions/:id/notes-vocales/:noteId',
-        description: 'Renvoie le son de la note vocale.'
+        description: 'Renvoie le son de la note vocale. Coach uniquement.'
       },
       {
         method: 'DELETE',
         path: '/api/sessions/:id/notes-vocales/:noteId',
-        description: 'Supprime une note vocale.'
+        description: 'Supprime une note vocale. Coach uniquement.'
       }
     ]
   };
@@ -296,6 +309,13 @@ function readJsonBody(req, limite = MAX_BODY_BYTES) {
   });
 }
 
+function cleCoachRequise() {
+  return new ApiError(401, 'cle_coach_requise', 'Les notes vocales sont réservées au coach.', {
+    entete: ENTETE,
+    indice: `Envoyez la clé dans l'en-tête « ${ENTETE} » (ou en paramètre « cle= »).`
+  });
+}
+
 function methodNotAllowed(method, allowed) {
   return new ApiError(405, 'method_not_allowed', `Méthode ${method} non autorisée.`, { autorisees: allowed });
 }
@@ -339,12 +359,26 @@ function sendError(res, error, req) {
 }
 
 function start({ port = Number(process.env.PORT) || 3000, host = process.env.HOST || '0.0.0.0', dataFile } = {}) {
-  const server = http.createServer(createApp({ dataFile }));
+  const app = createApp({ dataFile });
+  const server = http.createServer(app);
   server.listen(port, host, () => {
     const { port: boundPort } = server.address();
     console.log(`Calendrier prêt sur http://localhost:${boundPort} (API sous /api)`);
+    annoncerCle(app.acces);
   });
   return server;
+}
+
+/** La clé n'est affichée qu'au premier démarrage : ensuite, on dit où la relire. */
+function annoncerCle(acces) {
+  if (acces.origine === 'generee') {
+    console.log(`Clé coach générée : ${acces.cle}`);
+    console.log(`  → notez-la : elle seule ouvre les notes vocales (copie dans ${acces.fichier}).`);
+  } else if (acces.origine === 'fichier') {
+    console.log('Clé coach : voir data/cle-coach.txt (les notes vocales ne sont visibles qu’avec elle).');
+  } else if (acces.origine === 'env') {
+    console.log('Clé coach : CALENDAR_COACH_KEY.');
+  }
 }
 
 module.exports = { createApp, start, DEFAULT_DATA_FILE, PUBLIC_DIR };

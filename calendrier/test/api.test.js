@@ -3,17 +3,22 @@ const assert = require('node:assert/strict');
 const http = require('node:http');
 const { createApp } = require('../src/server');
 
+const CLE_COACH = 'cle-de-test';
+
 /** Démarre le serveur sur un port libre, avec un stockage en mémoire. */
 async function demarrer() {
-  const serveur = http.createServer(createApp({ dataFile: null }));
+  const serveur = http.createServer(createApp({ dataFile: null, cleCoach: CLE_COACH }));
   await new Promise((resolve) => serveur.listen(0, '127.0.0.1', resolve));
   const base = `http://127.0.0.1:${serveur.address().port}`;
 
   const appeler = async (chemin, options = {}) => {
     const corps = options.raw ?? (options.body ? JSON.stringify(options.body) : undefined);
+    const entetes = {};
+    if (corps !== undefined) entetes['Content-Type'] = 'application/json';
+    if (options.coach) entetes['X-Cle-Coach'] = CLE_COACH;
     const reponse = await fetch(base + chemin, {
       method: options.method ?? 'GET',
-      headers: corps === undefined ? undefined : { 'Content-Type': 'application/json' },
+      headers: Object.keys(entetes).length ? entetes : undefined,
       body: corps
     });
     const texte = await reponse.text();
@@ -24,7 +29,7 @@ async function demarrer() {
     };
   };
 
-  return { appeler, base, fermer: () => new Promise((resolve) => serveur.close(resolve)) };
+  return { appeler, base, cle: CLE_COACH, fermer: () => new Promise((resolve) => serveur.close(resolve)) };
 }
 
 const base = { date: '2026-09-14', time: '18:30', locationId: 'valbonne-city-workout' };
@@ -200,6 +205,7 @@ test('cycle de vie d’une note vocale', async (t) => {
   const son = Buffer.from('bip bip bip');
 
   const ajout = await appeler(`/api/sessions/${id}/notes-vocales`, {
+    coach: true,
     method: 'POST',
     body: { audio: son.toString('base64'), mimeType: 'audio/webm', duree: 5.5, transcription: 'Penser aux plots' }
   });
@@ -211,19 +217,21 @@ test('cycle de vie d’une note vocale', async (t) => {
   assert.equal(ajout.headers.get('location'), `/api/sessions/${id}/notes-vocales/${note.id}`);
 
   // La liste et la séance portent la note.
-  assert.equal((await appeler(`/api/sessions/${id}/notes-vocales`)).body.notesVocales.length, 1);
-  assert.equal((await appeler(`/api/sessions/${id}`)).body.session.notesVocales[0].id, note.id);
+  assert.equal((await appeler(`/api/sessions/${id}/notes-vocales`, { coach: true })).body.notesVocales.length, 1);
+  assert.equal((await appeler(`/api/sessions/${id}`, { coach: true })).body.session.notesVocales[0].id, note.id);
 
   // Le son se relit tel quel, avec son type.
-  const lecture = await fetch(`${racine}/api/sessions/${id}/notes-vocales/${note.id}`);
+  const lecture = await fetch(`${racine}/api/sessions/${id}/notes-vocales/${note.id}`, {
+    headers: { 'X-Cle-Coach': CLE_COACH }
+  });
   assert.equal(lecture.status, 200);
   assert.equal(lecture.headers.get('content-type'), 'audio/webm');
   assert.deepEqual(Buffer.from(await lecture.arrayBuffer()), son);
 
-  const suppression = await appeler(`/api/sessions/${id}/notes-vocales/${note.id}`, { method: 'DELETE' });
+  const suppression = await appeler(`/api/sessions/${id}/notes-vocales/${note.id}`, { coach: true, method: 'DELETE' });
   assert.equal(suppression.status, 200);
   assert.equal(suppression.body.session.notesVocales.length, 0);
-  assert.equal((await appeler(`/api/sessions/${id}/notes-vocales/${note.id}`)).status, 404);
+  assert.equal((await appeler(`/api/sessions/${id}/notes-vocales/${note.id}`, { coach: true })).status, 404);
 });
 
 test('une note vocale invalide ou orpheline est refusée', async (t) => {
@@ -232,12 +240,13 @@ test('une note vocale invalide ou orpheline est refusée', async (t) => {
 
   const id = (await appeler('/api/sessions', { method: 'POST', body: base })).body.session.id;
 
-  assert.equal((await appeler('/api/sessions/ses_inconnu/notes-vocales', { method: 'POST', body: { audio: 'AAAA' } })).status, 404);
+  assert.equal((await appeler('/api/sessions/ses_inconnu/notes-vocales', { coach: true, method: 'POST', body: { audio: 'AAAA' } })).status, 404);
 
-  const sansAudio = await appeler(`/api/sessions/${id}/notes-vocales`, { method: 'POST', body: { duree: 3 } });
+  const sansAudio = await appeler(`/api/sessions/${id}/notes-vocales`, { coach: true, method: 'POST', body: { duree: 3 } });
   assert.equal(sansAudio.status, 400);
 
   const mauvaisFormat = await appeler(`/api/sessions/${id}/notes-vocales`, {
+    coach: true,
     method: 'POST',
     body: { audio: Buffer.from('x').toString('base64'), mimeType: 'audio/aiff' }
   });
@@ -245,7 +254,75 @@ test('une note vocale invalide ou orpheline est refusée', async (t) => {
   assert.ok(mauvaisFormat.body.error.details.formatsAcceptes.includes('audio/webm'));
 
   // La séance reste propre après ces refus.
+  assert.deepEqual((await appeler(`/api/sessions/${id}`, { coach: true })).body.session.notesVocales, []);
+});
+
+test('un athlète ne voit aucune note vocale, nulle part', async (t) => {
+  const { appeler, base: racine, fermer } = await demarrer();
+  t.after(fermer);
+
+  const id = (await appeler('/api/sessions', { method: 'POST', body: base })).body.session.id;
+  const ajout = await appeler(`/api/sessions/${id}/notes-vocales`, {
+    coach: true,
+    method: 'POST',
+    body: { audio: Buffer.from('confidentiel').toString('base64'), transcription: 'Pour moi seul' }
+  });
+  const noteId = ajout.body.noteVocale.id;
+
+  // Vue athlète : la séance est là, ses notes vocales non.
+  const grille = await appeler('/api/calendar?start=2026-09-14');
+  assert.equal(grille.body.coach, false);
+  assert.equal(grille.body.rows[0].cells[0].sessions.length, 0);
+  const seance = grille.body.rows[1].cells[0].sessions[0];
+  assert.equal(seance.id, id, 'la séance reste visible');
+  assert.deepEqual(seance.notesVocales, [], 'mais sans ses notes vocales');
+
   assert.deepEqual((await appeler(`/api/sessions/${id}`)).body.session.notesVocales, []);
+  assert.deepEqual((await appeler('/api/sessions')).body.sessions[0].notesVocales, []);
+  assert.deepEqual((await appeler('/api/export')).body.sessions[0].notesVocales, []);
+
+  // Aucune trace de la transcription dans ce que reçoit un athlète.
+  for (const chemin of ['/api/calendar', '/api/sessions', '/api/export', `/api/sessions/${id}`]) {
+    const reponse = await fetch(racine + chemin);
+    assert.doesNotMatch(await reponse.text(), /Pour moi seul/, `transcription visible sur ${chemin}`);
+  }
+
+  // Et les routes des notes vocales lui sont fermées.
+  for (const [methode, chemin] of [
+    ['GET', `/api/sessions/${id}/notes-vocales`],
+    ['POST', `/api/sessions/${id}/notes-vocales`],
+    ['GET', `/api/sessions/${id}/notes-vocales/${noteId}`],
+    ['DELETE', `/api/sessions/${id}/notes-vocales/${noteId}`]
+  ]) {
+    const reponse = await appeler(chemin, { method: methode, body: methode === 'POST' ? { audio: 'AAAA' } : undefined });
+    assert.equal(reponse.status, 401, `${methode} ${chemin} devrait être refusé`);
+    assert.equal(reponse.body.error.code, 'cle_coach_requise');
+  }
+
+  // Une mauvaise clé ne vaut pas mieux qu'aucune.
+  const fausse = await fetch(`${racine}/api/sessions/${id}/notes-vocales`, { headers: { 'X-Cle-Coach': 'presque' } });
+  assert.equal(fausse.status, 401);
+
+  // Avec la clé, le coach retrouve tout.
+  const vueCoach = await appeler(`/api/sessions/${id}`, { coach: true });
+  assert.equal(vueCoach.body.session.notesVocales.length, 1);
+  assert.equal(vueCoach.body.session.notesVocales[0].transcription, 'Pour moi seul');
+  assert.equal((await appeler('/api/calendar?start=2026-09-14', { coach: true })).body.coach, true);
+  assert.equal((await appeler('/api/health', { coach: true })).body.coach, true);
+});
+
+test('l’athlète garde la main sur le reste de la grille', async (t) => {
+  const { appeler, fermer } = await demarrer();
+  t.after(fermer);
+
+  // Seules les notes vocales sont réservées : le calendrier reste utilisable.
+  const creation = await appeler('/api/sessions', { method: 'POST', body: base });
+  assert.equal(creation.status, 201);
+  const id = creation.body.session.id;
+  assert.equal((await appeler(`/api/sessions/${id}`, { method: 'PATCH', body: { statut: 'effectuee' } })).status, 200);
+  assert.equal((await appeler('/api/calendar')).status, 200);
+  assert.equal((await appeler('/api/annee')).status, 200);
+  assert.equal((await appeler(`/api/sessions/${id}`, { method: 'DELETE' })).status, 200);
 });
 
 test('route inconnue et méthode interdite', async (t) => {

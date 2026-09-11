@@ -9,13 +9,35 @@
   // ?api=https://mon-serveur/api permet d'héberger la page et l'API séparément.
   var API = new URLSearchParams(location.search).get('api') || './api';
 
+  var CLE_STOCKAGE = 'calendrier.cleCoach';
+
   var etat = {
     start: new URLSearchParams(location.search).get('start') || null,
     calendrier: null,
     edition: null,
     noteEnAttente: null,   // note vocale enregistrée avant que la séance n'existe
-    anneeChargee: false
+    anneeChargee: false,
+    cle: lireCle(),        // clé coach : les notes vocales n'existent qu'avec elle
+    coach: false,
+    sons: []               // URLs blob des sons chargés, à révoquer
   };
+
+  /** localStorage peut être bloqué (navigation privée) : on n'en dépend jamais. */
+  function lireCle() {
+    try {
+      return localStorage.getItem(CLE_STOCKAGE) || '';
+    } catch (erreur) {
+      return '';
+    }
+  }
+
+  function ecrireCle(cle) {
+    etat.cle = cle;
+    try {
+      if (cle) localStorage.setItem(CLE_STOCKAGE, cle);
+      else localStorage.removeItem(CLE_STOCKAGE);
+    } catch (erreur) { /* la clé ne vaudra que pour cette page */ }
+  }
 
   var els = {};
   [
@@ -24,18 +46,27 @@
     'dialogue', 'formulaire', 'dialogue-titre', 'dialogue-contexte', 'dialogue-alerte',
     'champ-statut', 'champ-lieu', 'champ-heure', 'champ-titre', 'champ-coach', 'champ-capacite', 'champ-notes',
     'enregistrer-voix', 'vocal-etat', 'vocal-aide', 'vocal-liste',
-    'archiver', 'enregistrer', 'annuler', 'precedent', 'suivant', 'aujourdhui'
+    'archiver', 'enregistrer', 'annuler', 'precedent', 'suivant', 'aujourdhui',
+    'vocal', 'bouton-coach', 'dialogue-coach', 'formulaire-coach', 'coach-alerte', 'champ-cle',
+    'oublier-cle', 'coach-annuler'
   ].forEach(function (id) {
     els[id] = document.getElementById(id);
   });
 
   /* ---------- Appels API ---------- */
 
+  function entetes(avecCorps) {
+    var resultat = {};
+    if (avecCorps) resultat['Content-Type'] = 'application/json';
+    if (etat.cle) resultat['X-Cle-Coach'] = etat.cle;
+    return resultat;
+  }
+
   function appeler(chemin, options) {
     var config = options || {};
     return fetch(API + chemin, {
       method: config.method || 'GET',
-      headers: config.body ? { 'Content-Type': 'application/json' } : undefined,
+      headers: entetes(Boolean(config.body)),
       body: config.body ? JSON.stringify(config.body) : undefined
     }).then(function (reponse) {
       return reponse.json().catch(function () { return {}; }).then(function (donnees) {
@@ -53,7 +84,10 @@
       .then(function (calendrier) {
         etat.calendrier = calendrier;
         etat.start = calendrier.start;
+        etat.coach = Boolean(calendrier.coach);
+        majBoutonCoach();
         dessiner(calendrier);
+        if (etat.cle && !etat.coach) afficherAlerte('Clé coach refusée : les notes vocales restent masquées.');
         if (etat.anneeChargee) chargerAnnee();
       })
       .catch(function (erreur) {
@@ -350,6 +384,7 @@
   function ouvrirDialogue() {
     afficherAlerte(null, els['dialogue-alerte']);
     etat.noteEnAttente = null;
+    els.vocal.hidden = !etat.coach;   // réservées au coach
     dessinerNotesVocales();
     reinitialiserEnregistreur();
     els.dialogue.showModal();
@@ -389,6 +424,37 @@
       .then(function () { els.dialogue.close(); return charger(); })
       .catch(function (erreur) { afficherAlerte(erreur.message, els['dialogue-alerte']); })
       .then(function () { basculerChargement(false); });
+  }
+
+  /* ---------- Mode coach ---------- */
+
+  function majBoutonCoach() {
+    els['bouton-coach'].textContent = etat.coach ? 'Mode coach' : 'Mode athlète';
+    els['bouton-coach'].classList.toggle('actif', etat.coach);
+    els['bouton-coach'].title = etat.coach
+      ? 'Notes vocales visibles. Cliquez pour changer ou retirer la clé.'
+      : 'Notes vocales masquées. Cliquez pour saisir la clé coach.';
+  }
+
+  function ouvrirCoach() {
+    afficherAlerte(null, els['coach-alerte']);
+    els['champ-cle'].value = etat.cle;
+    if (etat.cle && !etat.coach) afficherAlerte('Cette clé a été refusée par le serveur.', els['coach-alerte']);
+    els['dialogue-coach'].showModal();
+    els['champ-cle'].focus();
+  }
+
+  function validerCle(evenement) {
+    evenement.preventDefault();
+    ecrireCle(els['champ-cle'].value.trim());
+    els['dialogue-coach'].close();
+    charger();
+  }
+
+  function oublierCle() {
+    ecrireCle('');
+    els['dialogue-coach'].close();
+    charger();
   }
 
   /* ---------- Notes vocales ---------- */
@@ -541,6 +607,7 @@
 
   function dessinerNotesVocales() {
     var liste = els['vocal-liste'];
+    libererSons();
     vider(liste);
 
     var seance = etat.edition && etat.edition.seance;
@@ -566,8 +633,16 @@
   function dessinerNote(note, sessionId, enAttente) {
     var item = creer('li', { className: 'vocal-note' });
 
-    var son = creer('audio', { controls: true, preload: 'none' });
-    son.src = enAttente ? note.apercu : API + '/sessions/' + sessionId + '/notes-vocales/' + note.id;
+    var son = creer('audio', { controls: true });
+    if (enAttente) {
+      son.src = note.apercu;
+    } else {
+      chargerSon('/sessions/' + sessionId + '/notes-vocales/' + note.id)
+        .then(function (lien) { son.src = lien; })
+        .catch(function (erreur) {
+          item.replaceChild(creer('p', { className: 'vocal-meta', textContent: erreur.message }), son);
+        });
+    }
     item.appendChild(son);
 
     item.appendChild(creer('span', {
@@ -599,6 +674,25 @@
       item.appendChild(supprimer);
     }
     return item;
+  }
+
+  /** Récupère le son avec la clé coach, puis le sert à la balise <audio>. */
+  function chargerSon(chemin) {
+    return fetch(API + chemin, { headers: entetes(false) })
+      .then(function (reponse) {
+        if (!reponse.ok) throw new Error('Note vocale illisible (clé coach ?).');
+        return reponse.blob();
+      })
+      .then(function (blob) {
+        var lien = URL.createObjectURL(blob);
+        etat.sons.push(lien);
+        return lien;
+      });
+  }
+
+  function libererSons() {
+    etat.sons.forEach(function (lien) { URL.revokeObjectURL(lien); });
+    etat.sons = [];
   }
 
   function blobEnBase64(blob) {
@@ -687,9 +781,14 @@
   els['enregistrer-voix'].addEventListener('click', basculerEnregistrement);
   els.dialogue.addEventListener('close', function () {
     arreterFlux();
+    libererSons();
     if (etat.noteEnAttente && etat.noteEnAttente.apercu) URL.revokeObjectURL(etat.noteEnAttente.apercu);
     etat.noteEnAttente = null;
   });
+  els['bouton-coach'].addEventListener('click', ouvrirCoach);
+  els['formulaire-coach'].addEventListener('submit', validerCle);
+  els['oublier-cle'].addEventListener('click', oublierCle);
+  els['coach-annuler'].addEventListener('click', function () { els['dialogue-coach'].close(); });
   els['panneau-annee'].addEventListener('toggle', function () {
     if (els['panneau-annee'].open && !etat.anneeChargee) {
       etat.anneeChargee = true;
