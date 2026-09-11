@@ -113,7 +113,7 @@
     if (jour.isPast) td.classList.add('passe');
 
     cellule.sessions.forEach(function (seance) {
-      var bouton = creer('button', { type: 'button', className: 'seance' });
+      var bouton = creer('button', { type: 'button', className: 'seance', 'data-lieu': seance.locationId });
       bouton.appendChild(creer('span', {
         className: 'lieu',
         textContent: seance.location ? seance.location.name : seance.locationId
@@ -148,7 +148,7 @@
   function dessinerLegende(calendrier) {
     vider(els.legende);
     calendrier.locations.forEach(function (lieu) {
-      var item = creer('li', { className: 'puce' });
+      var item = creer('li', { className: 'puce', 'data-lieu': lieu.id });
       item.appendChild(creer('b', { textContent: lieu.name }));
       item.appendChild(document.createTextNode(' · ' + lieu.city));
       els.legende.appendChild(item);
@@ -257,8 +257,11 @@
   function creer(balise, proprietes) {
     var element = document.createElement(balise);
     Object.keys(proprietes || {}).forEach(function (cle) {
-      if (cle === 'scope' || cle === 'title' || cle === 'value') element.setAttribute(cle, proprietes[cle]);
-      else element[cle] = proprietes[cle];
+      if (cle === 'scope' || cle === 'title' || cle === 'value' || cle.slice(0, 5) === 'data-') {
+        element.setAttribute(cle, proprietes[cle]);
+      } else {
+        element[cle] = proprietes[cle];
+      }
     });
     return element;
   }

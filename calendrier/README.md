@@ -15,6 +15,19 @@ calendrier/
 └── data/         Séances persistées (fichier JSON, ignoré par git)
 ```
 
+La présentation suit un thème sport : fond nuit, vert fluo pour l'interface
+(colonne « Heure », jour courant, bouton principal) et une couleur de couloir
+par lieu, reprise sur les séances et la légende. Les couloirs sont définis en
+un seul endroit, en haut de `public/styles.css` :
+
+| Lieu | Couloir |
+|---|---|
+| Antibes Fort Carré Stade | orange `#FF6B3D` |
+| Valbonne Stadium | bleu ciel `#38BDF8` |
+| Grasse Stadium | rose `#F472B6` |
+| Valbonne Hill | violet `#A78BFA` |
+| Valbonne City Workout | ambre `#FBBF24` |
+
 ## Démarrer
 
 ```bash

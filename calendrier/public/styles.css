@@ -1,22 +1,36 @@
-/* Présentation 7 jours — palette alignée sur MED-EL Connect. */
+/* Présentation 7 jours — thème sport : fond nuit, accent vert fluo, et une
+   couleur de couloir par lieu (comme les couloirs d'une piste). */
 :root {
-  --rouge: #E2001A;
-  --rouge-sombre: #B80016;
-  --fond: #F4F1EF;
-  --surface: #FFFFFF;
-  --encre: #1A1718;
-  --encre-douce: #5A5356;
-  --bordure: #E4DEDA;
-  --bordure-forte: #CFC7C2;
-  --succes: #0E7C4A;
+  color-scheme: dark;
+
+  --nuit: #0A1220;
+  --surface: #101B2D;
+  --surface-haute: #16243A;
+  --encre: #EDF2F9;
+  --encre-douce: #8FA2BC;
+  --bordure: #1E2F49;
+  --bordure-forte: #2D4368;
+
+  --fluo: #C7FA3C;          /* accent principal : action, aujourd'hui */
+  --fluo-sombre: #A8DC22;
+  --succes: #4ADE80;
+  --alerte: #FF5A5F;
+
   --rayon: 12px;
-  --ombre: 0 1px 3px rgba(26, 23, 24, 0.08);
+  --ombre: 0 10px 30px rgba(0, 0, 0, 0.35);
 }
+
+/* Couleurs de couloir : partagées par les séances et la légende. */
+[data-lieu="antibes-fort-carre-stade"] { --couloir: #FF6B3D; }
+[data-lieu="valbonne-stadium"]         { --couloir: #38BDF8; }
+[data-lieu="grasse-stadium"]           { --couloir: #F472B6; }
+[data-lieu="valbonne-hill"]            { --couloir: #A78BFA; }
+[data-lieu="valbonne-city-workout"]    { --couloir: #FBBF24; }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-  background: var(--fond);
+  background: var(--nuit);
   color: var(--encre);
   font: 15px/1.5 Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -26,8 +40,9 @@ body {
 
 /* ---------- En-tête ---------- */
 .entete { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
-.entete h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
-.entete p { color: var(--encre-douce); font-size: 14px; margin-top: 4px; }
+.entete h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.4px; text-transform: uppercase; }
+.entete h1::before { content: ''; display: block; width: 44px; height: 5px; border-radius: 3px; background: var(--fluo); margin-bottom: 10px; }
+.entete p { color: var(--encre-douce); font-size: 14px; margin-top: 4px; font-variant-numeric: tabular-nums; }
 
 .navigation { display: flex; gap: 8px; align-items: center; }
 
@@ -35,19 +50,20 @@ button {
   font: inherit;
   font-weight: 600;
   color: var(--encre);
-  background: var(--surface);
+  background: var(--surface-haute);
   border: 1px solid var(--bordure-forte);
   border-radius: 10px;
   padding: 9px 14px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
-button:hover { background: #FAF7F5; border-color: var(--encre-douce); }
-button:focus-visible { outline: 2px solid var(--rouge); outline-offset: 2px; }
-button.principal { background: var(--rouge); border-color: var(--rouge); color: #fff; }
-button.principal:hover { background: var(--rouge-sombre); border-color: var(--rouge-sombre); }
-button.danger { color: var(--rouge); }
-button:disabled { opacity: 0.5; cursor: not-allowed; }
+button:hover { background: #1D2F4B; border-color: var(--encre-douce); }
+button:focus-visible { outline: 2px solid var(--fluo); outline-offset: 2px; }
+button.principal { background: var(--fluo); border-color: var(--fluo); color: #0A1220; }
+button.principal:hover { background: var(--fluo-sombre); border-color: var(--fluo-sombre); }
+button.danger { color: var(--alerte); }
+button.danger:hover { border-color: var(--alerte); }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ---------- Grille calendrier ---------- */
 .cadre { background: var(--surface); border: 1px solid var(--bordure); border-radius: var(--rayon); box-shadow: var(--ombre); overflow-x: auto; }
@@ -58,55 +74,66 @@ th, td { border-bottom: 1px solid var(--bordure); border-right: 1px solid var(--
 th:last-child, td:last-child { border-right: 0; }
 tbody tr:last-child td { border-bottom: 0; }
 
-thead th { background: #FBF9F8; padding: 12px 10px; font-size: 13px; font-weight: 700; position: sticky; top: 0; z-index: 2; }
-thead th .jour { display: block; color: var(--encre-douce); font-weight: 600; text-transform: capitalize; }
-thead th .date { display: block; font-size: 17px; font-weight: 800; }
-thead th.aujourdhui { background: #FDEBEC; color: var(--rouge); }
-thead th.aujourdhui .jour { color: var(--rouge); }
-thead th.weekend { background: #F6F3F1; }
+thead th { background: var(--surface-haute); padding: 12px 10px; font-size: 13px; font-weight: 700; position: sticky; top: 0; z-index: 2; }
+thead th .jour { display: block; color: var(--encre-douce); font-weight: 700; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
+thead th .date { display: block; font-size: 17px; font-weight: 800; margin-top: 2px; }
+thead th.aujourdhui { background: #1B2E1A; box-shadow: inset 0 3px 0 var(--fluo); }
+thead th.aujourdhui .jour, thead th.aujourdhui .date { color: var(--fluo); }
+thead th.weekend .jour { color: #6F82A0; }
 
 /* Colonne « Heure » : figée à gauche pour rester lisible au défilement. */
-.col-heure { width: 96px; min-width: 96px; background: #FBF9F8; position: sticky; left: 0; z-index: 3; border-right: 2px solid var(--bordure-forte); }
-td.col-heure, th.col-heure[scope="row"] { padding: 14px 10px; font-size: 17px; font-weight: 800; z-index: 1; }
+.col-heure { width: 96px; min-width: 96px; background: var(--surface-haute); position: sticky; left: 0; z-index: 3; border-right: 2px solid var(--bordure-forte); }
+thead th.col-heure { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--encre-douce); }
+td.col-heure, th.col-heure[scope="row"] { padding: 14px 10px; font-size: 18px; font-weight: 800; z-index: 1; font-variant-numeric: tabular-nums; color: var(--fluo); }
 
 td.creneau { padding: 8px; min-width: 150px; }
-td.creneau.passe { background: #FAF8F7; }
+td.creneau.passe { background: rgba(0, 0, 0, 0.22); }
 
-.seance { display: block; width: 100%; text-align: left; border: 1px solid var(--bordure); border-left: 4px solid var(--rouge); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; font-weight: 500; }
-.seance .lieu { display: block; font-weight: 700; font-size: 13px; }
+.seance {
+  display: block; width: 100%; text-align: left;
+  background: var(--surface-haute);
+  border: 1px solid var(--bordure-forte);
+  border-left: 4px solid var(--couloir, var(--fluo));
+  border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; font-weight: 500;
+}
+.seance:hover { background: #1D2F4B; border-color: var(--couloir, var(--fluo)); }
+.seance .lieu { display: block; font-weight: 800; font-size: 13px; color: var(--couloir, var(--encre)); }
 .seance .titre { display: block; font-size: 13px; color: var(--encre-douce); }
-.seance .places { display: block; font-size: 12px; color: var(--succes); font-weight: 600; margin-top: 2px; }
-.seance .places.complet { color: var(--rouge); }
+.seance .places { display: block; font-size: 12px; color: var(--succes); font-weight: 700; margin-top: 2px; }
+.seance .places.complet { color: var(--alerte); }
 
-.ajouter { width: 100%; border-style: dashed; color: var(--encre-douce); font-size: 13px; padding: 7px; }
-.cellule-vide { color: var(--bordure-forte); font-size: 13px; padding: 4px 0 8px; }
+.ajouter { width: 100%; background: transparent; border-style: dashed; border-color: var(--bordure-forte); color: var(--encre-douce); font-size: 13px; padding: 7px; }
+.ajouter:hover { color: var(--fluo); border-color: var(--fluo); background: rgba(199, 250, 60, 0.06); }
+.cellule-vide { color: #5A6E8C; font-size: 13px; padding: 4px 0 8px; }
 
 /* ---------- Légende ---------- */
 .legende { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-.puce { background: var(--surface); border: 1px solid var(--bordure); border-radius: 999px; padding: 5px 12px; font-size: 13px; }
-.puce b { font-weight: 700; }
+.puce { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--bordure); border-radius: 999px; padding: 5px 14px 5px 10px; font-size: 13px; color: var(--encre-douce); }
+.puce::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--couloir, var(--fluo)); flex: none; }
+.puce b { font-weight: 700; color: var(--encre); }
 
 /* ---------- Boîte de dialogue ---------- */
-dialog { margin: auto; border: 0; border-radius: var(--rayon); padding: 0; max-width: 440px; width: calc(100% - 32px); max-height: calc(100% - 32px); box-shadow: 0 12px 40px rgba(26, 23, 24, 0.24); color: var(--encre); }
-dialog::backdrop { background: rgba(26, 23, 24, 0.45); }
+dialog { margin: auto; border: 1px solid var(--bordure-forte); border-radius: var(--rayon); padding: 0; max-width: 440px; width: calc(100% - 32px); max-height: calc(100% - 32px); overflow: auto; box-shadow: 0 16px 50px rgba(0, 0, 0, 0.6); background: var(--surface); color: var(--encre); }
+dialog::backdrop { background: rgba(5, 10, 20, 0.72); }
 dialog form { padding: 20px; display: grid; gap: 14px; }
-dialog h2 { font-size: 19px; font-weight: 800; }
+dialog h2 { font-size: 19px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.2px; }
 dialog .contexte { color: var(--encre-douce); font-size: 14px; margin-top: 2px; }
 
-label { display: grid; gap: 5px; font-size: 13px; font-weight: 700; }
+label { display: grid; gap: 5px; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--encre-douce); }
 input, select, textarea {
-  font: inherit; font-weight: 500; color: var(--encre);
-  border: 1px solid var(--bordure-forte); border-radius: 9px; padding: 9px 10px; background: var(--surface); width: 100%;
+  font: inherit; font-weight: 500; letter-spacing: normal; text-transform: none; color: var(--encre);
+  border: 1px solid var(--bordure-forte); border-radius: 9px; padding: 9px 10px; background: var(--surface-haute); width: 100%;
 }
-input:focus, select:focus, textarea:focus { outline: 2px solid var(--rouge); outline-offset: 0; border-color: var(--rouge); }
+input::placeholder, textarea::placeholder { color: #6F82A0; }
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--fluo); outline-offset: 0; border-color: var(--fluo); }
 textarea { resize: vertical; min-height: 64px; }
 
 .actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 .actions .a-gauche { margin-right: auto; }
 
 .message { border-radius: 9px; padding: 9px 12px; font-size: 13px; font-weight: 600; }
-.message.erreur { background: #FDEBEC; color: var(--rouge-sombre); }
-.message.info { background: #EEF4F0; color: var(--succes); }
+.message.erreur { background: rgba(255, 90, 95, 0.14); color: #FF9296; border: 1px solid rgba(255, 90, 95, 0.35); }
+.message.info { background: rgba(74, 222, 128, 0.12); color: var(--succes); border: 1px solid rgba(74, 222, 128, 0.3); }
 .message[hidden] { display: none; }
 
 .etat { padding: 24px; text-align: center; color: var(--encre-douce); }
