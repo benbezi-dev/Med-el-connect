@@ -5,8 +5,13 @@
    peuvent tourner en parallèle sur le même créneau.
 
    Rien n'est jamais effacé : une séance supprimée est archivée (elle sort de
-   la grille mais reste dans le fichier, avec son historique de statuts et ses
-   notes vocales), et chaque changement de statut est daté. */
+   la grille mais reste dans le dépôt, avec son historique de statuts et ses
+   notes vocales), et chaque changement de statut est daté.
+
+   Les lectures sont synchrones (tout est en mémoire) ; les écritures sont
+   asynchrones : elles attendent que le dépôt ait accepté avant de rendre la
+   main, pour qu'un refus (Drive injoignable, par exemple) remonte à
+   l'appelant au lieu d'être perdu. */
 
 const crypto = require('node:crypto');
 const { isValidDateISO } = require('./dates');
@@ -83,7 +88,7 @@ class SessionService {
     return decorate(session);
   }
 
-  create(payload) {
+  async create(payload) {
     const input = validate(payload, { partial: false });
     this.verifierCreneauLibre(input, null);
 
@@ -98,11 +103,11 @@ class SessionService {
       createdAt: now,
       updatedAt: now
     };
-    this.store.replaceAll([...this.store.all(), session]);
+    await this.store.remplacer([...this.store.all(), session]);
     return decorate(session);
   }
 
-  update(id, payload) {
+  async update(id, payload) {
     const existing = this.mustFind(id);
     const changes = validate(payload, { partial: true });
     const now = new Date().toISOString();
@@ -115,23 +120,23 @@ class SessionService {
       updated.historique = [...(existing.historique ?? []), { statut: changes.statut, at: now }];
     }
 
-    this.store.replaceAll(this.store.all().map((s) => (s.id === id ? updated : s)));
+    await this.store.remplacer(this.store.all().map((s) => (s.id === id ? updated : s)));
     return decorate(updated);
   }
 
   /** Retire la séance de la grille sans rien perdre. */
-  archive(id) {
+  async archive(id) {
     const existing = this.mustFind(id);
     if (existing.archivee) return decorate(existing);
 
     const now = new Date().toISOString();
     const archivee = { ...existing, archivee: true, archiveeLe: now, updatedAt: now };
-    this.store.replaceAll(this.store.all().map((s) => (s.id === id ? archivee : s)));
+    await this.store.remplacer(this.store.all().map((s) => (s.id === id ? archivee : s)));
     return decorate(archivee);
   }
 
   /** Remet une séance archivée dans la grille, si son créneau est resté libre. */
-  restore(id) {
+  async restore(id) {
     const existing = this.mustFind(id);
     if (!existing.archivee) return decorate(existing);
 
@@ -139,19 +144,19 @@ class SessionService {
     const restauree = { ...existing, archivee: false, archiveeLe: null, updatedAt: now };
     this.verifierCreneauLibre(restauree, id);
 
-    this.store.replaceAll(this.store.all().map((s) => (s.id === id ? restauree : s)));
+    await this.store.remplacer(this.store.all().map((s) => (s.id === id ? restauree : s)));
     return decorate(restauree);
   }
 
   /** Attache les métadonnées d'une note vocale (le son est stocké par VoiceStore). */
-  ajouterNoteVocale(id, note) {
+  async ajouterNoteVocale(id, note) {
     const existing = this.mustFind(id);
     const updated = {
       ...existing,
       notesVocales: [...(existing.notesVocales ?? []), note],
       updatedAt: new Date().toISOString()
     };
-    this.store.replaceAll(this.store.all().map((s) => (s.id === id ? updated : s)));
+    await this.store.remplacer(this.store.all().map((s) => (s.id === id ? updated : s)));
     return decorate(updated);
   }
 
@@ -162,7 +167,7 @@ class SessionService {
     return note;
   }
 
-  supprimerNoteVocale(id, noteId) {
+  async supprimerNoteVocale(id, noteId) {
     const existing = this.mustFind(id);
     this.trouverNoteVocale(id, noteId);
     const updated = {
@@ -170,7 +175,7 @@ class SessionService {
       notesVocales: (existing.notesVocales ?? []).filter((n) => n.id !== noteId),
       updatedAt: new Date().toISOString()
     };
-    this.store.replaceAll(this.store.all().map((s) => (s.id === id ? updated : s)));
+    await this.store.remplacer(this.store.all().map((s) => (s.id === id ? updated : s)));
     return decorate(updated);
   }
 

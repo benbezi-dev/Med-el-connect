@@ -1,18 +1,28 @@
-/* Persistance des séances dans un simple fichier JSON.
+/* Persistance des séances : un seul document JSON dans le dépôt choisi
+   (mémoire, fichier local ou Google Drive).
 
-   Le volume attendu (2 créneaux x 5 lieux x quelques semaines) tient
-   largement en mémoire : on garde tout chargé et on réécrit le fichier à
-   chaque mutation. L'écriture passe par un fichier temporaire renommé, pour
-   qu'une coupure ne laisse jamais un JSON tronqué. */
+   Le volume attendu (2 créneaux x 5 lieux x quelques semaines) tient largement
+   en mémoire : on garde tout chargé et on réécrit le document à chaque
+   mutation. L'écriture est faite AVANT de basculer la mémoire — si le dépôt
+   refuse, l'appelant reçoit l'erreur et rien n'a changé nulle part. */
 
-const fs = require('node:fs');
-const path = require('node:path');
+const { DepotMemoire } = require('./stockage');
+
+const NOM = 'sessions.json';
 
 class Store {
-  /** @param {string|null} filePath chemin du fichier JSON, ou null pour rester en mémoire. */
-  constructor(filePath) {
-    this.filePath = filePath;
-    this.sessions = filePath ? readFile(filePath) : [];
+  /** @param {object|null} depot dépôt de stockage ; null garde tout en mémoire. */
+  constructor(depot, nom = NOM) {
+    this.depot = depot ?? new DepotMemoire();
+    this.nom = nom;
+    this.sessions = [];
+  }
+
+  /** Charge le contenu du dépôt. À appeler une fois, au démarrage. */
+  async charger() {
+    const brut = await this.depot.lire(this.nom);
+    this.sessions = analyser(brut, this.emplacement());
+    return this;
   }
 
   all() {
@@ -23,32 +33,33 @@ class Store {
     return this.sessions.find((session) => session.id === id);
   }
 
-  /** Remplace le contenu et persiste. */
-  replaceAll(sessions) {
+  /** Persiste la nouvelle liste, puis l'adopte. */
+  async remplacer(sessions) {
+    const document = `${JSON.stringify({ sessions }, null, 2)}\n`;
+    await this.depot.ecrire(this.nom, Buffer.from(document), 'application/json');
     this.sessions = sessions;
-    this.flush();
   }
 
-  flush() {
-    if (!this.filePath) return;
-    fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
-    const temp = `${this.filePath}.${process.pid}.tmp`;
-    fs.writeFileSync(temp, `${JSON.stringify({ sessions: this.sessions }, null, 2)}\n`);
-    fs.renameSync(temp, this.filePath);
+  emplacement() {
+    const { type, emplacement } = this.depot.decrire();
+    return emplacement ? `${type} (${emplacement})` : type;
   }
 }
 
-function readFile(filePath) {
-  let raw;
+function analyser(brut, emplacement) {
+  if (!brut) return [];
+  const texte = brut.toString('utf8').trim();
+  if (!texte) return [];
+
+  let contenu;
   try {
-    raw = fs.readFileSync(filePath, 'utf8');
-  } catch (error) {
-    if (error.code === 'ENOENT') return [];
-    throw error;
+    contenu = JSON.parse(texte);
+  } catch (erreur) {
+    // Mieux vaut refuser de démarrer que repartir d'un calendrier vide :
+    // le document existe, il est simplement illisible.
+    throw new Error(`Le document des séances est illisible (${emplacement}) : ${erreur.message}`);
   }
-  if (!raw.trim()) return [];
-  const parsed = JSON.parse(raw);
-  return Array.isArray(parsed?.sessions) ? parsed.sessions : [];
+  return Array.isArray(contenu?.sessions) ? contenu.sessions : [];
 }
 
-module.exports = { Store };
+module.exports = { Store, NOM };

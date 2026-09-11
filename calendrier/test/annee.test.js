@@ -8,7 +8,7 @@ function service() {
   return new SessionService(new Store(null));
 }
 
-test('la vue couvre 12 mois pleins à partir du mois de départ', () => {
+test('la vue couvre 12 mois pleins à partir du mois de départ', async () => {
   const annee = buildAnnee(service(), { start: '2026-09-11' });
 
   assert.equal(annee.debut, '2026-09-01', 'le mois de départ commence au 1er');
@@ -20,12 +20,12 @@ test('la vue couvre 12 mois pleins à partir du mois de départ', () => {
   assert.equal(annee.mois[11].label, 'août 2027');
 });
 
-test('les totaux sont ventilés par statut, par mois et par jour occupé', () => {
+test('les totaux sont ventilés par statut, par mois et par jour occupé', async () => {
   const svc = service();
-  svc.create({ date: '2026-09-12', time: '18:00', locationId: 'grasse-stadium', statut: 'effectuee' });
-  svc.create({ date: '2026-09-12', time: '18:30', locationId: 'grasse-stadium' });
-  svc.create({ date: '2026-12-24', time: '18:30', locationId: 'valbonne-hill', statut: 'annulee' });
-  svc.create({ date: '2027-07-01', time: '18:00', locationId: 'valbonne-stadium' });
+  await svc.create({ date: '2026-09-12', time: '18:00', locationId: 'grasse-stadium', statut: 'effectuee' });
+  await svc.create({ date: '2026-09-12', time: '18:30', locationId: 'grasse-stadium' });
+  await svc.create({ date: '2026-12-24', time: '18:30', locationId: 'valbonne-hill', statut: 'annulee' });
+  await svc.create({ date: '2027-07-01', time: '18:00', locationId: 'valbonne-stadium' });
 
   const annee = buildAnnee(svc, { start: '2026-09-11' });
   assert.deepEqual(annee.totaux, { total: 4, prevue: 2, effectuee: 1, annulee: 1 });
@@ -40,18 +40,18 @@ test('les totaux sont ventilés par statut, par mois et par jour occupé', () =>
   assert.equal(annee.mois[3].totaux.annulee, 1, 'décembre porte l’annulation');
 });
 
-test('les séances hors horizon et les archives sont exclues', () => {
+test('les séances hors horizon et les archives sont exclues', async () => {
   const svc = service();
-  svc.create({ date: '2026-08-31', time: '18:00', locationId: 'valbonne-hill' }); // avant l'horizon
-  svc.create({ date: '2027-09-01', time: '18:00', locationId: 'valbonne-hill' }); // après
-  const archivee = svc.create({ date: '2026-10-05', time: '18:00', locationId: 'valbonne-hill' });
-  svc.archive(archivee.id);
+  await svc.create({ date: '2026-08-31', time: '18:00', locationId: 'valbonne-hill' }); // avant l'horizon
+  await svc.create({ date: '2027-09-01', time: '18:00', locationId: 'valbonne-hill' }); // après
+  const archivee = await svc.create({ date: '2026-10-05', time: '18:00', locationId: 'valbonne-hill' });
+  await svc.archive(archivee.id);
 
   const annee = buildAnnee(svc, { start: '2026-09-11' });
   assert.equal(annee.totaux.total, 0);
 });
 
-test('l’horizon est réglable et validé', () => {
+test('l’horizon est réglable et validé', async () => {
   const svc = service();
   assert.equal(buildAnnee(svc, { start: '2026-09-11', mois: 3 }).mois.length, 3);
   assert.equal(buildAnnee(svc, { start: '2026-09-11', mois: 3 }).fin, '2026-11-30');
@@ -61,7 +61,7 @@ test('l’horizon est réglable et validé', () => {
   }
 });
 
-test('sans start, l’horizon démarre au mois courant', () => {
+test('sans start, l’horizon démarre au mois courant', async () => {
   const annee = buildAnnee(service());
   assert.equal(annee.debut, `${annee.today.slice(0, 7)}-01`);
   assert.equal(annee.mois[0].estMoisCourant, true);

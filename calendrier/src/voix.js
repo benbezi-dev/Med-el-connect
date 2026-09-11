@@ -1,12 +1,12 @@
-/* Notes vocales : stockage du son sur disque, métadonnées dans la séance.
+/* Notes vocales : le son va dans le dépôt, les métadonnées dans la séance.
 
    Le client envoie l'audio en base64 dans du JSON — pas de multipart à
-   analyser — et le fichier est écrit à côté des séances, sous
-   `data/notes-vocales/<séance>/<note>.<ext>`. */
+   analyser — et le son est rangé à côté des séances, sous
+   `notes-vocales/<séance>/<note>.<ext>`, quel que soit le dépôt (fichiers
+   locaux ou Google Drive). */
 
 const crypto = require('node:crypto');
-const fs = require('node:fs');
-const path = require('node:path');
+const { DepotMemoire } = require('./stockage');
 const { badRequest, notFound } = require('./errors');
 
 const TAILLE_MAX = 5 * 1024 * 1024; // 5 Mo de son décodé
@@ -24,17 +24,20 @@ const TYPES = {
 };
 
 class VoiceStore {
-  /** @param {string|null} dossier répertoire de stockage, ou null pour rester en mémoire. */
-  constructor(dossier) {
-    this.dossier = dossier;
-    this.memoire = new Map();
+  /**
+   * @param {object|null} depot dépôt de stockage ; null garde tout en mémoire.
+   * @param {string} prefixe dossier des notes, dans le dépôt.
+   */
+  constructor(depot, prefixe = 'notes-vocales') {
+    this.depot = depot ?? new DepotMemoire();
+    this.prefixe = prefixe;
   }
 
   /**
    * Valide le payload, écrit le son et renvoie les métadonnées à ranger
    * dans la séance.
    */
-  enregistrer(sessionId, payload) {
+  async enregistrer(sessionId, payload) {
     const { bytes, mimeType, extension } = decoder(payload);
     const note = {
       id: `voc_${crypto.randomUUID()}`,
@@ -47,50 +50,24 @@ class VoiceStore {
     };
     note.fichier = `${note.id}${extension}`;
 
-    if (this.dossier) {
-      const cible = this.chemin(sessionId, note);
-      fs.mkdirSync(path.dirname(cible), { recursive: true });
-      const temp = `${cible}.${process.pid}.tmp`;
-      fs.writeFileSync(temp, bytes);
-      fs.renameSync(temp, cible);
-    } else {
-      this.memoire.set(`${sessionId}/${note.fichier}`, bytes);
-    }
+    await this.depot.ecrire(this.chemin(sessionId, note), bytes, mimeType);
     return note;
   }
 
-  /** @returns {Buffer} le son de la note. */
-  lire(sessionId, note) {
-    if (!this.dossier) {
-      const bytes = this.memoire.get(`${sessionId}/${note.fichier}`);
-      if (!bytes) throw notFound('Le son de cette note vocale est introuvable.');
-      return bytes;
-    }
-    try {
-      return fs.readFileSync(this.chemin(sessionId, note));
-    } catch (error) {
-      if (error.code === 'ENOENT') throw notFound('Le son de cette note vocale est introuvable.');
-      throw error;
-    }
+  /** @returns {Promise<Buffer>} le son de la note. */
+  async lire(sessionId, note) {
+    const bytes = await this.depot.lire(this.chemin(sessionId, note));
+    if (!bytes) throw notFound('Le son de cette note vocale est introuvable.');
+    return bytes;
   }
 
-  supprimer(sessionId, note) {
-    if (!this.dossier) {
-      this.memoire.delete(`${sessionId}/${note.fichier}`);
-      return;
-    }
-    fs.rmSync(this.chemin(sessionId, note), { force: true });
+  async supprimer(sessionId, note) {
+    await this.depot.supprimer(this.chemin(sessionId, note));
   }
 
+  /** Le dépôt refuse déjà les segments douteux ; ceci ne fait que les composer. */
   chemin(sessionId, note) {
-    // sessionId et note.fichier sont produits par le serveur (uuid préfixé),
-    // mais on refuse tout de même ce qui pourrait sortir du dossier.
-    for (const segment of [sessionId, note.fichier]) {
-      if (!/^[A-Za-z0-9_.-]+$/.test(segment) || segment.includes('..')) {
-        throw badRequest('Identifiant de note vocale invalide.');
-      }
-    }
-    return path.join(this.dossier, sessionId, note.fichier);
+    return `${this.prefixe}/${sessionId}/${note.fichier}`;
   }
 }
 

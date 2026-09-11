@@ -7,7 +7,7 @@ const CLE_COACH = 'cle-de-test';
 
 /** Démarre le serveur sur un port libre, avec un stockage en mémoire. */
 async function demarrer() {
-  const serveur = http.createServer(createApp({ dataFile: null, cleCoach: CLE_COACH }));
+  const serveur = http.createServer(await createApp({ dataFile: null, cleCoach: CLE_COACH }));
   await new Promise((resolve) => serveur.listen(0, '127.0.0.1', resolve));
   const base = `http://127.0.0.1:${serveur.address().port}`;
 
