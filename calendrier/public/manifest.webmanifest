@@ -1,7 +1,7 @@
 {
   "name": "Calendrier des entraînements",
   "short_name": "Entraînements",
-  "description": "La semaine d'entraînement : créneaux 18h00 et 18h30, cinq lieux, et le compte rendu de chacun.",
+  "description": "La semaine d'entraînement : créneaux 10h30, 18h00 et 18h30, cinq lieux, et le compte rendu de chacun.",
   "lang": "fr",
   "dir": "ltr",
   "start_url": "./",

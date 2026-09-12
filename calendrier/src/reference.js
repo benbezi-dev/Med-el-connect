@@ -10,8 +10,8 @@ const LOCATIONS = [
   { id: 'valbonne-city-workout', name: 'Valbonne City Workout', city: 'Valbonne' }
 ];
 
-/** Les 2 heures possibles, dans l'ordre d'affichage de la colonne « Heure ». */
-const TIMES = ['18:00', '18:30'];
+/** Les heures possibles, dans l'ordre d'affichage de la colonne « Heure ». */
+const TIMES = ['10:30', '18:00', '18:30'];
 
 /** États d'une séance, alimentés par le menu déroulant de chaque séance. */
 const STATUTS = [
@@ -45,6 +45,15 @@ function isValidTime(time) {
   return TIMES.includes(String(time ?? '').trim());
 }
 
+/**
+ * « 10:30, 18:00 ou 18:30 » — une énumération lisible, quel que soit le
+ * nombre de valeurs. `join(' ou ')` donnerait « a ou b ou c ».
+ */
+function enumerer(valeurs) {
+  if (valeurs.length <= 1) return valeurs.join('');
+  return `${valeurs.slice(0, -1).join(', ')} ou ${valeurs[valeurs.length - 1]}`;
+}
+
 module.exports = {
   LOCATIONS,
   TIMES,
@@ -55,5 +64,6 @@ module.exports = {
   MOIS_HORIZON,
   findLocation,
   findStatut,
-  isValidTime
+  isValidTime,
+  enumerer
 };

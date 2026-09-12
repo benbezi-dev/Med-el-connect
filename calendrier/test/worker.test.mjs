@@ -8,7 +8,7 @@ import datesModule from '../src/dates.js';
 import referenceModule from '../src/reference.js';
 
 const { todayISO, addDays } = datesModule;
-const { TIMEZONE } = referenceModule;
+const { TIMEZONE, TIMES } = referenceModule;
 
 const AUJOURDHUI = todayISO(TIMEZONE);
 const HIER = addDays(AUJOURDHUI, -1);
@@ -102,7 +102,7 @@ test('le Worker sert l’API depuis R2, de bout en bout', async () => {
 
   const index = await appeler(env, '/api');
   assert.equal(index.status, 200);
-  assert.equal(index.body.heuresPossibles.length, 2);
+  assert.deepEqual(index.body.heuresPossibles, TIMES);
 
   // Une séance, puis un compte rendu d'athlète : tout doit passer par R2.
   const creation = await appeler(env, '/api/sessions', {

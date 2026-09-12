@@ -116,7 +116,7 @@ La page peut aussi être hébergée ailleurs que l'API : ouvrez-la avec
 Elles sont tenues par l'API, pas par la page : toute autre valeur part en `400`
 avec un message en français.
 
-- **Deux créneaux, et deux seulement** : `18:00` et `18:30`.
+- **Trois créneaux, et trois seulement** : `10:30`, `18:00` et `18:30`.
 - **Cinq lieux** : `antibes-fort-carre-stade`, `valbonne-stadium`,
   `grasse-stadium`, `valbonne-hill`, `valbonne-city-workout`.
 - **Un lieu, un créneau, une séance** : un doublon part en `409`. Les cinq lieux
@@ -174,8 +174,8 @@ curl -X POST http://localhost:3000/api/sessions \
 
 ```jsonc
 { "error": { "code": "invalid_request",
-             "message": "Le champ « time » doit valoir 18:00 ou 18:30.",
-             "details": { "heuresPossibles": ["18:00", "18:30"] } } }
+             "message": "Le champ « time » doit valoir 10:30, 18:00 ou 18:30.",
+             "details": { "heuresPossibles": ["10:30", "18:00", "18:30"] } } }
 ```
 
 **3 · Changer le statut** — ce que fait le menu déroulant de la page.

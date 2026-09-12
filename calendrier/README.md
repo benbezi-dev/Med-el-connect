@@ -1,8 +1,8 @@
 # API Calendrier — planification sur un an, présentation sur 7 jours
 
 Calendrier de réservation de créneaux d'entraînement : une grille de 7 jours,
-une **colonne « Heure »** à gauche, deux créneaux possibles (**18:00** et
-**18:30**) et cinq lieux.
+une **colonne « Heure »** à gauche, trois créneaux possibles (**10:30**,
+**18:00** et **18:30**) et cinq lieux.
 
 La planification court sur **12 mois**, mais la page n'affiche jamais qu'une
 **semaine** ; la vue année, repliée en bas de page, sert au suivi. Chaque
@@ -126,9 +126,9 @@ Les seules valeurs acceptées par l'API — toute autre valeur est refusée en 4
 
 | Heures possibles | Lieux possibles (`locationId`) | Nom | Statuts (`statut`) |
 |---|---|---|---|
-| `18:00` | `antibes-fort-carre-stade` | Antibes Fort Carré Stade | `prevue` (défaut) |
-| `18:30` | `valbonne-stadium` | Valbonne Stadium | `effectuee` |
-| | `grasse-stadium` | Grasse Stadium | `annulee` |
+| `10:30` | `antibes-fort-carre-stade` | Antibes Fort Carré Stade | `prevue` (défaut) |
+| `18:00` | `valbonne-stadium` | Valbonne Stadium | `effectuee` |
+| `18:30` | `grasse-stadium` | Grasse Stadium | `annulee` |
 | | `valbonne-hill` | Valbonne Hill | |
 | | `valbonne-city-workout` | Valbonne City Workout | |
 
@@ -267,7 +267,7 @@ curl "http://localhost:3000/api/calendar?start=2026-09-11"
   "start": "2026-09-11", "end": "2026-09-17", "today": "2026-09-11",
   "timezone": "Europe/Paris",
   "previousStart": "2026-09-04", "nextStart": "2026-09-18",
-  "times": ["18:00", "18:30"],
+  "times": ["10:30", "18:00", "18:30"],
   "statuts": [ { "id": "prevue", "label": "Prévue" } ],
   "locations": [ { "id": "antibes-fort-carre-stade", "name": "Antibes Fort Carré Stade", "city": "Antibes" } ],
   "days": [
@@ -334,7 +334,7 @@ curl -X POST http://localhost:3000/api/sessions \
 | Champ | Obligatoire | Règle |
 |---|---|---|
 | `date` | oui | `YYYY-MM-DD` existante |
-| `time` | oui | `18:00` ou `18:30` |
+| `time` | oui | `10:30`, `18:00` ou `18:30` |
 | `locationId` | oui | un des 5 identifiants |
 | `statut` | non | `prevue` (défaut), `effectuee` ou `annulee` |
 | `title` | non | ≤ 120 caractères (défaut « Entraînement ») |

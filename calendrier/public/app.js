@@ -181,7 +181,7 @@
     var t = calendrier.totaux;
     els.periode.textContent =
       'Du ' + formaterDate(calendrier.start) + ' au ' + formaterDate(calendrier.end) +
-      ' · créneaux ' + calendrier.times.join(' et ') +
+      ' · créneaux ' + enumerer(calendrier.times) +
       ' · ' + pluriel(t.total, 'séance') +
       ' (' + pluriel(t.effectuee, 'effectuée') + ', ' + pluriel(t.prevue, 'prévue') + ')';
     els.etat.textContent = '';
@@ -1028,6 +1028,12 @@
       month: complet ? 'long' : 'short',
       year: complet ? 'numeric' : undefined
     });
+  }
+
+  /** « 10:30, 18:00 ou 18:30 » — join(' et ') donnerait « a et b et c ». */
+  function enumerer(valeurs, liaison) {
+    if (valeurs.length <= 1) return valeurs.join('');
+    return valeurs.slice(0, -1).join(', ') + ' ' + (liaison || 'et') + ' ' + valeurs[valeurs.length - 1];
   }
 
   /** « 1 séance », « 3 séances » — le pluriel irrégulier peut être passé. */

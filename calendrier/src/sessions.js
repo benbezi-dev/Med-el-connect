@@ -1,6 +1,6 @@
 /* Séances du calendrier : validation, unicité, statuts et CRUD.
 
-   Une séance = un lieu, un jour, une heure (18:00 ou 18:30). Deux séances ne
+   Une séance = un lieu, un jour, un des créneaux du référentiel. Deux séances ne
    peuvent pas occuper le même lieu au même créneau ; en revanche les 5 lieux
    peuvent tourner en parallèle sur le même créneau.
 
@@ -23,7 +23,8 @@ const {
   LOCATIONS,
   STATUTS,
   STATUT_PAR_DEFAUT,
-  TIMEZONE
+  TIMEZONE,
+  enumerer
 } = require('./reference');
 const { ATHLETES, findAthlete } = require('./athletes');
 const { ApiError, badRequest, notFound, conflict } = require('./errors');
@@ -56,7 +57,7 @@ class SessionService {
       throw badRequest('Le paramètre « to » doit être une date au format YYYY-MM-DD.');
     }
     if (time !== undefined && !isValidTime(time)) {
-      throw badRequest(`Le paramètre « time » doit valoir ${TIMES.join(' ou ')}.`);
+      throw badRequest(`Le paramètre « time » doit valoir ${enumerer(TIMES)}.`);
     }
     if (locationId !== undefined && !findLocation(locationId)) {
       throw badRequest('Le paramètre « location » ne correspond à aucun lieu connu.', {
@@ -381,7 +382,7 @@ function validate(payload, { partial }) {
   required('time', 'time');
   if (has('time')) {
     if (!isValidTime(payload.time)) {
-      throw badRequest(`Le champ « time » doit valoir ${TIMES.join(' ou ')}.`, { heuresPossibles: TIMES });
+      throw badRequest(`Le champ « time » doit valoir ${enumerer(TIMES)}.`, { heuresPossibles: TIMES });
     }
     result.time = String(payload.time).trim();
   }
