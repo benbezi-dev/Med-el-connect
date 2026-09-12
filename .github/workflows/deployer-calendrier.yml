@@ -7,12 +7,14 @@
 # Ce qu'il faut poser une seule fois, dans Settings > Secrets and variables >
 # Actions du dépôt :
 #
-#   CLOUDFLARE_API_TOKEN   — jeton « Edit Cloudflare Workers » (obligatoire)
-#   CALENDAR_COACH_KEY     — la clé qui ouvre le mode coach (obligatoire)
+#   CLOUDFLARE_API_TOKEN   — jeton « Edit Cloudflare Workers » (le seul requis)
+#   CALENDAR_COACH_KEY     — la clé du mode coach ; se pose quand vous voulez
 #   CLOUDFLARE_ACCOUNT_ID  — seulement si le jeton voit plusieurs comptes
 #
-# Tant que les deux premiers manquent, la construction s'arrête proprement en
-# le disant, plutôt que d'échouer sur un message d'authentification obscur.
+# Seul le jeton bloque le déploiement. La clé coach ne conditionne que le mode
+# coach : sans elle le calendrier est en ligne, les athlètes écrivent leurs
+# comptes rendus, et seul le mode coach répond 503 en le disant. Les coupler
+# aurait retardé la mise en ligne pour une raison qui ne la concerne pas.
 
 name: Déployer le calendrier
 
@@ -49,28 +51,30 @@ jobs:
       - name: Tests
         run: node --test
 
-      - name: Vérifier que les secrets sont posés
+      - name: Vérifier les secrets posés
         id: secrets
         env:
           JETON: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLE: ${{ secrets.CALENDAR_COACH_KEY }}
         run: |
-          manquants=""
-          [ -n "$JETON" ] || manquants="$manquants CLOUDFLARE_API_TOKEN"
-          [ -n "$CLE" ] || manquants="$manquants CALENDAR_COACH_KEY"
-          if [ -n "$manquants" ]; then
+          if [ -n "$JETON" ]; then
+            echo "pret=oui" >> "$GITHUB_OUTPUT"
+          else
             echo "pret=non" >> "$GITHUB_OUTPUT"
             {
               echo "## Déploiement non effectué"
               echo
-              echo "Secrets manquants :$manquants"
+              echo "Le secret \`CLOUDFLARE_API_TOKEN\` n'est pas posé."
               echo
-              echo "À poser dans **Settings → Secrets and variables → Actions**,"
+              echo "À créer dans **Settings → Secrets and variables → Actions**,"
               echo "puis relancer ce workflow."
             } >> "$GITHUB_STEP_SUMMARY"
-            echo "Secrets manquants :$manquants — déploiement sauté."
+            echo "CLOUDFLARE_API_TOKEN absent — déploiement sauté."
+          fi
+          if [ -n "$CLE" ]; then
+            echo "cle=oui" >> "$GITHUB_OUTPUT"
           else
-            echo "pret=oui" >> "$GITHUB_OUTPUT"
+            echo "cle=non" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Déployer le Worker
@@ -81,10 +85,9 @@ jobs:
         run: npx --yes wrangler@4 deploy
 
       # Après le déploiement, et pas avant : « secret put » a besoin que le
-      # Worker existe. Sans cette clé, le Worker répond 503 et personne ne
-      # peut passer en mode coach.
+      # Worker existe.
       - name: Poser la clé coach
-        if: steps.secrets.outputs.pret == 'oui'
+        if: steps.secrets.outputs.pret == 'oui' && steps.secrets.outputs.cle == 'oui'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -93,6 +96,8 @@ jobs:
 
       - name: Où est-ce en ligne
         if: steps.secrets.outputs.pret == 'oui'
+        env:
+          CLE_POSEE: ${{ steps.secrets.outputs.cle }}
         run: |
           {
             echo "## Calendrier déployé"
@@ -100,4 +105,12 @@ jobs:
             echo "<https://calendrier-entrainements.benbezi-sprinter.workers.dev>"
             echo
             echo "Vérification : \`/api/health\` doit indiquer \`\"type\": \"d1\"\`."
+            echo
+            if [ "$CLE_POSEE" = "oui" ]; then
+              echo "Mode coach : clé posée."
+            else
+              echo "Mode coach : en attente du secret \`CALENDAR_COACH_KEY\`."
+              echo "Le calendrier est en ligne et les athlètes peuvent écrire ;"
+              echo "seul le mode coach répond \`503\` jusque-là."
+            fi
           } >> "$GITHUB_STEP_SUMMARY"

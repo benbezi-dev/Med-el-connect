@@ -327,22 +327,26 @@ tout de suite : il ne sera plus jamais affiché.
 > retour d'autorisation GitHub retombe souvent sur l'accueil du compte et la
 > création est perdue. D'où ce chemin-ci, qui ne dépend que de GitHub.
 
-**3. Poser deux secrets sur GitHub.** Dans le dépôt : **Settings → Secrets and
-variables → Actions → New repository secret**, deux fois.
-
-| Nom | Valeur |
-|---|---|
-| `CLOUDFLARE_API_TOKEN` | le jeton de l'étape 2 |
-| `CALENDAR_COACH_KEY` | quelque chose de long et d'imprévisible |
-
-Gardez la clé coach ailleurs — ni GitHub ni Cloudflare ne la réafficheront.
-Elle n'a pas à circuler dans le groupe WhatsApp : elle ouvre le planning et vos
-notes, que les athlètes ne doivent pas voir.
+**3. Poser le jeton sur GitHub.** Dans le dépôt : **Settings → Secrets and
+variables → Actions → New repository secret**. Nom `CLOUDFLARE_API_TOKEN`,
+valeur : le jeton de l'étape 2. C'est le seul secret requis pour être en ligne.
 
 Le workflow `.github/workflows/deployer-calendrier.yml` fait le reste à chaque
-push sur `main` : il passe les tests, déploie le Worker, puis pousse la clé
-coach dans ses secrets. Tant que les deux secrets manquent, il s'arrête en le
-disant au lieu d'échouer sur un message d'authentification obscur.
+push sur `main` : il passe les tests, puis déploie. Sans le jeton, il s'arrête
+en le nommant au lieu d'échouer sur un message d'authentification obscur.
+
+**4. Poser la clé coach, quand vous voulez.** Même endroit, second secret :
+`CALENDAR_COACH_KEY`, quelque chose de long et d'imprévisible. Le déploiement
+suivant la pousse dans les secrets du Worker.
+
+> Elle ne conditionne **pas** la mise en ligne. Sans elle, le calendrier est
+> visible et vos athlètes écrivent leurs comptes rendus ; seul le mode coach
+> répond `503` en le disant. Inutile, donc, de retarder la mise en ligne pour
+> une clé qui ne concerne que vous.
+
+Gardez-la ailleurs — ni GitHub ni Cloudflare ne la réafficheront. Elle n'a pas
+à circuler dans le groupe WhatsApp : elle ouvre le planning et vos notes, que
+les athlètes ne doivent pas voir.
 
 > Tant que ce secret manque, le Worker répond `503` en le disant. Ce n'est pas
 > une panne : un Worker ne garde rien entre deux requêtes, donc une clé tirée
@@ -350,8 +354,8 @@ disant au lieu d'échouer sur un message d'authentification obscur.
 > mode coach. Mieux vaut un refus clair qu'un calendrier que vous ne pouvez
 > pas administrer.
 
-**4. Copier l'adresse** affichée en haut du Worker, et la coller dans WhatsApp.
-L'aperçu du lien montrera la piste et les cinq couloirs.
+**5. Copier l'adresse** du Worker — le résumé du run GitHub l'affiche — et la
+coller dans WhatsApp. L'aperçu du lien montrera la piste et les cinq couloirs.
 
 ### Depuis un ordinateur
 
