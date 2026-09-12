@@ -1,0 +1,116 @@
+# Déploiement du calendrier sur Cloudflare Workers, depuis GitHub.
+#
+# Pourquoi ici plutôt que par le tableau de bord Cloudflare : le parcours
+# « Connect GitHub » de Cloudflare se perd sur téléphone et renvoie à
+# l'accueil du compte. GitHub, lui, tient la route dans un navigateur mobile.
+#
+# Ce qu'il faut poser une seule fois, dans Settings > Secrets and variables >
+# Actions du dépôt :
+#
+#   CLOUDFLARE_API_TOKEN   — jeton « Edit Cloudflare Workers » (le seul requis)
+#   CALENDAR_COACH_KEY     — la clé du mode coach ; se pose quand vous voulez
+#   CLOUDFLARE_ACCOUNT_ID  — seulement si le jeton voit plusieurs comptes
+#
+# Seul le jeton bloque le déploiement. La clé coach ne conditionne que le mode
+# coach : sans elle le calendrier est en ligne, les athlètes écrivent leurs
+# comptes rendus, et seul le mode coach répond 503 en le disant. Les coupler
+# aurait retardé la mise en ligne pour une raison qui ne la concerne pas.
+
+name: Déployer le calendrier
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'calendrier/**'
+      - '.github/workflows/deployer-calendrier.yml'
+  workflow_dispatch:
+
+# Un déploiement à la fois : deux poussées rapprochées ne doivent pas se
+# doubler et laisser en ligne la plus ancienne des deux.
+concurrency:
+  group: deploiement-calendrier
+  cancel-in-progress: false
+
+jobs:
+  deployer:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: calendrier
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Le calendrier n'a aucune dépendance npm : les tests tournent tels quels.
+      # Ils passent avant le déploiement — on ne met pas en ligne du rouge.
+      - name: Tests
+        run: node --test
+
+      - name: Vérifier les secrets posés
+        id: secrets
+        env:
+          JETON: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLE: ${{ secrets.CALENDAR_COACH_KEY }}
+        run: |
+          if [ -n "$JETON" ]; then
+            echo "pret=oui" >> "$GITHUB_OUTPUT"
+          else
+            echo "pret=non" >> "$GITHUB_OUTPUT"
+            {
+              echo "## Déploiement non effectué"
+              echo
+              echo "Le secret \`CLOUDFLARE_API_TOKEN\` n'est pas posé."
+              echo
+              echo "À créer dans **Settings → Secrets and variables → Actions**,"
+              echo "puis relancer ce workflow."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "CLOUDFLARE_API_TOKEN absent — déploiement sauté."
+          fi
+          if [ -n "$CLE" ]; then
+            echo "cle=oui" >> "$GITHUB_OUTPUT"
+          else
+            echo "cle=non" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Déployer le Worker
+        if: steps.secrets.outputs.pret == 'oui'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4 deploy
+
+      # Après le déploiement, et pas avant : « secret put » a besoin que le
+      # Worker existe.
+      - name: Poser la clé coach
+        if: steps.secrets.outputs.pret == 'oui' && steps.secrets.outputs.cle == 'oui'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CALENDAR_COACH_KEY: ${{ secrets.CALENDAR_COACH_KEY }}
+        run: printf '%s' "$CALENDAR_COACH_KEY" | npx --yes wrangler@4 secret put CALENDAR_COACH_KEY
+
+      - name: Où est-ce en ligne
+        if: steps.secrets.outputs.pret == 'oui'
+        env:
+          CLE_POSEE: ${{ steps.secrets.outputs.cle }}
+        run: |
+          {
+            echo "## Calendrier déployé"
+            echo
+            echo "<https://calendrier-entrainements.benbezi-sprinter.workers.dev>"
+            echo
+            echo "Vérification : \`/api/health\` doit indiquer \`\"type\": \"d1\"\`."
+            echo
+            if [ "$CLE_POSEE" = "oui" ]; then
+              echo "Mode coach : clé posée."
+            else
+              echo "Mode coach : en attente du secret \`CALENDAR_COACH_KEY\`."
+              echo "Le calendrier est en ligne et les athlètes peuvent écrire ;"
+              echo "seul le mode coach répond \`503\` jusque-là."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
