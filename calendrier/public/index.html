@@ -54,7 +54,12 @@
     </header>
 
     <p class="message erreur" id="alerte" role="alert" hidden></p>
+    <p class="message reseau" id="bandeau-reseau" role="status" hidden></p>
 
+    <!-- Deux présentations des mêmes données : le tableau de la semaine sur
+         grand écran, un jour à la fois sur téléphone. Les deux sont
+         construites, et la feuille de style n'en montre qu'une — le
+         basculement suit donc la rotation de l'appareil sans rien recalculer. -->
     <div class="cadre">
       <table id="calendrier">
         <caption class="etat" id="etat">Chargement du calendrier…</caption>
@@ -62,6 +67,11 @@
         <tbody id="corps"></tbody>
       </table>
     </div>
+
+    <section class="vue-jour" id="vue-jour" aria-label="Séances du jour">
+      <nav class="jours-barre" id="jours-barre" aria-label="Choisir le jour"></nav>
+      <div class="jour-contenu" id="jour-contenu"></div>
+    </section>
 
     <ul class="legende" id="legende" aria-label="Lieux possibles"></ul>
 

@@ -319,3 +319,133 @@ textarea { resize: vertical; min-height: 64px; }
 @media (max-width: 640px) {
   .suivi-compte { margin-left: 0; width: 100%; }
 }
+
+/* ---------- Vue téléphone : un jour à la fois ----------
+
+   Sur 390 px, le tableau de la semaine demandait 1146 px de large : deux
+   colonnes visibles sur huit, et 782 px à faire défiler de côté pour
+   atteindre vendredi. En dessous de 700 px, on montre donc un seul jour,
+   pleine largeur, et la semaine tient dans une barre de sept pastilles.
+
+   Les deux présentations sont construites ensemble et c'est cette bascule
+   qui choisit : tourner le téléphone ne recalcule rien. */
+
+/* Filet avant l'exécution du script : la bonne vue est déjà la seule visible.
+   Ensuite, majPresentation() pose l'attribut hidden, qui retire l'autre de
+   l'arbre d'accessibilité — le CSS seul la laisserait atteignable au clavier. */
+.vue-jour { display: none; }
+
+@media (max-width: 700px) {
+  .cadre { display: none; }
+  .vue-jour { display: block; }
+}
+
+/* La barre des jours : toute la semaine sur une ligne, sans défilement. */
+.jours-barre {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  padding: 6px;
+}
+
+.jour-puce {
+  display: grid;
+  gap: 1px;
+  justify-items: center;
+  min-height: 56px;                    /* confortable au pouce */
+  padding: 6px 2px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: var(--encre-douce);
+}
+.jour-puce:hover { background: var(--surface-haute); border-color: transparent; }
+.jour-puce.passe { opacity: 0.55; }
+.jour-puce.aujourdhui .jour-num { color: var(--fluo); }
+.jour-puce.actif {
+  background: var(--surface-haute);
+  border-color: var(--fluo);
+  color: var(--encre);
+}
+
+.jour-nom { font-size: 10px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; }
+.jour-num { font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.jour-points {
+  font-size: 10px; font-weight: 700; min-height: 13px;
+  color: var(--encre-douce); font-variant-numeric: tabular-nums;
+}
+/* Le vert ne dit qu'une chose : des séances ont été faites. */
+.jour-points.fait { color: var(--succes); }
+
+/* Le jour choisi */
+.jour-contenu { margin-top: 14px; display: grid; gap: 14px; }
+
+.jour-titre { display: grid; gap: 2px; }
+.jour-date { font-size: 17px; font-weight: 800; }
+.jour-date::first-letter { text-transform: uppercase; }
+.jour-resume { font-size: 13px; font-weight: 500; color: var(--encre-douce); }
+
+.jour-creneau {
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+.jour-heure {
+  font-size: 15px; font-weight: 800; color: var(--fluo);
+  font-variant-numeric: tabular-nums; letter-spacing: 0.5px;
+}
+
+/* Les cartes reprennent leur mise en forme, en pleine largeur. */
+.jour-creneau .seance { margin-bottom: 0; }
+.jour-creneau .seance-ouvrir { padding: 12px; }
+.jour-creneau .statut-select { padding: 10px 12px; font-size: 12px; }
+.jour-creneau .ajouter { padding: 12px; }
+.jour-creneau .note-bouton { padding: 12px 10px; }
+
+.jour-rien { color: var(--encre-douce); font-size: 14px; padding: 8px 2px; }
+
+/* ---------- Cibles tactiles et en-tête, sur téléphone ----------
+
+   La grille commençait à 590 px du haut : l'essentiel passait sous la ligne
+   de flottaison avant d'avoir rien montré. */
+
+@media (max-width: 700px) {
+  .page { padding: 14px 12px 48px; }
+
+  .entete { gap: 10px; margin-bottom: 14px; }
+  .entete h1 { font-size: 19px; line-height: 1.15; }
+  .entete h1::before { width: 32px; height: 4px; margin-bottom: 7px; }
+  .entete p { font-size: 12px; margin-top: 2px; }
+
+  .entete-actions { width: 100%; align-items: stretch; gap: 8px; }
+  .navigation { width: 100%; gap: 6px; }
+  .navigation button { flex: 1; min-height: 44px; padding: 10px 6px; font-size: 13px; }
+
+  /* « Je suis » et la bascule coach partagent une ligne : l'athlète ne
+     touche jamais la seconde, elle n'a pas à prendre toute la largeur. */
+  .entete-actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+  .navigation { grid-column: 1 / -1; }
+  .moi { justify-content: space-between; min-width: 0; }
+  .moi select { flex: 1; min-width: 0; min-height: 44px; }
+  .coach-bascule { min-height: 44px; white-space: nowrap; font-size: 11px; padding: 5px 10px; }
+
+  /* Tout ce qui se touche doit pouvoir être touché. */
+  .seance-ouvrir, .ajouter, .note-bouton, .statut-select,
+  .vocal-barre button, .actions button, .vocal-actions button { min-height: 44px; }
+
+  .legende { gap: 6px; }
+  .puce { font-size: 12px; padding: 6px 12px 6px 9px; }
+}
+
+/* Le bandeau réseau : il dit d'où viennent les données et ce qui attend. */
+.message.reseau {
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  color: #FBBF24;
+}
