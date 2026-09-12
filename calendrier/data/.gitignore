@@ -1,0 +1,5 @@
+# Les séances et les notes vocales restent locales au serveur.
+sessions.json
+notes-vocales/
+cle-coach.txt
+*.tmp

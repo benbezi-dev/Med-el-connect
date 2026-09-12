@@ -1,0 +1,60 @@
+# Déploiement sur Cloudflare Workers.
+#
+# Depuis un ordinateur :
+#   npx wrangler secret put CALENDAR_COACH_KEY
+#   npx wrangler deploy
+#
+# Depuis un téléphone, tout se fait au navigateur : voir GUIDE.md, section 6.
+#
+# Le Worker ne dort jamais : un athlète qui ouvre le lien depuis WhatsApp
+# n'attend pas de réveil, même après des jours sans visite.
+
+name = "calendrier-entrainements"
+main = "src/worker.mjs"
+compatibility_date = "2025-09-01"
+
+# Buffer et node:crypto — utilisés par les séances, les notes et la
+# comparaison de la clé coach.
+compatibility_flags = ["nodejs_compat"]
+
+# Les fichiers de public/ : la page, le style, les icônes, l'image de partage.
+#
+# run_worker_first est indispensable ici : sans lui, Cloudflare sert les
+# fichiers AVANT d'appeler le Worker, la page part telle quelle avec son
+# gabarit {{origine}} intact, et l'aperçu WhatsApp n'affiche aucune vignette.
+# Seules les pages HTML ont besoin de passer par le Worker ; le style, les
+# icônes et l'image de partage sont servis directement.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/", "/index.html"]
+
+# Les données : un document JSON qui tient les séances, leurs statuts, les
+# comptes rendus des athlètes et les notes dictées du coach. Rien d'autre —
+# aucun son n'est conservé, donc aucune valeur volumineuse.
+[[d1_databases]]
+binding = "CALENDRIER_DB"
+database_name = "calendrier-entrainements"
+database_id = "b5eb5cbc-5604-4594-a240-294a250d687a"
+
+# R2 conviendrait tout aussi bien, et le code le prend en charge sans rien
+# changer d'autre : décommentez ce bloc, retirez celui de D1, et activez R2
+# dans le tableau de bord.
+#
+# [[r2_buckets]]
+# binding = "CALENDRIER"
+# bucket_name = "calendrier-entrainements"
+
+[vars]
+# Préfixe dans le stockage, si vous le partagez avec autre chose. Facultatif.
+CALENDAR_R2_PREFIX = ""
+
+# Domaine public, si le Worker est derrière un domaine personnalisé dont il ne
+# voit pas le nom. Laissez vide pour le déduire de la requête.
+CALENDAR_PUBLIC_URL = ""
+
+# CALENDAR_COACH_KEY n'est pas ici : c'est un secret.
+#   npx wrangler secret put CALENDAR_COACH_KEY
+# Sans elle, le Worker refuse de servir l'API en l'expliquant — personne ne
+# pourrait passer en mode coach, et la clé serait tirée au sort à chaque
+# requête.

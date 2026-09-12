@@ -1,0 +1,321 @@
+/* Présentation 7 jours — thème sport : fond nuit, accent vert fluo, et une
+   couleur de couloir par lieu (comme les couloirs d'une piste). */
+:root {
+  color-scheme: dark;
+
+  --nuit: #0A1220;
+  --surface: #101B2D;
+  --surface-haute: #16243A;
+  --encre: #EDF2F9;
+  --encre-douce: #8FA2BC;
+  --bordure: #1E2F49;
+  --bordure-forte: #2D4368;
+
+  --fluo: #C7FA3C;          /* accent principal : action, aujourd'hui */
+  --fluo-sombre: #A8DC22;
+  --succes: #4ADE80;
+  --alerte: #FF5A5F;
+
+  --rayon: 12px;
+  --ombre: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+/* Couleurs de couloir : partagées par les séances et la légende. */
+[data-lieu="antibes-fort-carre-stade"] { --couloir: #FF6B3D; }
+[data-lieu="valbonne-stadium"]         { --couloir: #38BDF8; }
+[data-lieu="grasse-stadium"]           { --couloir: #F472B6; }
+[data-lieu="valbonne-hill"]            { --couloir: #A78BFA; }
+[data-lieu="valbonne-city-workout"]    { --couloir: #FBBF24; }
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* Un `display` posé par une classe l'emporterait sur la feuille du navigateur :
+   sans cette règle, l'attribut hidden ne masquerait rien. */
+[hidden] { display: none !important; }
+
+body {
+  background: var(--nuit);
+  color: var(--encre);
+  font: 15px/1.5 Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page { max-width: 1280px; margin: 0 auto; padding: 24px 16px 64px; }
+
+/* ---------- En-tête ---------- */
+.entete { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
+.entete h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.4px; text-transform: uppercase; }
+.entete h1::before { content: ''; display: block; width: 44px; height: 5px; border-radius: 3px; background: var(--fluo); margin-bottom: 10px; }
+.entete p { color: var(--encre-douce); font-size: 14px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+.entete-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.navigation { display: flex; gap: 8px; align-items: center; }
+
+/* Bascule coach : les notes vocales n'existent que dans ce mode. */
+.coach-bascule { font-size: 12px; padding: 5px 12px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--encre-douce); }
+.coach-bascule::before { content: '○ '; }
+.coach-bascule.actif { color: var(--fluo); border-color: var(--fluo); }
+.coach-bascule.actif::before { content: '● '; }
+.coach-aide { font-size: 12px; color: var(--encre-douce); margin-top: -6px; }
+.coach-aide code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--encre); }
+
+button {
+  font: inherit;
+  font-weight: 600;
+  color: var(--encre);
+  background: var(--surface-haute);
+  border: 1px solid var(--bordure-forte);
+  border-radius: 10px;
+  padding: 9px 14px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+button:hover { background: #1D2F4B; border-color: var(--encre-douce); }
+button:focus-visible { outline: 2px solid var(--fluo); outline-offset: 2px; }
+button.principal { background: var(--fluo); border-color: var(--fluo); color: #0A1220; }
+button.principal:hover { background: var(--fluo-sombre); border-color: var(--fluo-sombre); }
+button.danger { color: var(--alerte); }
+button.danger:hover { border-color: var(--alerte); }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ---------- Grille calendrier ---------- */
+.cadre { background: var(--surface); border: 1px solid var(--bordure); border-radius: var(--rayon); box-shadow: var(--ombre); overflow-x: auto; }
+
+table { border-collapse: collapse; width: 100%; min-width: 900px; }
+
+th, td { border-bottom: 1px solid var(--bordure); border-right: 1px solid var(--bordure); vertical-align: top; text-align: left; }
+th:last-child, td:last-child { border-right: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+
+thead th { background: var(--surface-haute); padding: 12px 10px; font-size: 13px; font-weight: 700; position: sticky; top: 0; z-index: 2; }
+thead th .jour { display: block; color: var(--encre-douce); font-weight: 700; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
+thead th .date { display: block; font-size: 17px; font-weight: 800; margin-top: 2px; }
+thead th .compteur { display: block; font-size: 11px; font-weight: 700; color: var(--succes); margin-top: 4px; }
+thead th.aujourdhui { background: #1B2E1A; box-shadow: inset 0 3px 0 var(--fluo); }
+thead th.aujourdhui .jour, thead th.aujourdhui .date { color: var(--fluo); }
+thead th.weekend .jour { color: #6F82A0; }
+
+/* Colonne « Heure » : figée à gauche pour rester lisible au défilement. */
+.col-heure { width: 96px; min-width: 96px; background: var(--surface-haute); position: sticky; left: 0; z-index: 3; border-right: 2px solid var(--bordure-forte); }
+thead th.col-heure { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--encre-douce); }
+td.col-heure, th.col-heure[scope="row"] { padding: 14px 10px; font-size: 18px; font-weight: 800; z-index: 1; font-variant-numeric: tabular-nums; color: var(--fluo); }
+
+td.creneau { padding: 8px; min-width: 150px; }
+td.creneau.passe { background: rgba(0, 0, 0, 0.22); }
+
+/* Une séance : la carte s'ouvre au clic, le menu déroulant change son statut. */
+.seance {
+  background: var(--surface-haute);
+  border: 1px solid var(--bordure-forte);
+  border-left: 4px solid var(--couloir, var(--fluo));
+  border-radius: 8px; margin-bottom: 6px; overflow: hidden;
+}
+.seance:hover { border-color: var(--couloir, var(--fluo)); }
+.seance-ouvrir {
+  display: block; width: 100%; text-align: left; font-weight: 500;
+  background: none; border: 0; border-radius: 0; padding: 8px 10px;
+}
+.seance-ouvrir:hover { background: #1D2F4B; border-color: transparent; }
+.seance .lieu { display: block; font-weight: 800; font-size: 13px; color: var(--couloir, var(--encre)); }
+.seance .titre { display: block; font-size: 13px; color: var(--encre-douce); }
+.seance .places { display: block; font-size: 12px; color: var(--succes); font-weight: 700; margin-top: 2px; }
+.seance .places.complet { color: var(--alerte); }
+.seance .vocal-indicateur { display: block; font-size: 11px; color: var(--encre-douce); margin-top: 2px; }
+
+.statut-select {
+  width: 100%; border: 0; border-top: 1px solid var(--bordure); border-radius: 0;
+  background: rgba(0, 0, 0, 0.25); color: var(--encre-douce);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+  padding: 5px 8px;
+}
+.statut-select:focus { outline-offset: -2px; }
+
+.seance[data-statut="effectuee"] { background: rgba(74, 222, 128, 0.09); }
+.seance[data-statut="effectuee"] .statut-select { color: var(--succes); }
+.seance[data-statut="annulee"] { opacity: 0.62; }
+.seance[data-statut="annulee"] .titre { text-decoration: line-through; }
+.seance[data-statut="annulee"] .statut-select { color: var(--alerte); }
+
+.ajouter { width: 100%; background: transparent; border-style: dashed; border-color: var(--bordure-forte); color: var(--encre-douce); font-size: 13px; padding: 7px; }
+.ajouter:hover { color: var(--fluo); border-color: var(--fluo); background: rgba(199, 250, 60, 0.06); }
+.cellule-vide { color: #5A6E8C; font-size: 13px; padding: 4px 0 8px; }
+
+/* ---------- Légende ---------- */
+.legende { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.puce { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--bordure); border-radius: 999px; padding: 5px 14px 5px 10px; font-size: 13px; color: var(--encre-douce); }
+.puce::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--couloir, var(--fluo)); flex: none; }
+.puce b { font-weight: 700; color: var(--encre); }
+
+/* ---------- Vue année (repliée par défaut) ---------- */
+.annee { margin-top: 20px; background: var(--surface); border: 1px solid var(--bordure); border-radius: var(--rayon); }
+.annee > summary { cursor: pointer; padding: 12px 16px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--encre-douce); }
+.annee > summary:hover { color: var(--encre); }
+.annee[open] > summary { border-bottom: 1px solid var(--bordure); color: var(--fluo); }
+.annee-contenu { padding: 16px; }
+.annee-resume { color: var(--encre-douce); font-size: 14px; }
+
+.annee-mois { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin: 14px 0 22px; }
+.mois { background: var(--surface-haute); border: 1px solid var(--bordure); border-radius: 10px; padding: 10px 12px; display: grid; gap: 3px; align-content: start; }
+.mois.courant { border-color: var(--fluo); }
+.mois b { text-transform: capitalize; font-size: 14px; }
+.mois-total { font-size: 13px; color: var(--fluo); font-weight: 700; }
+.mois-detail { font-size: 12px; color: var(--encre-douce); }
+.mois-aller { margin-top: 6px; padding: 5px 8px; font-size: 12px; }
+
+.archives h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--encre-douce); }
+.archives-aide { font-size: 13px; color: var(--encre-douce); margin-top: 4px; }
+.archives-liste { list-style: none; display: grid; gap: 8px; margin-top: 10px; }
+.archives-liste li { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; background: var(--surface-haute); border: 1px solid var(--bordure); border-left: 4px solid var(--couloir, var(--bordure-forte)); border-radius: 8px; padding: 8px 12px; font-size: 13px; }
+
+/* ---------- Notes vocales ---------- */
+.vocal { border: 1px solid var(--bordure-forte); border-radius: 10px; padding: 12px; display: grid; gap: 10px; }
+.vocal h3 { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--encre-douce); }
+.vocal-barre { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.vocal-etat { font-size: 12px; color: var(--encre-douce); }
+.vocal-aide { font-size: 12px; color: var(--encre-douce); }
+#enregistrer-voix.actif { background: var(--alerte); border-color: var(--alerte); color: #0A1220; }
+.vocal-liste { list-style: none; display: grid; gap: 10px; }
+.vocal-vide { font-size: 13px; color: #5A6E8C; }
+.vocal-note { background: var(--surface-haute); border: 1px solid var(--bordure); border-radius: 8px; padding: 10px; display: grid; gap: 6px; justify-items: start; }
+.vocal-note { width: 100%; }
+.vocal-meta { font-size: 12px; color: var(--encre-douce); font-variant-numeric: tabular-nums; }
+.vocal-transcription { font-size: 13px; color: var(--encre); line-height: 1.5; white-space: pre-wrap; }
+
+/* Dicter, relire, corriger. Le son n'est jamais conservé : c'est le texte
+   qui est la note, donc il doit être confortable à écrire et à reprendre. */
+.vocal-intro { font-size: 12px; color: var(--encre-douce); margin-top: -4px; }
+.vocal-champ { display: grid; gap: 5px; }
+.vocal-etiquette { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--encre-douce); }
+.vocal textarea {
+  font: inherit; width: 100%; resize: vertical;
+  background: var(--surface-haute); color: var(--encre);
+  border: 1px solid var(--bordure-forte); border-radius: 8px; padding: 8px 10px;
+}
+.vocal textarea:focus-visible { outline: 2px solid var(--fluo); outline-offset: 1px; }
+#enregistrer-voix.actif { color: var(--alerte); border-color: var(--alerte); }
+.vocal-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.vocal-correction { width: 100%; }
+.vocal-note button { padding: 5px 10px; font-size: 12px; }
+
+/* ---------- Boîte de dialogue ---------- */
+dialog { margin: auto; border: 1px solid var(--bordure-forte); border-radius: var(--rayon); padding: 0; max-width: 440px; width: calc(100% - 32px); max-height: calc(100% - 32px); overflow: auto; box-shadow: 0 16px 50px rgba(0, 0, 0, 0.6); background: var(--surface); color: var(--encre); }
+dialog::backdrop { background: rgba(5, 10, 20, 0.72); }
+dialog form { padding: 20px; display: grid; gap: 14px; }
+dialog h2 { font-size: 19px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.2px; }
+dialog .contexte { color: var(--encre-douce); font-size: 14px; margin-top: 2px; }
+
+label { display: grid; gap: 5px; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--encre-douce); }
+input, select, textarea {
+  font: inherit; font-weight: 500; letter-spacing: normal; text-transform: none; color: var(--encre);
+  border: 1px solid var(--bordure-forte); border-radius: 9px; padding: 9px 10px; background: var(--surface-haute); width: 100%;
+}
+input::placeholder, textarea::placeholder { color: #6F82A0; }
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--fluo); outline-offset: 0; border-color: var(--fluo); }
+textarea { resize: vertical; min-height: 64px; }
+
+.actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.actions .a-gauche { margin-right: auto; }
+
+.message { border-radius: 9px; padding: 9px 12px; font-size: 13px; font-weight: 600; }
+.message.erreur { background: rgba(255, 90, 95, 0.14); color: #FF9296; border: 1px solid rgba(255, 90, 95, 0.35); }
+.message.info { background: rgba(74, 222, 128, 0.12); color: var(--succes); border: 1px solid rgba(74, 222, 128, 0.3); }
+.message[hidden] { display: none; }
+
+.etat { padding: 24px; text-align: center; color: var(--encre-douce); }
+
+@media (max-width: 640px) {
+  .page { padding: 16px 12px 48px; }
+  .entete h1 { font-size: 21px; }
+  .entete-actions { width: 100%; align-items: stretch; }
+  .navigation { width: 100%; }
+  .navigation button { flex: 1; padding: 9px 8px; }
+}
+
+/* ---------- Athlètes ----------
+
+   La couleur d'un athlète ne porte jamais seule l'information : elle
+   accompagne toujours ses initiales, et son nom en toutes lettres dès qu'il y
+   a la place. Neuf couleurs ne se distinguent pas de façon fiable — surtout
+   en vision des couleurs déficiente — d'où les initiales sur chaque pastille.
+
+   Elle se distingue aussi par la forme de la couleur de couloir d'un lieu :
+   un lieu se lit sur le liseré gauche d'une séance, un athlète sur un rond. */
+
+.moi {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; letter-spacing: 0.5px; text-transform: uppercase;
+  color: var(--encre-douce);
+  white-space: nowrap;                 /* « Je suis » tient sur une ligne */
+}
+.moi select {
+  font: inherit; text-transform: none; letter-spacing: normal;
+  background: var(--surface-haute); color: var(--encre);
+  border: 1px solid var(--bordure-forte); border-radius: 999px;
+  padding: 5px 10px 5px 26px; cursor: pointer;
+  background-image: radial-gradient(circle at 13px 50%, var(--athlete, transparent) 5px, transparent 5px);
+}
+.moi select:focus-visible { outline: 2px solid var(--fluo); outline-offset: 2px; }
+
+.pastille-athlete {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; flex: none;
+  border-radius: 50%;
+  background: var(--athlete, var(--bordure-forte));
+  color: #0A1220;                      /* les neuf couleurs sont claires : encre sombre */
+  font-size: 9px; font-weight: 800; letter-spacing: 0.3px;
+}
+
+.auteurs { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 6px; }
+.auteurs .pastille-athlete { width: 17px; height: 17px; font-size: 8px; }
+
+/* Le compte rendu, côté athlète */
+.notes-athlete:empty { display: none; }
+.notes-athlete { padding: 0 10px 8px; }
+.note-bouton {
+  width: 100%; font-size: 12px; padding: 5px 8px;
+  color: var(--encre-douce); border-style: dashed;
+}
+.note-bouton:hover { color: var(--encre); border-color: var(--athlete, var(--fluo)); }
+.note-bouton.remplie {
+  border-style: solid; border-color: var(--athlete, var(--fluo));
+  color: var(--athlete, var(--encre));
+}
+.note-apercu {
+  margin-top: 6px; font-size: 12px; line-height: 1.4; color: var(--encre-douce);
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+#dialogue-note textarea {
+  font: inherit; width: 100%; resize: vertical;
+  background: var(--surface-haute); color: var(--encre);
+  border: 1px solid var(--bordure-forte); border-radius: 8px; padding: 8px 10px;
+}
+#dialogue-note textarea:focus-visible { outline: 2px solid var(--fluo); outline-offset: 1px; }
+
+/* ---------- Suivi des athlètes (coach) ---------- */
+.suivi-resume { color: var(--encre-douce); font-size: 14px; }
+.suivi-athletes { display: grid; gap: 12px; margin-top: 14px; }
+
+.suivi-athlete {
+  background: var(--surface-haute); border: 1px solid var(--bordure);
+  border-left: 4px solid var(--athlete, var(--bordure-forte));
+  border-radius: 10px; padding: 12px 14px;
+}
+.suivi-athlete.muet { opacity: 0.55; }      /* le silence se voit, sans disparaître */
+
+.suivi-nom {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: 14px; font-weight: 800; margin: 0;
+}
+.suivi-compte {
+  margin-left: auto; font-size: 12px; font-weight: 500;
+  color: var(--encre-douce); text-transform: lowercase;
+}
+
+.suivi-note { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--bordure); }
+.suivi-seance { font-size: 12px; color: var(--encre-douce); }
+.suivi-texte { font-size: 14px; line-height: 1.5; margin-top: 3px; white-space: pre-wrap; }
+
+@media (max-width: 640px) {
+  .suivi-compte { margin-left: 0; width: 100%; }
+}
