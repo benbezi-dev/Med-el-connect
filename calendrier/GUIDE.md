@@ -20,15 +20,15 @@ node --version            # 1. vérifier Node (≥ 18)
 tar xzf calendrier-api.tar.gz
 cd calendrier             # 2. extraire l'archive
 
-npm test                  # 3. vérifier : 97 tests, aucun réseau nécessaire
+npm test                  # 3. vérifier : 103 tests, aucun réseau nécessaire
 npm start                 # 4. démarrer
 ```
 
 `npm test` doit afficher :
 
 ```
-# tests 97
-# pass 97
+# tests 103
+# pass 103
 # fail 0
 ```
 
@@ -275,19 +275,48 @@ Au démarrage, le serveur annonce toujours où il écrit :
 | `GOOGLE_DRIVE_FOLDER_NAME` | Calendrier entraînements | Dossier Drive à créer ou réutiliser |
 | `GOOGLE_DRIVE_FOLDER_ID` | — | Dossier Drive existant, par son identifiant |
 
-## 6. Mettre en ligne
+## 6. Mettre en ligne sur Cloudflare Workers
 
-Il vous faut un hébergeur qui **exécute Node**. L'application MED-EL Connect à la
-racine du dépôt est un site statique : elle ne peut pas héberger ce serveur.
+C'est le chemin recommandé pour un lien qui circule sur WhatsApp : le Worker ne
+dort pas. Un athlète qui ouvre le lien après trois jours de silence n'attend rien —
+là où un plan gratuit classique met une trentaine de secondes à se réveiller, le
+temps que la plupart des gens referment la page.
 
-- **HTTPS est nécessaire** pour enregistrer des notes vocales : sans lui, le
-  navigateur refuse le micro.
-- Fixez `CALENDAR_COACH_KEY` dans l'environnement de l'hébergeur, plutôt que de
-  laisser la clé se tirer au sort sur un disque éphémère.
-- Si le disque de l'hébergeur ne survit pas aux redémarrages, passez sur Drive par
-  l'API — c'est exactement le cas qu'il couvre.
-- Vérifiez après déploiement : `curl https://…/api/health` annonce le dépôt
-  réellement utilisé.
+```bash
+cd calendrier
+npx wrangler r2 bucket create calendrier-entrainements
+npx wrangler secret put CALENDAR_COACH_KEY   # notez-la : rien ne la réaffichera
+npx wrangler deploy
+```
+
+Wrangler affiche l'adresse du Worker à la fin. C'est **celle-là** que vous collez
+dans WhatsApp.
+
+Tout est déjà déclaré dans `wrangler.toml` : le bucket R2 pour les données, les
+fichiers de `public/` pour la page, et la règle qui fait passer la page par le
+Worker — sans elle, l'aperçu du lien s'afficherait sans vignette.
+
+Vérifiez après déploiement :
+
+```bash
+curl https://votre-worker.workers.dev/api/health     # doit annoncer "type": "r2"
+```
+
+### Ce qu'il faut savoir
+
+- **HTTPS est fourni** par Cloudflare, donc le micro des notes vocales fonctionne.
+- **La clé coach est un secret**, pas une variable : `wrangler secret put`. Elle
+  n'est plus jamais affichée — gardez-la ailleurs.
+- **Deux enregistrements au même instant** : le second reçoit un `409` et la page
+  se recharge, plutôt que d'écraser le premier. Rien n'est perdu sans le dire.
+- **Ajouter un athlète** se fait dans `src/athletes.js`, puis `npx wrangler deploy`.
+
+### Si vous préférez un serveur Node
+
+Il vous faut un hébergeur qui **exécute Node** — la PWA MED-EL Connect à la racine
+du dépôt est un site statique et ne peut pas l'héberger. Fixez alors
+`CALENDAR_COACH_KEY` dans l'environnement, et si le disque ne survit pas aux
+redémarrages, passez les données sur Google Drive (section 5).
 
 ## 7. Limites et dépannage
 

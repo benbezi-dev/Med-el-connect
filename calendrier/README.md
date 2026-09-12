@@ -22,12 +22,21 @@ le reste de l'application MED-EL Connect à la racine du dépôt.
 
 ```
 calendrier/
-├── src/          API HTTP (node:http) + logique calendrier + dépôts de données
+├── src/
+│   ├── routeur.js      Les routes — la seule implémentation, partagée
+│   ├── server.js       Coquille Node (node:http) + fichiers de public/
+│   ├── worker.mjs      Coquille Cloudflare Workers (fetch) + R2
+│   ├── application.js  Assemblage des services, sans transport ni disque
+│   └── …               Calendrier, séances, athlètes, suivi, dépôts
 ├── public/       Présentation 7 jours (HTML/CSS/JS, sans framework)
-├── outils/       jeton-google.js : obtenir un jeton de rafraîchissement Drive
-├── test/         87 tests (node:test)
+├── outils/       jeton-google.js (Drive) et icones.js (icônes, image de partage)
+├── test/         103 tests (node:test)
 └── data/         Séances (JSON) et notes vocales (audio) en stockage local
 ```
+
+Le routage ne vit qu'à un endroit : `routeur.js` reçoit une requête décrite
+simplement et rend une réponse décrite simplement. `server.js` et `worker.mjs`
+ne font que traduire — ce sont deux coquilles autour du même cœur.
 
 Les données vivent **sur le disque ou sur Google Drive**, au choix : le code
 ne connaît qu'un dépôt (`lire` / `ecrire` / `supprimer`), voir « Où vivent les
@@ -51,8 +60,39 @@ un seul endroit, en haut de `public/styles.css` :
 ```bash
 cd calendrier
 npm start                 # http://localhost:3000 — page + API sous /api
-npm test                  # lance la suite de tests
+npm test                  # 103 tests, aucun réseau nécessaire
 ```
+
+## Mettre en ligne sur Cloudflare Workers
+
+Le Worker ne dort jamais : un athlète qui ouvre le lien depuis WhatsApp
+n'attend pas de réveil, même après des jours sans visite. Les données vivent
+dans un bucket R2, et les fichiers de `public/` sont servis par le binding
+`ASSETS`.
+
+```bash
+npx wrangler r2 bucket create calendrier-entrainements
+npx wrangler secret put CALENDAR_COACH_KEY     # notez-la : rien ne la réaffichera
+npx wrangler deploy
+```
+
+Tout est déclaré dans `wrangler.toml`. Un point y mérite attention :
+`run_worker_first = ["/", "/index.html"]`. Sans lui, Cloudflare sert les
+fichiers **avant** d'appeler le Worker, la page part avec son gabarit
+`{{origine}}` intact, et l'aperçu du lien n'affiche aucune vignette.
+
+> **Écritures simultanées.** Un serveur Node garde les séances en mémoire ;
+> un Worker recharge tout à chaque requête. Deux écritures simultanées
+> liraient donc la même version, et la seconde écraserait la première. Le
+> dépôt R2 retient l'ETag de sa lecture et n'écrit qu'à condition que
+> l'objet n'ait pas bougé : en cas de collision, l'API répond `409` et la
+> page — qui recharge après chaque enregistrement — représente l'état à
+> jour. Rien n'est perdu silencieusement. Pour un groupe de neuf, cela
+> suffit ; au-delà, un Durable Object sérialiserait proprement les écritures.
+
+Google Drive reste possible sur Workers **par OAuth** (un simple échange de
+jeton). Le compte de service, lui, signe un JWT avec `node:crypto` : ce
+chemin n'a pas été porté sur WebCrypto, et R2 le remplace avantageusement.
 
 Variables d'environnement : `PORT` (3000), `HOST` (0.0.0.0),
 `CALENDAR_DATA_FILE` (`data/sessions.json`), `CALENDAR_COACH_KEY` (voir

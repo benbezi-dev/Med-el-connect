@@ -6,7 +6,7 @@
    mutation. L'écriture est faite AVANT de basculer la mémoire — si le dépôt
    refuse, l'appelant reçoit l'erreur et rien n'a changé nulle part. */
 
-const { DepotMemoire } = require('./stockage');
+const { DepotMemoire } = require('./depot-base');
 
 const NOM = 'sessions.json';
 

@@ -9,8 +9,6 @@
    sinon elle est tirée au sort au premier démarrage. */
 
 const crypto = require('node:crypto');
-const fs = require('node:fs');
-const path = require('node:path');
 
 const ENTETE = 'x-cle-coach';
 const PARAMETRE = 'cle';
@@ -31,6 +29,11 @@ function resoudreCle({ cleCoach, dataFile } = {}) {
   if (cleCoach !== undefined && cleCoach !== null) return { cle: String(cleCoach), origine: 'explicite' };
   if (process.env.CALENDAR_COACH_KEY) return { cle: process.env.CALENDAR_COACH_KEY, origine: 'env' };
   if (!dataFile) return { cle: tirerCle(), origine: 'memoire' };
+
+  // Chargés ici seulement : hors de Node — sur Cloudflare Workers, par
+  // exemple — il n'y a pas de disque, et la clé vient de l'environnement.
+  const fs = require('node:fs');
+  const path = require('node:path');
 
   const fichier = path.join(path.dirname(dataFile), FICHIER_CLE);
   try {

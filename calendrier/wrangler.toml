@@ -1,0 +1,47 @@
+# Déploiement sur Cloudflare Workers.
+#
+#   npx wrangler r2 bucket create calendrier-entrainements
+#   npx wrangler secret put CALENDAR_COACH_KEY
+#   npx wrangler deploy
+#
+# Le Worker ne dort jamais : un athlète qui ouvre le lien depuis WhatsApp
+# n'attend pas de réveil, même après des jours sans visite.
+
+name = "calendrier-entrainements"
+main = "src/worker.mjs"
+compatibility_date = "2025-09-01"
+
+# Buffer et node:crypto — utilisés par les séances, les notes vocales et la
+# comparaison de la clé coach.
+compatibility_flags = ["nodejs_compat"]
+
+# Les fichiers de public/ : la page, le style, les icônes, l'image de partage.
+# Le Worker les sert via le binding ASSETS, en réécrivant {{origine}} dans le
+# HTML pour que l'aperçu WhatsApp pointe sur une adresse absolue.
+#
+# run_worker_first est indispensable ici : sans lui, Cloudflare sert les
+# fichiers AVANT d'appeler le Worker, la page part telle quelle avec son
+# gabarit {{origine}} intact, et l'aperçu WhatsApp n'affiche aucune vignette.
+# Seules les pages HTML ont besoin de passer par le Worker ; le style, les
+# icônes et l'image de partage sont servis directement.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/", "/index.html"]
+
+# Les données : sessions.json et les sons des notes vocales.
+[[r2_buckets]]
+binding = "CALENDRIER"
+bucket_name = "calendrier-entrainements"
+
+[vars]
+# Préfixe dans le bucket, si vous le partagez avec autre chose. Facultatif.
+CALENDAR_R2_PREFIX = ""
+
+# Domaine public, si le Worker est derrière un domaine personnalisé dont il ne
+# voit pas le nom. Laissez vide pour le déduire de la requête.
+CALENDAR_PUBLIC_URL = ""
+
+# CALENDAR_COACH_KEY n'est pas ici : c'est un secret.
+#   npx wrangler secret put CALENDAR_COACH_KEY
+# Sans elle, personne ne peut créer de séance ni lire les notes vocales.

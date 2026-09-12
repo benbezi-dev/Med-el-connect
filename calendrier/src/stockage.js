@@ -12,44 +12,9 @@
    Tout est asynchrone : sur Drive, une écriture est un appel réseau, et
    l'appelant doit pouvoir échouer proprement plutôt que perdre une saisie. */
 
-const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
-const { badRequest } = require('./errors');
-
-const SEGMENT = /^[A-Za-z0-9_.@+-]+$/;
-
-/** Découpe et contrôle un chemin : rien ne doit pouvoir sortir du dépôt. */
-function segments(chemin) {
-  const parts = String(chemin ?? '').split('/').filter(Boolean);
-  if (!parts.length || parts.some((p) => !SEGMENT.test(p) || p === '.' || p === '..')) {
-    throw badRequest(`Chemin de stockage invalide : « ${chemin} ».`);
-  }
-  return parts;
-}
-
-/** Dépôt en mémoire : ne survit pas au processus, sert aux tests. */
-class DepotMemoire {
-  constructor() {
-    this.fichiers = new Map();
-  }
-
-  async lire(chemin) {
-    return this.fichiers.get(segments(chemin).join('/')) ?? null;
-  }
-
-  async ecrire(chemin, bytes) {
-    this.fichiers.set(segments(chemin).join('/'), Buffer.from(bytes));
-  }
-
-  async supprimer(chemin) {
-    this.fichiers.delete(segments(chemin).join('/'));
-  }
-
-  decrire() {
-    return { type: 'memoire', emplacement: null };
-  }
-}
+const { segments, DepotMemoire } = require('./depot-base');
 
 /** Dépôt local : un fichier par chemin, écrit puis renommé. */
 class DepotFichier {
