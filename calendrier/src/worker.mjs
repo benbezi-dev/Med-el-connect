@@ -42,6 +42,26 @@ export default {
       });
     }
 
+    /* Sans secret, resoudreCle() tirerait une clé au sort — et une nouvelle à
+       chaque requête, puisqu'un Worker ne garde rien. Le mode coach serait
+       alors impossible, sans que rien ne le dise : rien que des 401. Mieux
+       vaut refuser en l'expliquant que servir un calendrier que personne ne
+       peut administrer. */
+    if (!env.CALENDAR_COACH_KEY) {
+      return json(503, {
+        error: {
+          code: 'cle_coach_absente',
+          message:
+            'Le secret CALENDAR_COACH_KEY n’est pas configuré : personne ne pourrait passer en mode coach.',
+          details: {
+            ligneDeCommande: 'npx wrangler secret put CALENDAR_COACH_KEY',
+            tableauDeBord:
+              'Cloudflare → Workers & Pages → ce Worker → Settings → Variables and Secrets → Add (type « Secret »)'
+          }
+        }
+      });
+    }
+
     try {
       const app = await creerApplication({
         depot: new DepotR2(env.CALENDRIER, { prefixe: env.CALENDAR_R2_PREFIX ?? '' }),

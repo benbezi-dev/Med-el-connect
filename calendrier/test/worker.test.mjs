@@ -208,6 +208,22 @@ test('sans bucket lié, le Worker le dit clairement', async () => {
   assert.match(reponse.body.error.message, /wrangler\.toml/);
 });
 
+test('sans secret de clé coach, le Worker refuse au lieu de tirer une clé au hasard', async () => {
+  // Un Worker ne garde rien : une clé tirée au sort changerait à chaque
+  // requête, et le mode coach deviendrait inatteignable en silence.
+  const env = environnement(new FauxBucket());
+  delete env.CALENDAR_COACH_KEY;
+
+  const reponse = await appeler(env, '/api/calendar');
+  assert.equal(reponse.status, 503);
+  assert.equal(reponse.body.error.code, 'cle_coach_absente');
+  assert.match(reponse.body.error.details.ligneDeCommande, /wrangler secret put/);
+  assert.match(reponse.body.error.details.tableauDeBord, /Variables and Secrets/);
+
+  // La page, elle, reste servie : le défaut est de configuration, pas de contenu.
+  assert.equal((await appeler(env, '/')).status, 200);
+});
+
 test('le préflight CORS laisse passer les en-têtes du calendrier', async () => {
   const env = environnement(new FauxBucket());
   const reponse = await worker.fetch(
