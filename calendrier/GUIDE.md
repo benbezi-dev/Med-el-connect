@@ -317,16 +317,32 @@ Tout se fait au navigateur. Aucune commande, aucun terminal.
 **1. Fusionner la branche.** Ouvrez la pull request du dépôt, « Ready for
 review », puis « Merge ». Le code arrive sur `main`.
 
-**2. Créer le Worker depuis le dépôt.** Sur `dash.cloudflare.com` →
-**Workers & Pages** → **Create** → **Import a repository** → choisissez le
-dépôt. Un seul réglage compte : **Root directory = `calendrier`**. Cloudflare
-lit `wrangler.toml`, construit et déploie. À chaque push ensuite, il redéploie
-tout seul.
+**2. Créer un jeton Cloudflare.** Une seule page à ouvrir, sans parcours à
+suivre : `dash.cloudflare.com/profile/api-tokens` → **Create Token** → modèle
+**Edit Cloudflare Workers** → **Continue** → **Create Token**. Copiez le jeton
+tout de suite : il ne sera plus jamais affiché.
 
-**3. Poser la clé coach.** Une fois le Worker créé : **Settings → Variables and
-Secrets → Add**, type **Secret**, nom `CALENDAR_COACH_KEY`, valeur : quelque
-chose de long et d'imprévisible. Gardez-la ailleurs — elle ne sera plus jamais
-affichée.
+> Le parcours **Workers & Pages → Create → Import a repository** fait la même
+> chose, et plus simplement — quand il fonctionne. Sur un navigateur mobile, le
+> retour d'autorisation GitHub retombe souvent sur l'accueil du compte et la
+> création est perdue. D'où ce chemin-ci, qui ne dépend que de GitHub.
+
+**3. Poser deux secrets sur GitHub.** Dans le dépôt : **Settings → Secrets and
+variables → Actions → New repository secret**, deux fois.
+
+| Nom | Valeur |
+|---|---|
+| `CLOUDFLARE_API_TOKEN` | le jeton de l'étape 2 |
+| `CALENDAR_COACH_KEY` | quelque chose de long et d'imprévisible |
+
+Gardez la clé coach ailleurs — ni GitHub ni Cloudflare ne la réafficheront.
+Elle n'a pas à circuler dans le groupe WhatsApp : elle ouvre le planning et vos
+notes, que les athlètes ne doivent pas voir.
+
+Le workflow `.github/workflows/deployer-calendrier.yml` fait le reste à chaque
+push sur `main` : il passe les tests, déploie le Worker, puis pousse la clé
+coach dans ses secrets. Tant que les deux secrets manquent, il s'arrête en le
+disant au lieu d'échouer sur un message d'authentification obscur.
 
 > Tant que ce secret manque, le Worker répond `503` en le disant. Ce n'est pas
 > une panne : un Worker ne garde rien entre deux requêtes, donc une clé tirée
