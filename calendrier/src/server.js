@@ -12,8 +12,10 @@ const { SessionService } = require('./sessions');
 const { VoiceStore } = require('./voix');
 const { buildCalendar } = require('./calendar');
 const { buildAnnee } = require('./annee');
+const { buildSuivi } = require('./suivi');
 const { LOCATIONS, TIMES, STATUTS, TIMEZONE, DAYS_IN_VIEW, MOIS_HORIZON } = require('./reference');
-const { resoudreCle, estCoach, protege, ENTETE } = require('./acces');
+const { ATHLETES } = require('./athletes');
+const { resoudreCle, estCoach, athleteDeclare, protege, ENTETE, ENTETE_ATHLETE } = require('./acces');
 const { ApiError, badRequest, notFound } = require('./errors');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -57,7 +59,8 @@ async function createApp({ dataFile = DEFAULT_DATA_FILE, depot, cleCoach, env = 
     const url = new URL(req.url, `http://${req.headers.host ?? 'localhost'}`);
     try {
       if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
-        await handleApi(req, res, url, sessions, voix, estCoach(req, url, acces.cle), stockage.decrire());
+        const qui = { coach: estCoach(req, url, acces.cle), athleteId: athleteDeclare(req, url) };
+        await handleApi(req, res, url, sessions, voix, qui, stockage.decrire());
       } else {
         serveStatic(req, res, url);
       }
@@ -74,7 +77,8 @@ async function createApp({ dataFile = DEFAULT_DATA_FILE, depot, cleCoach, env = 
   return handler;
 }
 
-async function handleApi(req, res, url, sessions, voix, coach, stockageDecrit) {
+async function handleApi(req, res, url, sessions, voix, qui, stockageDecrit) {
+  const { coach, athleteId } = qui;
   const route = url.pathname.replace(/^\/api\/?/, '').replace(/\/$/, '');
   const segments = route ? route.split('/') : [];
   const { method } = req;
@@ -88,7 +92,7 @@ async function handleApi(req, res, url, sessions, voix, coach, stockageDecrit) {
 
   // Les séances ont leur propre routeur : POST /api/sessions ne doit pas
   // tomber dans le garde « lecture seule » des ressources ci-dessous.
-  if (resource === 'sessions') return handleSessions(req, res, url, segments, sessions, voix, coach);
+  if (resource === 'sessions') return handleSessions(req, res, url, segments, sessions, voix, qui);
 
   if (segments.length === 1) {
     if (method !== 'GET') throw methodNotAllowed(method, ['GET']);
@@ -106,13 +110,28 @@ async function handleApi(req, res, url, sessions, voix, coach, stockageDecrit) {
     if (resource === 'locations') return sendJson(res, 200, { locations: LOCATIONS, total: LOCATIONS.length });
     if (resource === 'times') return sendJson(res, 200, { times: TIMES, timezone: TIMEZONE });
     if (resource === 'statuts') return sendJson(res, 200, { statuts: STATUTS });
+    if (resource === 'athletes') return sendJson(res, 200, { athletes: ATHLETES, total: ATHLETES.length });
+    if (resource === 'suivi') {
+      // Le suivi rassemble les notes de tout le monde : il n'appartient qu'au coach.
+      if (!coach) throw suiviReserve();
+      return sendJson(
+        res,
+        200,
+        buildSuivi(sessions, {
+          from: url.searchParams.get('from') ?? undefined,
+          to: url.searchParams.get('to') ?? undefined,
+          jours: url.searchParams.get('jours') ?? undefined
+        })
+      );
+    }
     if (resource === 'calendar') {
       const grille = buildCalendar(sessions, {
         start: url.searchParams.get('start') ?? undefined,
         days: url.searchParams.get('days') ?? undefined
       });
-      // `coach` dit à la page si elle doit proposer les notes vocales.
-      return sendJson(res, 200, protege({ ...grille, coach }, coach));
+      // `coach` dit à la page si elle doit proposer les notes vocales,
+      // `athlete` qui elle doit laisser écrire.
+      return sendJson(res, 200, protege({ ...grille, coach, athlete: athleteId }, coach, athleteId));
     }
     if (resource === 'annee') {
       return sendJson(
@@ -130,7 +149,7 @@ async function handleApi(req, res, url, sessions, voix, coach, stockageDecrit) {
       return sendJson(
         res,
         200,
-        protege({ exporteLe: new Date().toISOString(), total: toutes.length, sessions: toutes }, coach)
+        protege({ exporteLe: new Date().toISOString(), total: toutes.length, sessions: toutes }, coach, athleteId)
       );
     }
   }
@@ -138,7 +157,8 @@ async function handleApi(req, res, url, sessions, voix, coach, stockageDecrit) {
   throw notFound(`Route inconnue : ${url.pathname}`);
 }
 
-async function handleSessions(req, res, url, segments, sessions, voix, coach) {
+async function handleSessions(req, res, url, segments, sessions, voix, qui) {
+  const { coach, athleteId } = qui;
   const { method } = req;
   const [, id, sub, subId] = segments;
 
@@ -152,31 +172,44 @@ async function handleSessions(req, res, url, segments, sessions, voix, coach) {
         statut: url.searchParams.get('statut') ?? undefined,
         archivees: url.searchParams.get('archivees') === 'true'
       });
-      return sendJson(res, 200, protege({ sessions: list, total: list.length }, coach));
+      return sendJson(res, 200, protege({ sessions: list, total: list.length }, coach, athleteId));
     }
     if (method === 'POST') {
+      // Le calendrier est fixé par le coach : un athlète ne crée pas de séance.
+      if (!coach) throw ecritureReservee('créer une séance');
       const created = await sessions.create(await readJsonBody(req));
       res.setHeader('Location', `/api/sessions/${created.id}`);
-      return sendJson(res, 201, protege({ session: created }, coach));
+      return sendJson(res, 201, protege({ session: created }, coach, athleteId));
     }
     throw methodNotAllowed(method, ['GET', 'POST']);
   }
 
   if (!sub) {
-    if (method === 'GET') return sendJson(res, 200, protege({ session: sessions.get(id) }, coach));
+    if (method === 'GET') return sendJson(res, 200, protege({ session: sessions.get(id) }, coach, athleteId));
     if (method === 'PATCH' || method === 'PUT') {
-      return sendJson(res, 200, protege({ session: await sessions.update(id, await readJsonBody(req)) }, coach));
+      if (!coach) throw ecritureReservee('modifier une séance');
+      return sendJson(
+        res,
+        200,
+        protege({ session: await sessions.update(id, await readJsonBody(req)) }, coach, athleteId)
+      );
     }
     if (method === 'DELETE') {
       // Archivage, pas suppression : la séance reste dans le fichier.
-      return sendJson(res, 200, protege({ session: await sessions.archive(id), archivee: true }, coach));
+      if (!coach) throw ecritureReservee('archiver une séance');
+      return sendJson(res, 200, protege({ session: await sessions.archive(id), archivee: true }, coach, athleteId));
     }
     throw methodNotAllowed(method, ['GET', 'PATCH', 'DELETE']);
   }
 
   if (sub === 'restaurer' && !subId) {
     if (method !== 'POST') throw methodNotAllowed(method, ['POST']);
-    return sendJson(res, 200, protege({ session: await sessions.restore(id) }, coach));
+    if (!coach) throw ecritureReservee('restaurer une séance');
+    return sendJson(res, 200, protege({ session: await sessions.restore(id) }, coach, athleteId));
+  }
+
+  if (sub === 'notes-athlete') {
+    return handleNotesAthlete(req, res, url, { id, noteId: subId }, sessions, qui);
   }
 
   if (sub === 'notes-vocales') {
@@ -215,6 +248,47 @@ async function handleSessions(req, res, url, segments, sessions, voix, coach) {
   throw notFound(`Route inconnue : ${url.pathname}`);
 }
 
+/* Notes d'athlètes : chacun écrit son compte rendu sur une séance qui a eu
+   lieu, et ne touche qu'aux siennes. Le coach, lui, lit et supprime tout. */
+async function handleNotesAthlete(req, res, url, { id, noteId }, sessions, qui) {
+  const { coach, athleteId } = qui;
+  const { method } = req;
+
+  if (!noteId) {
+    if (method === 'GET') {
+      const notes = sessions.get(id).notesAthletes;
+      return sendJson(res, 200, {
+        notesAthletes: coach ? notes : notes.filter((n) => n.athleteId === athleteId)
+      });
+    }
+    if (method === 'POST') {
+      const corps = await readJsonBody(req);
+      const { note, session } = await sessions.ajouterNoteAthlete(id, {
+        athleteId: corps.athleteId ?? athleteId,
+        texte: corps.texte
+      });
+      res.setHeader('Location', `/api/sessions/${id}/notes-athlete/${note.id}`);
+      return sendJson(res, 201, { note, session: protege({ session }, coach, athleteId).session });
+    }
+    throw methodNotAllowed(method, ['GET', 'POST']);
+  }
+
+  if (method === 'PATCH' || method === 'PUT') {
+    const corps = await readJsonBody(req);
+    const { note, session } = await sessions.modifierNoteAthlete(id, noteId, {
+      athleteId: corps.athleteId ?? athleteId,
+      texte: corps.texte
+    });
+    return sendJson(res, 200, { note, session: protege({ session }, coach, athleteId).session });
+  }
+  if (method === 'DELETE') {
+    // Le coach fait le ménage partout ; un athlète, seulement chez lui.
+    const session = await sessions.supprimerNoteAthlete(id, noteId, coach ? null : athleteId);
+    return sendJson(res, 200, { session: protege({ session }, coach, athleteId).session, deleted: true });
+  }
+  throw methodNotAllowed(method, ['PATCH', 'DELETE']);
+}
+
 function apiIndex() {
   return {
     name: 'API Calendrier — planification sur un an, présentation sur 7 jours',
@@ -224,16 +298,49 @@ function apiIndex() {
       entete: ENTETE,
       description: 'Les notes vocales ne sont ni listées ni lisibles sans la clé coach.'
     },
+    notesAthletes: {
+      acces: 'athlète déclaré',
+      entete: ENTETE_ATHLETE,
+      description:
+        'Chaque athlète écrit ses comptes rendus et ne voit que les siens ; ' +
+        'le coach les voit tous, regroupés dans /api/suivi.'
+    },
+    ecriture: {
+      acces: 'coach',
+      description: 'Créer, modifier, archiver et restaurer une séance demandent la clé coach.'
+    },
     joursVisibles: DAYS_IN_VIEW,
     moisHorizon: MOIS_HORIZON,
     heuresPossibles: TIMES,
     statuts: STATUTS.map((s) => s.id),
     lieux: LOCATIONS.map((l) => l.id),
+    athletes: ATHLETES.map((a) => a.id),
     endpoints: [
       { method: 'GET', path: '/api/health', description: 'État du service.' },
       { method: 'GET', path: '/api/locations', description: 'Les 5 lieux possibles.' },
       { method: 'GET', path: '/api/times', description: 'Les heures possibles (18:00, 18:30).' },
       { method: 'GET', path: '/api/statuts', description: 'Statuts : prévue, effectuée, annulée.' },
+      { method: 'GET', path: '/api/athletes', description: 'Les athlètes du groupe, avec leur couleur.' },
+      {
+        method: 'GET',
+        path: '/api/suivi?from=&to=&jours=30',
+        description: 'Les notes des athlètes, groupées par auteur. Coach uniquement.'
+      },
+      {
+        method: 'POST',
+        path: '/api/sessions/:id/notes-athlete',
+        description: 'Un athlète écrit son compte rendu ({ athleteId, texte }) sur une séance passée.'
+      },
+      {
+        method: 'PATCH',
+        path: '/api/sessions/:id/notes-athlete/:noteId',
+        description: 'Un athlète corrige sa propre note.'
+      },
+      {
+        method: 'DELETE',
+        path: '/api/sessions/:id/notes-athlete/:noteId',
+        description: 'Un athlète supprime sa propre note ; le coach, n’importe laquelle.'
+      },
       {
         method: 'GET',
         path: '/api/calendar?start=YYYY-MM-DD&days=7',
@@ -288,12 +395,34 @@ function serveStatic(req, res, url) {
 
   fs.readFile(target, (error, content) => {
     if (error) return sendError(res, notFound('Ressource introuvable.'), req);
+    const corps = target.endsWith('.html') ? absolutiser(content, req) : content;
     res.writeHead(200, {
       'Content-Type': MIME_TYPES[path.extname(target).toLowerCase()] ?? 'application/octet-stream',
       'Cache-Control': 'no-cache'
     });
-    res.end(req.method === 'HEAD' ? undefined : content);
+    res.end(req.method === 'HEAD' ? undefined : corps);
   });
+}
+
+/* WhatsApp (comme la plupart des aperçus de lien) exige une adresse absolue
+   pour l'image de partage : une adresse relative est ignorée, et la carte
+   s'affiche sans vignette. On ne connaît pas le domaine à l'avance, alors on
+   le déduit de la requête — ou de CALENDAR_PUBLIC_URL si l'hébergeur est
+   derrière un intermédiaire qui brouille l'en-tête Host. */
+function absolutiser(contenu, req) {
+  const texte = contenu.toString('utf8');
+  if (!texte.includes('{{origine}}')) return contenu;
+  return Buffer.from(texte.replaceAll('{{origine}}', origineDe(req)), 'utf8');
+}
+
+function origineDe(req) {
+  const configuree = process.env.CALENDAR_PUBLIC_URL;
+  if (configuree) return configuree.replace(/\/$/, '');
+
+  // Render et Cloudflare terminent le TLS en amont : l'en-tête dit le vrai schéma.
+  const protocole = (req.headers['x-forwarded-proto'] ?? '').split(',')[0].trim() || 'http';
+  const hote = (req.headers['x-forwarded-host'] ?? req.headers.host ?? 'localhost').split(',')[0].trim();
+  return `${protocole}://${hote}`;
 }
 
 function readJsonBody(req, limite = MAX_BODY_BYTES) {
@@ -329,6 +458,22 @@ function cleCoachRequise() {
   return new ApiError(401, 'cle_coach_requise', 'Les notes vocales sont réservées au coach.', {
     entete: ENTETE,
     indice: `Envoyez la clé dans l'en-tête « ${ENTETE} » (ou en paramètre « cle= »).`
+  });
+}
+
+/* Le lien du calendrier circule : le planning appartient au coach, et lui
+   seul. Les athlètes gardent la lecture et leurs propres notes. */
+function ecritureReservee(action) {
+  return new ApiError(401, 'cle_coach_requise', `Seul le coach peut ${action}.`, {
+    entete: ENTETE,
+    indice: `Passez en mode coach, ou envoyez la clé dans l'en-tête « ${ENTETE} ».`
+  });
+}
+
+function suiviReserve() {
+  return new ApiError(401, 'cle_coach_requise', 'Le suivi des athlètes est réservé au coach.', {
+    entete: ENTETE,
+    indice: `Chaque athlète retrouve ses propres notes en se déclarant dans l'en-tête « ${ENTETE_ATHLETE} ».`
   });
 }
 

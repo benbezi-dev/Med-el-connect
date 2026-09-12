@@ -16,6 +16,13 @@ const ENTETE = 'x-cle-coach';
 const PARAMETRE = 'cle';
 const FICHIER_CLE = 'cle-coach.txt';
 
+/* L'athlète se déclare, il ne s'authentifie pas : cet en-tête dit « je suis
+   Zoé », rien de plus. C'est un confort d'affichage — chacun retrouve ses
+   notes — et non une barrière : n'importe qui peut se déclarer n'importe qui.
+   Seule la clé coach protège vraiment quelque chose. */
+const ENTETE_ATHLETE = 'x-athlete';
+const PARAMETRE_ATHLETE = 'athlete';
+
 /**
  * @param {{cleCoach?: string|null, dataFile?: string|null}} options
  * @returns {{cle: string, origine: 'explicite'|'env'|'fichier'|'generee'|'memoire'}}
@@ -51,6 +58,14 @@ function estCoach(req, url, cle) {
   return comparer(String(fournie ?? ''), cle);
 }
 
+/** @returns {string|null} l'athlète tel qu'il se déclare, sans vérification. */
+function athleteDeclare(req, url) {
+  const entete = req.headers[ENTETE_ATHLETE];
+  const valeur = entete !== undefined ? entete : url.searchParams.get(PARAMETRE_ATHLETE);
+  const id = String(valeur ?? '').trim();
+  return id || null;
+}
+
 /** Comparaison à temps constant : deux clés de longueurs différentes sont refusées. */
 function comparer(fournie, attendue) {
   const a = Buffer.from(fournie);
@@ -60,24 +75,52 @@ function comparer(fournie, attendue) {
 }
 
 /**
- * Retire les notes vocales d'un payload destiné à un athlète. La copie est
- * profonde : rien de ce qui est renvoyé ne partage d'objet avec le stockage.
+ * Retire d'un payload ce qui ne regarde pas son destinataire :
+ *   - les notes vocales, réservées au coach, disparaissent toujours ;
+ *   - les notes d'athlètes sont réduites à celles de `athleteId` (aucune si
+ *     personne ne s'est identifié).
+ * La copie est profonde : rien de ce qui est renvoyé ne partage d'objet avec
+ * le stockage.
+ *
+ * @param {string|null} athleteId l'athlète qui regarde, tel qu'il se déclare.
  */
-function masquerNotesVocales(valeur) {
-  if (Array.isArray(valeur)) return valeur.map(masquerNotesVocales);
+function masquerNotesVocales(valeur, athleteId = null) {
+  if (Array.isArray(valeur)) return valeur.map((v) => masquerNotesVocales(v, athleteId));
   if (valeur && typeof valeur === 'object') {
     const copie = {};
     for (const cle of Object.keys(valeur)) {
-      copie[cle] = cle === 'notesVocales' && Array.isArray(valeur[cle]) ? [] : masquerNotesVocales(valeur[cle]);
+      if (cle === 'notesVocales' && Array.isArray(valeur[cle])) {
+        copie[cle] = [];
+      } else if (cle === 'notesAthletes' && Array.isArray(valeur[cle])) {
+        copie[cle] = valeur[cle]
+          .filter((note) => athleteId !== null && note && note.athleteId === athleteId)
+          .map((note) => masquerNotesVocales(note, athleteId));
+      } else {
+        copie[cle] = masquerNotesVocales(valeur[cle], athleteId);
+      }
     }
     return copie;
   }
   return valeur;
 }
 
-/** Laisse passer le payload pour le coach, le masque pour les athlètes. */
-function protege(payload, coach) {
-  return coach ? payload : masquerNotesVocales(payload);
+/**
+ * Laisse passer le payload pour le coach, le masque pour les athlètes.
+ * @param {string|null} athleteId l'athlète qui regarde ; ses notes lui restent visibles.
+ */
+function protege(payload, coach, athleteId = null) {
+  return coach ? payload : masquerNotesVocales(payload, athleteId);
 }
 
-module.exports = { resoudreCle, estCoach, masquerNotesVocales, protege, ENTETE, PARAMETRE, FICHIER_CLE };
+module.exports = {
+  resoudreCle,
+  estCoach,
+  athleteDeclare,
+  masquerNotesVocales,
+  protege,
+  ENTETE,
+  PARAMETRE,
+  ENTETE_ATHLETE,
+  PARAMETRE_ATHLETE,
+  FICHIER_CLE
+};

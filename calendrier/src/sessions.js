@@ -14,7 +14,7 @@
    l'appelant au lieu d'être perdu. */
 
 const crypto = require('node:crypto');
-const { isValidDateISO } = require('./dates');
+const { isValidDateISO, todayISO } = require('./dates');
 const {
   findLocation,
   findStatut,
@@ -22,15 +22,18 @@ const {
   TIMES,
   LOCATIONS,
   STATUTS,
-  STATUT_PAR_DEFAUT
+  STATUT_PAR_DEFAUT,
+  TIMEZONE
 } = require('./reference');
-const { badRequest, notFound, conflict } = require('./errors');
+const { ATHLETES, findAthlete } = require('./athletes');
+const { ApiError, badRequest, notFound, conflict } = require('./errors');
 
 const MAX_TITLE = 120;
 const MAX_COACH = 80;
 const MAX_NOTES = 2000;
 const MAX_CAPACITY = 200;
 const MAX_PARTICIPANTS = 200;
+const MAX_NOTE_ATHLETE = 1000;
 const DEFAULT_TITLE = 'Entraînement';
 const DEFAULT_CAPACITY = 20;
 
@@ -97,6 +100,7 @@ class SessionService {
       id: `ses_${crypto.randomUUID()}`,
       ...input,
       notesVocales: [],
+      notesAthletes: [],
       historique: [{ statut: input.statut, at: now }],
       archivee: false,
       archiveeLe: null,
@@ -179,6 +183,89 @@ class SessionService {
     return decorate(updated);
   }
 
+  /* ---------- Notes d'athlètes ----------
+
+     Chaque athlète écrit son propre compte rendu sur une séance qui a eu
+     lieu. Il ne touche qu'à ses notes : l'athlète est comparé à l'auteur
+     avant toute modification. */
+
+  /** @param {{athleteId: string, texte: string}} entree */
+  async ajouterNoteAthlete(id, entree) {
+    const existing = this.mustFind(id);
+    const { athlete, texte } = validerNoteAthlete(entree);
+    this.verifierSeanceCommentable(existing);
+
+    const now = new Date().toISOString();
+    const note = { id: `note_${crypto.randomUUID()}`, athleteId: athlete.id, texte, createdAt: now, updatedAt: now };
+    const updated = {
+      ...existing,
+      notesAthletes: [...(existing.notesAthletes ?? []), note],
+      updatedAt: now
+    };
+    await this.store.remplacer(this.store.all().map((s) => (s.id === id ? updated : s)));
+    return { note: decorerNoteAthlete(note), session: decorate(updated) };
+  }
+
+  async modifierNoteAthlete(id, noteId, entree) {
+    const existing = this.mustFind(id);
+    const note = this.trouverNoteAthlete(id, noteId);
+    const { athlete, texte } = validerNoteAthlete(entree);
+    this.verifierAuteur(note, athlete);
+
+    const now = new Date().toISOString();
+    const modifiee = { ...note, texte, updatedAt: now };
+    const updated = {
+      ...existing,
+      notesAthletes: (existing.notesAthletes ?? []).map((n) => (n.id === noteId ? modifiee : n)),
+      updatedAt: now
+    };
+    await this.store.remplacer(this.store.all().map((s) => (s.id === id ? updated : s)));
+    return { note: decorerNoteAthlete(modifiee), session: decorate(updated) };
+  }
+
+  /** @param {string|null} athleteId l'athlète qui demande ; null pour le coach. */
+  async supprimerNoteAthlete(id, noteId, athleteId) {
+    const existing = this.mustFind(id);
+    const note = this.trouverNoteAthlete(id, noteId);
+    if (athleteId !== null) this.verifierAuteur(note, exigerAthlete(athleteId));
+
+    const updated = {
+      ...existing,
+      notesAthletes: (existing.notesAthletes ?? []).filter((n) => n.id !== noteId),
+      updatedAt: new Date().toISOString()
+    };
+    await this.store.remplacer(this.store.all().map((s) => (s.id === id ? updated : s)));
+    return decorate(updated);
+  }
+
+  trouverNoteAthlete(id, noteId) {
+    const session = this.mustFind(id);
+    const note = (session.notesAthletes ?? []).find((n) => n.id === noteId);
+    if (!note) throw notFound(`Aucune note « ${noteId} » sur cette séance.`);
+    return note;
+  }
+
+  /** On commente ce qui a eu lieu, pas ce qui est à venir. */
+  verifierSeanceCommentable(session) {
+    if (session.archivee) {
+      throw conflict('Cette séance est archivée : elle ne reçoit plus de notes.');
+    }
+    if (session.date > todayISO(TIMEZONE)) {
+      throw badRequest('Cette séance n’a pas encore eu lieu : elle ne peut pas encore recevoir de note.', {
+        dateSeance: session.date,
+        aujourdhui: todayISO(TIMEZONE)
+      });
+    }
+  }
+
+  verifierAuteur(note, athlete) {
+    if (note.athleteId !== athlete.id) {
+      throw new ApiError(403, 'note_d_un_autre', 'Cette note appartient à un autre athlète.', {
+        auteur: findAthlete(note.athleteId)?.nom ?? note.athleteId
+      });
+    }
+  }
+
   mustFind(id) {
     const session = this.store.find(id);
     if (!session) throw notFound(`Aucune séance avec l'identifiant « ${id} ».`);
@@ -202,16 +289,47 @@ class SessionService {
   }
 }
 
+/** Vérifie l'athlète et le texte d'une note. */
+function validerNoteAthlete(entree) {
+  const source = entree && typeof entree === 'object' ? entree : {};
+  const athlete = exigerAthlete(source.athleteId);
+
+  const texte = String(source.texte ?? '').trim();
+  if (!texte) throw badRequest('Le champ « texte » est obligatoire et ne peut pas être vide.');
+  if (texte.length > MAX_NOTE_ATHLETE) {
+    throw badRequest(`Le champ « texte » ne peut pas dépasser ${MAX_NOTE_ATHLETE} caractères.`);
+  }
+  return { athlete, texte };
+}
+
+function exigerAthlete(athleteId) {
+  const athlete = findAthlete(athleteId);
+  if (!athlete) {
+    throw badRequest('Le champ « athleteId » ne correspond à aucun athlète connu.', {
+      athletesPossibles: ATHLETES.map((a) => a.id)
+    });
+  }
+  return athlete;
+}
+
+/** La note porte son auteur au complet : le nom accompagne toujours la couleur. */
+function decorerNoteAthlete(note) {
+  const athlete = findAthlete(note.athleteId);
+  return { ...note, athlete: athlete ?? null };
+}
+
 /** Ajoute les champs dérivés — jamais stockés, toujours recalculés. */
 function decorate(session) {
   const participants = session.participants ?? [];
   const statut = session.statut ?? STATUT_PAR_DEFAUT;
+  const notesAthletes = (session.notesAthletes ?? []).map(decorerNoteAthlete);
   return {
     ...session,
     participants,
     statut,
     statutLabel: findStatut(statut)?.label ?? statut,
     notesVocales: session.notesVocales ?? [],
+    notesAthletes,
     historique: session.historique ?? [],
     archivee: Boolean(session.archivee),
     location: findLocation(session.locationId) ?? null,

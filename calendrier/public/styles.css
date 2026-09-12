@@ -215,3 +215,92 @@ textarea { resize: vertical; min-height: 64px; }
   .navigation { width: 100%; }
   .navigation button { flex: 1; padding: 9px 8px; }
 }
+
+/* ---------- Athlètes ----------
+
+   La couleur d'un athlète ne porte jamais seule l'information : elle
+   accompagne toujours ses initiales, et son nom en toutes lettres dès qu'il y
+   a la place. Neuf couleurs ne se distinguent pas de façon fiable — surtout
+   en vision des couleurs déficiente — d'où les initiales sur chaque pastille.
+
+   Elle se distingue aussi par la forme de la couleur de couloir d'un lieu :
+   un lieu se lit sur le liseré gauche d'une séance, un athlète sur un rond. */
+
+.moi {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; letter-spacing: 0.5px; text-transform: uppercase;
+  color: var(--encre-douce);
+  white-space: nowrap;                 /* « Je suis » tient sur une ligne */
+}
+.moi select {
+  font: inherit; text-transform: none; letter-spacing: normal;
+  background: var(--surface-haute); color: var(--encre);
+  border: 1px solid var(--bordure-forte); border-radius: 999px;
+  padding: 5px 10px 5px 26px; cursor: pointer;
+  background-image: radial-gradient(circle at 13px 50%, var(--athlete, transparent) 5px, transparent 5px);
+}
+.moi select:focus-visible { outline: 2px solid var(--fluo); outline-offset: 2px; }
+
+.pastille-athlete {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; flex: none;
+  border-radius: 50%;
+  background: var(--athlete, var(--bordure-forte));
+  color: #0A1220;                      /* les neuf couleurs sont claires : encre sombre */
+  font-size: 9px; font-weight: 800; letter-spacing: 0.3px;
+}
+
+.auteurs { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 6px; }
+.auteurs .pastille-athlete { width: 17px; height: 17px; font-size: 8px; }
+
+/* Le compte rendu, côté athlète */
+.notes-athlete:empty { display: none; }
+.notes-athlete { padding: 0 10px 8px; }
+.note-bouton {
+  width: 100%; font-size: 12px; padding: 5px 8px;
+  color: var(--encre-douce); border-style: dashed;
+}
+.note-bouton:hover { color: var(--encre); border-color: var(--athlete, var(--fluo)); }
+.note-bouton.remplie {
+  border-style: solid; border-color: var(--athlete, var(--fluo));
+  color: var(--athlete, var(--encre));
+}
+.note-apercu {
+  margin-top: 6px; font-size: 12px; line-height: 1.4; color: var(--encre-douce);
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+#dialogue-note textarea {
+  font: inherit; width: 100%; resize: vertical;
+  background: var(--surface-haute); color: var(--encre);
+  border: 1px solid var(--bordure-forte); border-radius: 8px; padding: 8px 10px;
+}
+#dialogue-note textarea:focus-visible { outline: 2px solid var(--fluo); outline-offset: 1px; }
+
+/* ---------- Suivi des athlètes (coach) ---------- */
+.suivi-resume { color: var(--encre-douce); font-size: 14px; }
+.suivi-athletes { display: grid; gap: 12px; margin-top: 14px; }
+
+.suivi-athlete {
+  background: var(--surface-haute); border: 1px solid var(--bordure);
+  border-left: 4px solid var(--athlete, var(--bordure-forte));
+  border-radius: 10px; padding: 12px 14px;
+}
+.suivi-athlete.muet { opacity: 0.55; }      /* le silence se voit, sans disparaître */
+
+.suivi-nom {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: 14px; font-weight: 800; margin: 0;
+}
+.suivi-compte {
+  margin-left: auto; font-size: 12px; font-weight: 500;
+  color: var(--encre-douce); text-transform: lowercase;
+}
+
+.suivi-note { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--bordure); }
+.suivi-seance { font-size: 12px; color: var(--encre-douce); }
+.suivi-texte { font-size: 14px; line-height: 1.5; margin-top: 3px; white-space: pre-wrap; }
+
+@media (max-width: 640px) {
+  .suivi-compte { margin-left: 0; width: 100%; }
+}

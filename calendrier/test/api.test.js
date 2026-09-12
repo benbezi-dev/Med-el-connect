@@ -90,7 +90,7 @@ test('cycle de vie complet d’une séance via l’API', async (t) => {
   const { appeler, fermer } = await demarrer();
   t.after(fermer);
 
-  const creation = await appeler('/api/sessions', { method: 'POST', body: { ...base, title: 'Renfo' } });
+  const creation = await appeler('/api/sessions', { coach: true, method: 'POST', body: { ...base, title: 'Renfo' } });
   assert.equal(creation.status, 201);
   const id = creation.body.session.id;
   assert.equal(creation.headers.get('location'), `/api/sessions/${id}`);
@@ -100,7 +100,7 @@ test('cycle de vie complet d’une séance via l’API', async (t) => {
   assert.equal(lecture.status, 200);
   assert.equal(lecture.body.session.title, 'Renfo');
 
-  const modification = await appeler(`/api/sessions/${id}`, { method: 'PATCH', body: { capacity: 8 } });
+  const modification = await appeler(`/api/sessions/${id}`, { coach: true, method: 'PATCH', body: { capacity: 8 } });
   assert.equal(modification.status, 200);
   assert.equal(modification.body.session.capacity, 8);
   assert.equal(modification.body.session.placesRestantes, 8);
@@ -111,7 +111,7 @@ test('cycle de vie complet d’une séance via l’API', async (t) => {
   assert.equal(grille.body.rows[1].cells[0].lieuxLibres.length, 4);
 
   // DELETE archive : la séance sort de la grille mais reste consultable.
-  const archivage = await appeler(`/api/sessions/${id}`, { method: 'DELETE' });
+  const archivage = await appeler(`/api/sessions/${id}`, { coach: true, method: 'DELETE' });
   assert.equal(archivage.status, 200);
   assert.equal(archivage.body.session.archivee, true);
   assert.equal((await appeler(`/api/sessions/${id}`)).status, 200, 'rien n’est effacé');
@@ -119,7 +119,7 @@ test('cycle de vie complet d’une séance via l’API', async (t) => {
   assert.equal((await appeler('/api/sessions?archivees=true')).body.total, 1);
   assert.equal((await appeler('/api/export')).body.total, 1);
 
-  const restauration = await appeler(`/api/sessions/${id}/restaurer`, { method: 'POST' });
+  const restauration = await appeler(`/api/sessions/${id}/restaurer`, { coach: true, method: 'POST' });
   assert.equal(restauration.status, 200);
   assert.equal(restauration.body.session.archivee, false);
   assert.equal((await appeler('/api/sessions')).body.total, 1);
@@ -129,16 +129,16 @@ test('POST /api/sessions valide l’entrée et signale les conflits', async (t) 
   const { appeler, fermer } = await demarrer();
   t.after(fermer);
 
-  const heureInterdite = await appeler('/api/sessions', { method: 'POST', body: { ...base, time: '19:00' } });
+  const heureInterdite = await appeler('/api/sessions', { coach: true, method: 'POST', body: { ...base, time: '19:00' } });
   assert.equal(heureInterdite.status, 400);
   assert.deepEqual(heureInterdite.body.error.details.heuresPossibles, ['18:00', '18:30']);
 
-  const lieuInconnu = await appeler('/api/sessions', { method: 'POST', body: { ...base, locationId: 'nice' } });
+  const lieuInconnu = await appeler('/api/sessions', { coach: true, method: 'POST', body: { ...base, locationId: 'nice' } });
   assert.equal(lieuInconnu.status, 400);
   assert.equal(lieuInconnu.body.error.details.lieuxPossibles.length, 5);
 
-  await appeler('/api/sessions', { method: 'POST', body: base });
-  const doublon = await appeler('/api/sessions', { method: 'POST', body: base });
+  await appeler('/api/sessions', { coach: true, method: 'POST', body: base });
+  const doublon = await appeler('/api/sessions', { coach: true, method: 'POST', body: base });
   assert.equal(doublon.status, 409);
   assert.equal(doublon.body.error.code, 'conflict');
 });
@@ -147,8 +147,8 @@ test('GET /api/sessions filtre par période, lieu et heure', async (t) => {
   const { appeler, fermer } = await demarrer();
   t.after(fermer);
 
-  await appeler('/api/sessions', { method: 'POST', body: { date: '2026-09-14', time: '18:00', locationId: 'grasse-stadium' } });
-  await appeler('/api/sessions', { method: 'POST', body: { date: '2026-09-16', time: '18:30', locationId: 'valbonne-hill' } });
+  await appeler('/api/sessions', { coach: true, method: 'POST', body: { date: '2026-09-14', time: '18:00', locationId: 'grasse-stadium' } });
+  await appeler('/api/sessions', { coach: true, method: 'POST', body: { date: '2026-09-16', time: '18:30', locationId: 'valbonne-hill' } });
 
   assert.equal((await appeler('/api/sessions')).body.total, 2);
   assert.equal((await appeler('/api/sessions?from=2026-09-15')).body.total, 1);
@@ -161,7 +161,7 @@ test('GET /api/annee suit la planification sur 12 mois', async (t) => {
   const { appeler, fermer } = await demarrer();
   t.after(fermer);
 
-  await appeler('/api/sessions', { method: 'POST', body: { date: '2026-11-05', time: '18:00', locationId: 'valbonne-hill', statut: 'effectuee' } });
+  await appeler('/api/sessions', { coach: true, method: 'POST', body: { date: '2026-11-05', time: '18:00', locationId: 'valbonne-hill', statut: 'effectuee' } });
 
   const { status, body } = await appeler('/api/annee?start=2026-09-11');
   assert.equal(status, 200);
@@ -178,11 +178,11 @@ test('le statut se change par PATCH et se filtre dans la grille', async (t) => {
   const { appeler, fermer } = await demarrer();
   t.after(fermer);
 
-  const creation = await appeler('/api/sessions', { method: 'POST', body: base });
+  const creation = await appeler('/api/sessions', { coach: true, method: 'POST', body: base });
   const id = creation.body.session.id;
   assert.equal(creation.body.session.statut, 'prevue');
 
-  const maj = await appeler(`/api/sessions/${id}`, { method: 'PATCH', body: { statut: 'effectuee' } });
+  const maj = await appeler(`/api/sessions/${id}`, { coach: true, method: 'PATCH', body: { statut: 'effectuee' } });
   assert.equal(maj.status, 200);
   assert.equal(maj.body.session.statut, 'effectuee');
   assert.deepEqual(maj.body.session.historique.map((h) => h.statut), ['prevue', 'effectuee']);
@@ -194,14 +194,14 @@ test('le statut se change par PATCH et se filtre dans la grille', async (t) => {
   assert.equal((await appeler('/api/sessions?statut=effectuee')).body.total, 1);
   assert.equal((await appeler('/api/sessions?statut=prevue')).body.total, 0);
   assert.equal((await appeler('/api/sessions?statut=reportee')).status, 400);
-  assert.equal((await appeler(`/api/sessions/${id}`, { method: 'PATCH', body: { statut: 'reportee' } })).status, 400);
+  assert.equal((await appeler(`/api/sessions/${id}`, { coach: true, method: 'PATCH', body: { statut: 'reportee' } })).status, 400);
 });
 
 test('cycle de vie d’une note vocale', async (t) => {
   const { appeler, fermer, base: racine } = await demarrer();
   t.after(fermer);
 
-  const id = (await appeler('/api/sessions', { method: 'POST', body: base })).body.session.id;
+  const id = (await appeler('/api/sessions', { coach: true, method: 'POST', body: base })).body.session.id;
   const son = Buffer.from('bip bip bip');
 
   const ajout = await appeler(`/api/sessions/${id}/notes-vocales`, {
@@ -238,7 +238,7 @@ test('une note vocale invalide ou orpheline est refusée', async (t) => {
   const { appeler, fermer } = await demarrer();
   t.after(fermer);
 
-  const id = (await appeler('/api/sessions', { method: 'POST', body: base })).body.session.id;
+  const id = (await appeler('/api/sessions', { coach: true, method: 'POST', body: base })).body.session.id;
 
   assert.equal((await appeler('/api/sessions/ses_inconnu/notes-vocales', { coach: true, method: 'POST', body: { audio: 'AAAA' } })).status, 404);
 
@@ -261,7 +261,7 @@ test('un athlète ne voit aucune note vocale, nulle part', async (t) => {
   const { appeler, base: racine, fermer } = await demarrer();
   t.after(fermer);
 
-  const id = (await appeler('/api/sessions', { method: 'POST', body: base })).body.session.id;
+  const id = (await appeler('/api/sessions', { coach: true, method: 'POST', body: base })).body.session.id;
   const ajout = await appeler(`/api/sessions/${id}/notes-vocales`, {
     coach: true,
     method: 'POST',
@@ -311,18 +311,33 @@ test('un athlète ne voit aucune note vocale, nulle part', async (t) => {
   assert.equal((await appeler('/api/health', { coach: true })).body.coach, true);
 });
 
-test('l’athlète garde la main sur le reste de la grille', async (t) => {
+test('l’athlète lit tout le calendrier mais n’y écrit pas', async (t) => {
   const { appeler, fermer } = await demarrer();
   t.after(fermer);
 
-  // Seules les notes vocales sont réservées : le calendrier reste utilisable.
-  const creation = await appeler('/api/sessions', { method: 'POST', body: base });
-  assert.equal(creation.status, 201);
-  const id = creation.body.session.id;
-  assert.equal((await appeler(`/api/sessions/${id}`, { method: 'PATCH', body: { statut: 'effectuee' } })).status, 200);
+  const id = (await appeler('/api/sessions', { coach: true, method: 'POST', body: base })).body.session.id;
+
+  // La lecture reste entièrement ouverte : c'est le lien qu'on partage.
   assert.equal((await appeler('/api/calendar')).status, 200);
   assert.equal((await appeler('/api/annee')).status, 200);
-  assert.equal((await appeler(`/api/sessions/${id}`, { method: 'DELETE' })).status, 200);
+  assert.equal((await appeler('/api/sessions')).status, 200);
+  assert.equal((await appeler(`/api/sessions/${id}`)).status, 200);
+  assert.equal((await appeler('/api/athletes')).status, 200);
+
+  // Le planning, lui, appartient au coach.
+  const creation = await appeler('/api/sessions', { method: 'POST', body: { ...base, time: '18:00' } });
+  assert.equal(creation.status, 401);
+  assert.equal(creation.body.error.code, 'cle_coach_requise');
+  assert.match(creation.body.error.message, /Seul le coach/);
+
+  assert.equal((await appeler(`/api/sessions/${id}`, { method: 'PATCH', body: { statut: 'effectuee' } })).status, 401);
+  assert.equal((await appeler(`/api/sessions/${id}`, { method: 'DELETE' })).status, 401);
+  assert.equal((await appeler(`/api/sessions/${id}/restaurer`, { method: 'POST' })).status, 401);
+
+  // Et rien n'a bougé.
+  const apres = await appeler(`/api/sessions/${id}`, { coach: true });
+  assert.equal(apres.body.session.statut, 'prevue');
+  assert.equal(apres.body.session.archivee, false);
 });
 
 test('route inconnue et méthode interdite', async (t) => {
@@ -332,7 +347,7 @@ test('route inconnue et méthode interdite', async (t) => {
   assert.equal((await appeler('/api/inconnu')).status, 404);
   assert.equal((await appeler('/api/sessions/abc/def')).status, 404);
 
-  const interdite = await appeler('/api/locations', { method: 'POST', body: {} });
+  const interdite = await appeler('/api/locations', { coach: true, method: 'POST', body: {} });
   assert.equal(interdite.status, 405);
   assert.deepEqual(interdite.body.error.details.autorisees, ['GET']);
 });
@@ -341,17 +356,17 @@ test('un corps non-JSON est refusé en 400', async (t) => {
   const { appeler, fermer } = await demarrer();
   t.after(fermer);
 
-  const casse = await appeler('/api/sessions', { method: 'POST', raw: '{ date: 2026-09-14' });
+  const casse = await appeler('/api/sessions', { coach: true, method: 'POST', raw: '{ date: 2026-09-14' });
   assert.equal(casse.status, 400);
   assert.equal(casse.body.error.code, 'invalid_request');
 
   // Un corps vide reste du JSON valide : c'est la validation métier qui répond.
-  const vide = await appeler('/api/sessions', { method: 'POST', raw: '' });
+  const vide = await appeler('/api/sessions', { coach: true, method: 'POST', raw: '' });
   assert.equal(vide.status, 400);
   assert.match(vide.body.error.message, /date/);
 
   // Un tableau n'est pas un objet de séance.
-  const tableau = await appeler('/api/sessions', { method: 'POST', raw: '[]' });
+  const tableau = await appeler('/api/sessions', { coach: true, method: 'POST', raw: '[]' });
   assert.equal(tableau.status, 400);
 });
 
@@ -366,7 +381,7 @@ test('un corps trop volumineux est refusé en 413, réponse comprise', async (t)
     notes: 'x'.repeat(70 * 1024)
   });
 
-  const reponse = await appeler('/api/sessions', { method: 'POST', raw: enorme });
+  const reponse = await appeler('/api/sessions', { coach: true, method: 'POST', raw: enorme });
   assert.equal(reponse.status, 413, 'la réponse doit parvenir au client, pas une connexion coupée');
   assert.equal(reponse.body.error.code, 'payload_too_large');
 
@@ -378,7 +393,7 @@ test('les préflights CORS sont acceptés', async (t) => {
   const { appeler, fermer } = await demarrer();
   t.after(fermer);
 
-  const { status, headers } = await appeler('/api/sessions', { method: 'OPTIONS' });
+  const { status, headers } = await appeler('/api/sessions', { coach: true, method: 'OPTIONS' });
   assert.equal(status, 204);
   assert.equal(headers.get('access-control-allow-origin'), '*');
   assert.match(headers.get('access-control-allow-methods'), /POST/);
@@ -396,4 +411,30 @@ test('la page 7 jours est servie et la traversée de chemin bloquée', async (t)
   assert.equal((await appeler('/app.js')).status, 200);
   assert.equal((await appeler('/%2e%2e/package.json')).status, 404);
   assert.equal((await appeler('/nexistepas.html')).status, 404);
+});
+
+test('la page porte un aperçu de lien dont l’image est en adresse absolue', async (t) => {
+  const { base, fermer } = await demarrer();
+  t.after(fermer);
+
+  // WhatsApp ignore une image de partage en adresse relative.
+  const local = await (await fetch(base + '/')).text();
+  assert.match(local, /<meta property="og:image" content="http:\/\/127\.0\.0\.1:\d+\/partage\.png">/);
+  assert.ok(!local.includes('{{origine}}'), 'le gabarit ne doit pas fuir dans la page');
+
+  // Derrière le proxy TLS d'un hébergeur, le schéma et le domaine viennent des en-têtes.
+  const derriereProxy = await (await fetch(base + '/', {
+    headers: { 'X-Forwarded-Proto': 'https', 'X-Forwarded-Host': 'entrainements.exemple.fr' }
+  })).text();
+  assert.match(
+    derriereProxy,
+    /<meta property="og:image" content="https:\/\/entrainements\.exemple\.fr\/partage\.png">/
+  );
+
+  const manifeste = await fetch(base + '/manifest.webmanifest');
+  assert.equal(manifeste.status, 200);
+  assert.match(manifeste.headers.get('content-type'), /application\/manifest\+json/);
+  const declare = JSON.parse(await manifeste.text());
+  assert.equal(declare.display, 'standalone', 'sans quoi l’ajout à l’écran d’accueil garde la barre du navigateur');
+  assert.ok(declare.icons.some((i) => i.purpose === 'maskable'), 'Android rogne les icônes en rond');
 });

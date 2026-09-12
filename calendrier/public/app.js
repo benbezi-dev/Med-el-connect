@@ -10,6 +10,7 @@
   var API = new URLSearchParams(location.search).get('api') || './api';
 
   var CLE_STOCKAGE = 'calendrier.cleCoach';
+  var CLE_ATHLETE = 'calendrier.athlete';
 
   var etat = {
     start: new URLSearchParams(location.search).get('start') || null,
@@ -17,8 +18,12 @@
     edition: null,
     noteEnAttente: null,   // note vocale enregistrée avant que la séance n'existe
     anneeChargee: false,
+    suiviCharge: false,
     cle: lireCle(),        // clé coach : les notes vocales n'existent qu'avec elle
     coach: false,
+    athletes: [],          // le référentiel, chargé une fois
+    athlete: lireAthlete(),// « je suis » : une déclaration, pas une identification
+    noteEdition: null,     // { seance, note } pendant l'édition d'un compte rendu
     sons: []               // URLs blob des sons chargés, à révoquer
   };
 
@@ -39,6 +44,27 @@
     } catch (erreur) { /* la clé ne vaudra que pour cette page */ }
   }
 
+  function lireAthlete() {
+    try {
+      return localStorage.getItem(CLE_ATHLETE) || '';
+    } catch (erreur) {
+      return '';
+    }
+  }
+
+  function ecrireAthlete(id) {
+    etat.athlete = id;
+    try {
+      if (id) localStorage.setItem(CLE_ATHLETE, id);
+      else localStorage.removeItem(CLE_ATHLETE);
+    } catch (erreur) { /* le choix ne vaudra que pour cette page */ }
+  }
+
+  /** @returns {object|null} l'athlète déclaré, tel que le référentiel le décrit. */
+  function athleteCourant() {
+    return etat.athletes.filter(function (a) { return a.id === etat.athlete; })[0] || null;
+  }
+
   var els = {};
   [
     'periode', 'alerte', 'etat', 'entete-jours', 'corps', 'legende',
@@ -48,7 +74,10 @@
     'enregistrer-voix', 'vocal-etat', 'vocal-aide', 'vocal-liste',
     'archiver', 'enregistrer', 'annuler', 'precedent', 'suivant', 'aujourdhui',
     'vocal', 'bouton-coach', 'dialogue-coach', 'formulaire-coach', 'coach-alerte', 'champ-cle',
-    'oublier-cle', 'coach-annuler'
+    'oublier-cle', 'coach-annuler',
+    'champ-athlete', 'panneau-suivi', 'suivi-contenu',
+    'dialogue-note', 'formulaire-note', 'note-titre', 'note-contexte', 'note-alerte',
+    'champ-note', 'note-compteur', 'note-supprimer', 'note-annuler', 'note-enregistrer'
   ].forEach(function (id) {
     els[id] = document.getElementById(id);
   });
@@ -59,6 +88,7 @@
     var resultat = {};
     if (avecCorps) resultat['Content-Type'] = 'application/json';
     if (etat.cle) resultat['X-Cle-Coach'] = etat.cle;
+    if (etat.athlete) resultat['X-Athlete'] = etat.athlete;
     return resultat;
   }
 
@@ -86,14 +116,64 @@
         etat.start = calendrier.start;
         etat.coach = Boolean(calendrier.coach);
         majBoutonCoach();
+        majPanneauSuivi();
         dessiner(calendrier);
         if (etat.cle && !etat.coach) afficherAlerte('Clé coach refusée : les notes vocales restent masquées.');
         if (etat.anneeChargee) chargerAnnee();
+        if (etat.coach && etat.suiviCharge) chargerSuivi();
       })
       .catch(function (erreur) {
         els.etat.textContent = 'Calendrier indisponible.';
         afficherAlerte(erreur.message + ' — le serveur de l’API est-il démarré ?');
       });
+  }
+
+  /* ---------- Athlètes ---------- */
+
+  /** Le référentiel ne change pas : une seule lecture au démarrage. */
+  function chargerAthletes() {
+    return appeler('/athletes')
+      .then(function (reponse) {
+        etat.athletes = reponse.athletes || [];
+        remplirAthletes();
+      })
+      .catch(function () {
+        // Sans le référentiel, la page reste lisible : seul le choix disparaît.
+        els['champ-athlete'].disabled = true;
+      });
+  }
+
+  function remplirAthletes() {
+    var select = els['champ-athlete'];
+    vider(select);
+    select.appendChild(creer('option', { value: '', textContent: 'personne' }));
+    etat.athletes.forEach(function (athlete) {
+      var option = creer('option', { value: athlete.id, textContent: athlete.nom });
+      if (athlete.id === etat.athlete) option.selected = true;
+      select.appendChild(option);
+    });
+    // Un choix gardé qui ne correspond plus à personne : on l'oublie.
+    if (etat.athlete && !athleteCourant()) {
+      ecrireAthlete('');
+      select.value = '';
+    }
+    majCouleurAthlete();
+  }
+
+  /** La pastille du sélecteur prend la couleur de l'athlète choisi. */
+  function majCouleurAthlete() {
+    var athlete = athleteCourant();
+    els['champ-athlete'].style.setProperty('--athlete', athlete ? athlete.couleur : 'transparent');
+  }
+
+  function dessinerPastille(athlete) {
+    var pastille = creer('span', {
+      className: 'pastille-athlete',
+      textContent: athlete.initiales,
+      title: athlete.nom
+    });
+    pastille.style.setProperty('--athlete', athlete.couleur);
+    return pastille;
   }
 
   /* ---------- Rendu de la semaine ---------- */
@@ -156,6 +236,10 @@
       td.appendChild(dessinerSeance(seance, statuts));
     });
 
+    // Le planning appartient au coach : inutile de proposer un bouton qui
+    // se ferait refuser.
+    if (!etat.coach) return td;
+
     if (cellule.complet) {
       td.appendChild(creer('p', { className: 'cellule-vide', textContent: 'Tous les lieux occupés' }));
     } else {
@@ -196,10 +280,22 @@
         textContent: '♪ ' + pluriel(seance.notesVocales.length, 'note vocale', 'notes vocales')
       }));
     }
-    ouvrir.addEventListener('click', function () { ouvrirEdition(seance); });
+    if (seance.notesAthletes && seance.notesAthletes.length) {
+      ouvrir.appendChild(dessinerAuteurs(seance.notesAthletes));
+    }
+    // Seul le coach édite la séance ; l'athlète l'ouvre pour la lire.
+    ouvrir.addEventListener('click', function () {
+      if (etat.coach) ouvrirEdition(seance);
+      else if (etat.athlete) ouvrirNote(seance);
+    });
+    if (!etat.coach && !etat.athlete) ouvrir.disabled = true;
     carte.appendChild(ouvrir);
 
+    carte.appendChild(dessinerNotesAthletes(seance));
+
     // Le menu déroulant : indiquer d'un geste si la séance est faite ou prévue.
+    if (!etat.coach) return carte;
+
     var menu = creer('select', {
       className: 'statut-select',
       title: 'Statut de la séance'
@@ -221,6 +317,192 @@
     });
     carte.appendChild(menu);
     return carte;
+  }
+
+  /** Les pastilles des auteurs, posées sur la carte de la séance. */
+  function dessinerAuteurs(notes) {
+    var groupe = creer('span', { className: 'auteurs' });
+    notes.forEach(function (note) {
+      if (note.athlete) groupe.appendChild(dessinerPastille(note.athlete));
+    });
+    return groupe;
+  }
+
+  /** On raconte une séance qui a eu lieu, et qui n'est pas archivée. */
+  function commentable(seance) {
+    return !seance.archivee && etat.calendrier && seance.date <= etat.calendrier.today;
+  }
+
+  /** Le bouton « mon compte rendu » — visible pour l'athlète qui s'est déclaré. */
+  function dessinerNotesAthletes(seance) {
+    var zone = creer('div', { className: 'notes-athlete' });
+    var athlete = athleteCourant();
+    if (!athlete || etat.coach || !commentable(seance)) return zone;
+
+    var mienne = (seance.notesAthletes || []).filter(function (note) {
+      return note.athleteId === athlete.id;
+    })[0];
+
+    var bouton = creer('button', {
+      type: 'button',
+      className: 'note-bouton' + (mienne ? ' remplie' : ''),
+      // Court : la cellule d'un créneau est étroite sur un téléphone.
+      textContent: mienne ? '✎ Ma note' : '+ Ma note'
+    });
+    bouton.style.setProperty('--athlete', athlete.couleur);
+    bouton.addEventListener('click', function () { ouvrirNote(seance); });
+    zone.appendChild(bouton);
+
+    if (mienne) {
+      zone.appendChild(creer('p', { className: 'note-apercu', textContent: mienne.texte }));
+    }
+    return zone;
+  }
+
+  /* ---------- Compte rendu d'un athlète ---------- */
+
+  function ouvrirNote(seance) {
+    var athlete = athleteCourant();
+    if (!athlete) return;
+
+    var mienne = (seance.notesAthletes || []).filter(function (note) {
+      return note.athleteId === athlete.id;
+    })[0] || null;
+
+    etat.noteEdition = { seance: seance, note: mienne };
+    afficherAlerte(null, els['note-alerte']);
+
+    els['note-titre'].textContent = mienne ? 'Corriger mon compte rendu' : 'Mon compte rendu';
+    els['note-contexte'].textContent = athlete.nom + ' · '
+      + formaterDate(seance.date, true) + ' à ' + seance.time + ' · '
+      + (seance.location ? seance.location.name : seance.locationId);
+    els['champ-note'].value = mienne ? mienne.texte : '';
+    els['note-supprimer'].hidden = !mienne;
+
+    if (!commentable(seance)) {
+      afficherAlerte('Cette séance n’a pas encore eu lieu.', els['note-alerte']);
+      els['champ-note'].disabled = true;
+      els['note-enregistrer'].disabled = true;
+    } else {
+      els['champ-note'].disabled = false;
+      els['note-enregistrer'].disabled = false;
+    }
+
+    els['dialogue-note'].showModal();
+    els['champ-note'].focus();
+  }
+
+  function enregistrerNote(evenement) {
+    evenement.preventDefault();
+    if (!etat.noteEdition) return;
+
+    var athlete = athleteCourant();
+    var seance = etat.noteEdition.seance;
+    var existante = etat.noteEdition.note;
+    var texte = els['champ-note'].value.trim();
+
+    if (!texte) {
+      afficherAlerte('Écrivez quelque chose, ou supprimez la note.', els['note-alerte']);
+      return;
+    }
+
+    els['note-enregistrer'].disabled = true;
+    var chemin = '/sessions/' + seance.id + '/notes-athlete' + (existante ? '/' + existante.id : '');
+    appeler(chemin, {
+      method: existante ? 'PATCH' : 'POST',
+      body: { athleteId: athlete.id, texte: texte }
+    })
+      .then(function () {
+        els['dialogue-note'].close();
+        return charger();
+      })
+      .catch(function (erreur) {
+        afficherAlerte(erreur.message, els['note-alerte']);
+      })
+      .then(function () { els['note-enregistrer'].disabled = false; });
+  }
+
+  function supprimerNote() {
+    if (!etat.noteEdition || !etat.noteEdition.note) return;
+    var seance = etat.noteEdition.seance;
+    var note = etat.noteEdition.note;
+
+    els['note-supprimer'].disabled = true;
+    appeler('/sessions/' + seance.id + '/notes-athlete/' + note.id, { method: 'DELETE' })
+      .then(function () {
+        els['dialogue-note'].close();
+        return charger();
+      })
+      .catch(function (erreur) {
+        afficherAlerte(erreur.message, els['note-alerte']);
+      })
+      .then(function () { els['note-supprimer'].disabled = false; });
+  }
+
+  /* ---------- Suivi des athlètes (coach) ---------- */
+
+  function majPanneauSuivi() {
+    els['panneau-suivi'].hidden = !etat.coach;
+    if (!etat.coach) {
+      els['panneau-suivi'].open = false;
+      etat.suiviCharge = false;
+    }
+  }
+
+  function chargerSuivi() {
+    return appeler('/suivi')
+      .then(dessinerSuivi)
+      .catch(function (erreur) {
+        vider(els['suivi-contenu']);
+        els['suivi-contenu'].appendChild(creer('p', { className: 'etat', textContent: erreur.message }));
+      });
+  }
+
+  function dessinerSuivi(suivi) {
+    vider(els['suivi-contenu']);
+
+    els['suivi-contenu'].appendChild(creer('p', {
+      className: 'suivi-resume',
+      textContent: pluriel(suivi.total, 'compte rendu', 'comptes rendus') + ' du '
+        + formaterDateAnnee(suivi.debut) + ' au ' + formaterDateAnnee(suivi.fin)
+        + (suivi.sansNote.length ? ' · ' + pluriel(suivi.sansNote.length, 'athlète') + ' sans note' : '')
+    }));
+
+    var liste = creer('div', { className: 'suivi-athletes' });
+    suivi.athletes.forEach(function (athlete) {
+      liste.appendChild(dessinerSuiviAthlete(athlete));
+    });
+    els['suivi-contenu'].appendChild(liste);
+  }
+
+  function dessinerSuiviAthlete(athlete) {
+    var bloc = creer('section', { className: 'suivi-athlete' + (athlete.totalNotes ? '' : ' muet') });
+    bloc.style.setProperty('--athlete', athlete.couleur);
+
+    var entete = creer('h4', { className: 'suivi-nom' });
+    entete.appendChild(dessinerPastille(athlete));
+    entete.appendChild(creer('span', { textContent: athlete.nom }));
+    entete.appendChild(creer('span', {
+      className: 'suivi-compte',
+      textContent: athlete.totalNotes
+        ? pluriel(athlete.totalNotes, 'note') + ' · ' + pluriel(athlete.seancesCommentees, 'séance')
+        : 'aucune note'
+    }));
+    bloc.appendChild(entete);
+
+    athlete.notes.forEach(function (note) {
+      var item = creer('article', { className: 'suivi-note' });
+      item.appendChild(creer('p', {
+        className: 'suivi-seance',
+        textContent: formaterDateAnnee(note.seance.date) + ' · ' + note.seance.time + ' · '
+          + (note.seance.location ? note.seance.location.name : '')
+          + (note.seance.title ? ' — ' + note.seance.title : '')
+      }));
+      item.appendChild(creer('p', { className: 'suivi-texte', textContent: note.texte }));
+      bloc.appendChild(item);
+    });
+
+    return bloc;
   }
 
   function dessinerLegende(calendrier) {
@@ -796,5 +1078,22 @@
     }
   });
 
-  charger();
+  els['champ-athlete'].addEventListener('change', function () {
+    ecrireAthlete(els['champ-athlete'].value);
+    majCouleurAthlete();
+    charger();
+  });
+  els['formulaire-note'].addEventListener('submit', enregistrerNote);
+  els['note-annuler'].addEventListener('click', function () { els['dialogue-note'].close(); });
+  els['note-supprimer'].addEventListener('click', supprimerNote);
+  els['dialogue-note'].addEventListener('close', function () { etat.noteEdition = null; });
+  els['panneau-suivi'].addEventListener('toggle', function () {
+    if (els['panneau-suivi'].open && !etat.suiviCharge) {
+      etat.suiviCharge = true;
+      chargerSuivi();
+    }
+  });
+
+  // Le référentiel des athlètes d'abord : la grille en dépend pour les pastilles.
+  chargerAthletes().then(charger);
 })();

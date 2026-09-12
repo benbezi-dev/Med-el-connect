@@ -1,0 +1,19 @@
+{
+  "name": "Calendrier des entraînements",
+  "short_name": "Entraînements",
+  "description": "La semaine d'entraînement : créneaux 18h00 et 18h30, cinq lieux, et le compte rendu de chacun.",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0A1220",
+  "theme_color": "#0A1220",
+  "categories": ["sports", "productivity"],
+  "icons": [
+    { "src": "./icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icone-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

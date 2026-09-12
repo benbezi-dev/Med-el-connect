@@ -11,6 +11,12 @@ menu déroulant posé sur sa carte, et peut recevoir des **notes vocales —
 réservées au coach** : les athlètes ne les voient nulle part. Rien n'est
 jamais effacé : supprimer une séance l'archive.
 
+Le lien se partage : chaque athlète se déclare dans un menu déroulant et
+écrit son **compte rendu** sur les séances qui ont eu lieu. Il ne voit que
+les siens ; le coach les retrouve tous, groupés par auteur, dans le panneau
+de suivi. **Le planning, lui, appartient au coach** : créer, modifier,
+archiver ou restaurer une séance demande la clé coach.
+
 Le module est autonome : il ne dépend d'aucun paquet npm et n'a aucun lien avec
 le reste de l'application MED-EL Connect à la racine du dépôt.
 
@@ -80,6 +86,8 @@ calculé sur `Europe/Paris`.
 | `GET` | `/api/locations` | Les 5 lieux |
 | `GET` | `/api/times` | Les heures possibles |
 | `GET` | `/api/statuts` | Prévue, effectuée, annulée |
+| `GET` | `/api/athletes` | Les 9 athlètes, avec leurs initiales et leur couleur |
+| `GET` | `/api/suivi?from=&to=&jours=` | **Les comptes rendus, groupés par athlète** — coach |
 | `GET` | `/api/calendar?start=&days=` | **Grille prête à afficher** (7 jours par défaut, 366 au plus) |
 | `GET` | `/api/annee?start=&mois=` | **Suivi sur 12 mois** : totaux par mois et jours occupés |
 | `GET` | `/api/export` | Toutes les séances, archives comprises |
@@ -89,6 +97,9 @@ calculé sur `Europe/Paris`.
 | `PATCH` | `/api/sessions/:id` | Modification partielle (dont le statut) |
 | `DELETE` | `/api/sessions/:id` | **Archive** la séance (rien n'est effacé) |
 | `POST` | `/api/sessions/:id/restaurer` | Sort une séance des archives |
+| `POST` | `/api/sessions/:id/notes-athlete` | Un athlète écrit son compte rendu |
+| `PATCH` | `/api/sessions/:id/notes-athlete/:noteId` | Un athlète corrige **sa** note |
+| `DELETE` | `/api/sessions/:id/notes-athlete/:noteId` | Un athlète supprime **sa** note ; le coach, n'importe laquelle |
 | `GET` | `/api/sessions/:id/notes-vocales` | Notes vocales de la séance — **coach** |
 | `POST` | `/api/sessions/:id/notes-vocales` | Ajoute une note vocale — **coach** |
 | `GET` | `/api/sessions/:id/notes-vocales/:noteId` | Renvoie le son — **coach** |
@@ -96,12 +107,68 @@ calculé sur `Europe/Paris`.
 
 CORS est ouvert (`*`) sur toutes les routes `/api`.
 
+## Athlètes
+
+Neuf athlètes, chacun avec sa couleur. La couleur ne porte **jamais seule**
+l'information : elle accompagne toujours les initiales, et le nom dès qu'il y
+a la place. Neuf teintes ne se distinguent pas de façon fiable — l'écart le
+plus faible entre deux voisins de la liste vaut ΔE 23,7 en vision normale
+(seuil 15) mais retombe à 5,9 en deutéranopie (cible 8), d'où les initiales
+sur chaque pastille. Elles se distinguent aussi **par la forme** des couleurs
+de couloir des lieux : un lieu se lit sur le liseré gauche d'une séance, un
+athlète sur un rond.
+
+| Athlète | `athleteId` | Couleur |
+|---|---|---|
+| Eliot | `eliot` | rose `#D16E8F` |
+| Autumn | `autumn` | cyan `#02A6AD` |
+| Scarlett | `scarlett` | terracotta `#D47452` |
+| Zoé | `zoe` | bleu `#359BD9` |
+| Yvon | `yvon` | ocre `#BB881A` |
+| Alex L | `alex-l` | indigo `#8388E0` |
+| Alex P | `alex-p` | olive `#889D37` |
+| Ludo | `ludo` | mauve `#B576C3` |
+| Mélina | `melina` | vert `#35AA76` |
+
+Elles sont déclarées en un seul endroit, dans `src/athletes.js`. Ajouter ou
+retirer un athlète y tient en une ligne.
+
+### Comptes rendus
+
+Un athlète se déclare dans l'en-tête `X-Athlete` (ou le paramètre `athlete=`)
+et écrit sur les séances **qui ont eu lieu** — une séance à venir part en
+`400`, une séance archivée en `409`. Il ne modifie et ne supprime que ses
+propres notes (`403` sinon), et ne voit que les siennes dans la grille,
+`/api/sessions` et `/api/export`.
+
+```bash
+curl -X POST http://localhost:3000/api/sessions/ses_…/notes-athlete \
+  -H 'Content-Type: application/json' \
+  -d '{"athleteId":"zoe","texte":"Jambes lourdes, 6×400 en 72."}'
+```
+
+> **Se déclarer n'est pas s'authentifier.** Le menu déroulant dit « je suis
+> Zoé », rien de plus : n'importe qui peut se déclarer n'importe qui. C'est un
+> confort d'affichage — chacun retrouve ses notes — et non une barrière. Seule
+> la clé coach protège vraiment quelque chose. Pour une vraie séparation, il
+> faudrait un code par athlète.
+
+Le coach retrouve tout dans `/api/suivi`, groupé par auteur, avec les neuf
+athlètes présents même sans note : le silence de quelqu'un est justement ce
+qu'on cherche à voir.
+
 ## Accès coach
 
-Les notes vocales sont privées : elles n'apparaissent **ni dans la grille, ni
-dans `/api/sessions`, ni dans `/api/export`** sans la clé coach, et leurs
-quatre routes répondent `401`. Tout le reste — grille, statuts, séances, vue
-année — reste ouvert à vos athlètes.
+Deux choses tiennent à la clé coach :
+
+- **le planning** — créer, modifier, archiver et restaurer une séance
+  répondent `401` sans elle. Le lien circule ; le calendrier reste le vôtre ;
+- **les notes vocales** — elles n'apparaissent ni dans la grille, ni dans
+  `/api/sessions`, ni dans `/api/export` sans la clé, et leurs quatre routes
+  répondent `401`. Le suivi des athlètes est réservé de la même façon.
+
+Tout le reste — lire la grille, les statuts, les séances, la vue année, et
+écrire son propre compte rendu — reste ouvert à vos athlètes.
 
 La clé vient, dans l'ordre : de `CALENDAR_COACH_KEY`, du fichier
 `data/cle-coach.txt`, ou d'un tirage au sort au premier démarrage (le serveur
@@ -122,9 +189,9 @@ notes est chargé par `fetch` authentifié, jamais par une URL contenant la clé
 En mode athlète, la section « Notes vocales » du formulaire n'existe pas et
 aucune séance n'indique qu'elle en porte.
 
-> La clé protège les notes vocales, pas l'écriture : n'importe qui peut encore
-> créer ou modifier une séance. Si le calendrier doit être ouvert en lecture
-> seule aux athlètes, c'est une étape à ajouter.
+En mode athlète, la page n'affiche ni « + Ajouter », ni les menus de statut :
+ce sont des gestes qui se feraient refuser. Elle propose à la place, sur
+chaque séance passée, « Ma note ».
 
 ### `GET /api/calendar`
 

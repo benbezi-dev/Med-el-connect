@@ -20,15 +20,15 @@ node --version            # 1. vérifier Node (≥ 18)
 tar xzf calendrier-api.tar.gz
 cd calendrier             # 2. extraire l'archive
 
-npm test                  # 3. vérifier : 87 tests, aucun réseau nécessaire
+npm test                  # 3. vérifier : 97 tests, aucun réseau nécessaire
 npm start                 # 4. démarrer
 ```
 
 `npm test` doit afficher :
 
 ```
-# tests 87
-# pass 87
+# tests 97
+# pass 97
 # fail 0
 ```
 
@@ -63,11 +63,30 @@ compte « effectuées / total ».
 En bas de page, un panneau replié ouvre la **vue année** : douze mois, les totaux
 par statut, les jours occupés. « Voir la semaine » saute à la semaine concernée.
 
+### Je suis…
+
+Le menu **« Je suis »**, en haut à droite, liste les neuf athlètes : Eliot, Autumn,
+Scarlett, Zoé, Yvon, Alex L, Alex P, Ludo, Mélina. Chacun s'y choisit une fois ; le
+choix reste dans son téléphone.
+
+Une fois déclaré, un athlète voit apparaître **« + Ma note »** sur chaque séance qui
+a eu lieu — pas sur celles à venir. Il y écrit son compte rendu, le corrige, le
+supprime. **Il ne voit que les siens.** Chaque athlète a une couleur, reprise sur
+la pastille portant ses initiales ; le nom est toujours écrit à côté, parce que neuf
+couleurs ne se distinguent pas de façon fiable.
+
+Vous, en mode coach, retrouvez tout dans le panneau **« Suivi des athlètes »** en bas
+de page : un bloc par athlète, à sa couleur, ses comptes rendus du plus récent au plus
+ancien. Les neuf y figurent, même sans note — ceux qui n'ont rien écrit apparaissent
+en grisé, ce qui est souvent l'information la plus utile.
+
 ### Mode athlète et mode coach
 
 Le bouton en haut à droite bascule entre les deux. En **mode athlète** — l'état par
 défaut, celui que voient vos athlètes — la section « Notes vocales » n'existe pas
-et rien n'indique qu'une séance en porte.
+et rien n'indique qu'une séance en porte. La page n'affiche pas non plus « + Ajouter »
+ni les menus de statut : **le planning n'appartient qu'à vous**, et proposer ces
+boutons ne ferait que provoquer un refus.
 
 En **mode coach**, vous saisissez la clé une fois : elle reste dans le
 `localStorage` de ce navigateur, sur votre appareil seulement, et accompagne chaque
@@ -91,6 +110,12 @@ avec un message en français.
   `grasse-stadium`, `valbonne-hill`, `valbonne-city-workout`.
 - **Un lieu, un créneau, une séance** : un doublon part en `409`. Les cinq lieux
   tournent en revanche en parallèle sur le même créneau.
+- **Le planning appartient au coach** : créer, modifier, archiver et restaurer une
+  séance répondent `401` sans la clé coach. Les athlètes lisent tout, et écrivent
+  leurs propres comptes rendus.
+- **Un compte rendu se pose sur une séance qui a eu lieu** : une séance à venir part
+  en `400`, une séance archivée en `409`. Un athlète ne touche qu'à ses notes
+  (`403` sinon).
 - **Rien n'est jamais effacé** : `DELETE` *archive* la séance. Elle quitte la
   grille, reste lisible par son identifiant, apparaît dans
   `/api/sessions?archivees=true` et dans `/api/export` ;
@@ -98,7 +123,7 @@ avec un message en français.
   libre. Chaque changement de statut est daté dans un `historique` gardé avec la
   séance.
 
-## 4. L'API en six gestes
+## 4. L’API en sept gestes
 
 Serveur démarré sur le port 3000.
 
@@ -106,6 +131,7 @@ Serveur démarré sur le port 3000.
 
 ```bash
 curl -X POST http://localhost:3000/api/sessions \
+  -H "X-Cle-Coach: $(cat data/cle-coach.txt)" \
   -H 'Content-Type: application/json' \
   -d '{"date":"2026-09-14","time":"18:00","locationId":"valbonne-stadium",
        "title":"Fractionné 400m","coach":"Karim","capacity":18}'
@@ -117,15 +143,22 @@ Notez l'`id` renvoyé : il sert à tout le reste. `statutLabel`, `location` et
 **2 · Se heurter aux règles**
 
 ```bash
+CLE="X-Cle-Coach: $(cat data/cle-coach.txt)"
+
 # même lieu, même créneau → 409
-curl -X POST http://localhost:3000/api/sessions \
+curl -X POST http://localhost:3000/api/sessions -H "$CLE" \
   -H 'Content-Type: application/json' \
   -d '{"date":"2026-09-14","time":"18:00","locationId":"valbonne-stadium"}'
 
 # une heure qui n'existe pas → 400
-curl -X POST http://localhost:3000/api/sessions \
+curl -X POST http://localhost:3000/api/sessions -H "$CLE" \
   -H 'Content-Type: application/json' \
   -d '{"date":"2026-09-14","time":"19:00","locationId":"valbonne-stadium"}'
+
+# et sans la clé du tout → 401, quelle que soit la saisie
+curl -X POST http://localhost:3000/api/sessions \
+  -H 'Content-Type: application/json' \
+  -d '{"date":"2026-09-14","time":"18:00","locationId":"grasse-stadium"}'
 ```
 
 ```jsonc
@@ -138,6 +171,7 @@ curl -X POST http://localhost:3000/api/sessions \
 
 ```bash
 curl -X PATCH http://localhost:3000/api/sessions/ses_… \
+  -H "X-Cle-Coach: $(cat data/cle-coach.txt)" \
   -H 'Content-Type: application/json' -d '{"statut":"effectuee"}'
 ```
 
@@ -151,7 +185,20 @@ La réponse est déjà structurée comme le tableau affiché — **une ligne par
 une cellule par jour** — aucun regroupement à refaire. `days` vaut 7 par défaut,
 366 au plus pour les extractions.
 
-**5 · Une note vocale — coach uniquement**
+**5 · Un compte rendu d'athlète**
+
+```bash
+# sur une séance qui a eu lieu
+curl -X POST http://localhost:3000/api/sessions/ses_…/notes-athlete \
+  -H 'Content-Type: application/json' \
+  -d '{"athleteId":"zoe","texte":"Jambes lourdes, 6×400 en 72."}'
+
+# ce que le coach en fait : tout, groupé par athlète
+curl -H "X-Cle-Coach: $(cat data/cle-coach.txt)" \
+  "http://localhost:3000/api/suivi?jours=30"
+```
+
+**6 · Une note vocale — coach uniquement**
 
 ```bash
 # sans la clé → 401
@@ -167,7 +214,7 @@ curl -X POST http://localhost:3000/api/sessions/ses_…/notes-vocales \
        "transcription":"Apporter les plots"}'
 ```
 
-**6 · Vérifier que rien ne fuit** — la même requête, avec et sans la clé :
+**7 · Vérifier que rien ne fuit** — la même requête, avec et sans la clé :
 
 ```bash
 curl -s "http://localhost:3000/api/calendar" | grep -c "Apporter les plots"
@@ -244,9 +291,11 @@ racine du dépôt est un site statique : elle ne peut pas héberger ce serveur.
 
 ## 7. Limites et dépannage
 
-> **La clé protège les notes, pas l'écriture.** N'importe qui atteignant l'API peut
-> encore créer, modifier ou archiver une séance ; seules les notes vocales sont
-> réservées. Mettre les athlètes en lecture seule est une étape à ajouter.
+> **Se déclarer n'est pas s'authentifier.** Le menu « Je suis » dit « je suis Zoé »,
+> rien de plus : quelqu'un de mal intentionné peut se déclarer quelqu'un d'autre et
+> lire ou écrire ses comptes rendus. C'est un confort d'affichage, pas une barrière.
+> Le planning et les notes vocales, eux, sont bien protégés par la clé coach. Pour
+> une vraie séparation entre athlètes, il faudrait un code par personne.
 
 | Symptôme | Cause et remède |
 |---|---|
