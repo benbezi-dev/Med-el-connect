@@ -11,6 +11,7 @@
 
   var CLE_STOCKAGE = 'calendrier.cleCoach';
   var CLE_ATHLETE = 'calendrier.athlete';
+  var CLE_FILE = 'calendrier.fileAttente';
 
   var etat = {
     start: new URLSearchParams(location.search).get('start') || null,
@@ -23,7 +24,9 @@
     coach: false,
     athletes: [],          // le référentiel, chargé une fois
     athlete: lireAthlete(),// « je suis » : une déclaration, pas une identification
-    noteEdition: null      // { seance, note } pendant l'édition d'un compte rendu
+    noteEdition: null,     // { seance, note } pendant l'édition d'un compte rendu
+    jourChoisi: null,      // vue téléphone : le jour affiché, un seul à la fois
+    dernierDepuisCache: false
   };
 
   /** localStorage peut être bloqué (navigation privée) : on n'en dépend jamais. */
@@ -66,8 +69,8 @@
 
   var els = {};
   [
-    'periode', 'alerte', 'etat', 'entete-jours', 'corps', 'legende',
-    'panneau-annee', 'annee-contenu',
+    'periode', 'alerte', 'bandeau-reseau', 'etat', 'entete-jours', 'corps', 'legende',
+    'panneau-annee', 'annee-contenu', 'vue-jour', 'jours-barre', 'jour-contenu',
     'dialogue', 'formulaire', 'dialogue-titre', 'dialogue-contexte', 'dialogue-alerte',
     'champ-statut', 'champ-lieu', 'champ-heure', 'champ-titre', 'champ-coach', 'champ-capacite', 'champ-notes',
     'enregistrer-voix', 'ajouter-note', 'champ-dictee', 'vocal-etat', 'vocal-aide', 'vocal-liste',
@@ -98,12 +101,19 @@
       headers: entetes(Boolean(config.body)),
       body: config.body ? JSON.stringify(config.body) : undefined
     }).then(function (reponse) {
+      // Le service worker signale ainsi qu'il a servi une copie gardée.
+      etat.dernierDepuisCache = reponse.headers.get('X-Depuis-Cache') === '1';
       return reponse.json().catch(function () { return {}; }).then(function (donnees) {
         if (!reponse.ok) {
           throw new Error((donnees.error && donnees.error.message) || 'Erreur ' + reponse.status);
         }
         return donnees;
       });
+    }, function (erreur) {
+      // fetch ne rejette que sur panne réseau ; un refus du serveur passe par
+      // la branche ci-dessus. La distinction décide de ce qui se rejoue.
+      erreur.reseau = true;
+      throw erreur;
     });
   }
 
@@ -117,6 +127,7 @@
         majBoutonCoach();
         majPanneauSuivi();
         dessiner(calendrier);
+        majBandeauReseau();
         if (etat.cle && !etat.coach) afficherAlerte('Clé coach refusée : les notes vocales restent masquées.');
         if (etat.anneeChargee) chargerAnnee();
         if (etat.coach && etat.suiviCharge) chargerSuivi();
@@ -125,6 +136,137 @@
         els.etat.textContent = 'Calendrier indisponible.';
         afficherAlerte(erreur.message + ' — le serveur de l’API est-il démarré ?');
       });
+  }
+
+  /* ---------- Hors ligne : garder, puis rejouer ----------
+
+     Au bord de la piste, le réseau va et vient. Une note écrite sans signal
+     est gardée sur l'appareil et repart au retour du réseau.
+
+     Ce qui se met en file est choisi : les notes et les changements de
+     statut, gestes du terrain. Créer ou supprimer une séance, non — cela se
+     fait au calme, avec du réseau, et rejouer une création à l'aveugle
+     risquerait des doublons de planning.
+
+     Le rejeu d'une création de note demande une précaution : si la réponse
+     s'est perdue alors que le serveur avait bien écrit, la rejouer créerait
+     un doublon. On vérifie donc d'abord si elle est déjà là. */
+
+  function lireFile() {
+    try {
+      return JSON.parse(localStorage.getItem(CLE_FILE) || '[]');
+    } catch (erreur) {
+      return [];
+    }
+  }
+
+  function ecrireFile(file) {
+    try {
+      localStorage.setItem(CLE_FILE, JSON.stringify(file));
+    } catch (erreur) { /* stockage refusé : la file ne survivra pas au rechargement */ }
+    majBandeauReseau();
+  }
+
+  function mettreEnFile(operation) {
+    operation.id = 'op_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    var file = lireFile();
+    file.push(operation);
+    ecrireFile(file);
+  }
+
+  function retirerDeLaFile(id) {
+    ecrireFile(lireFile().filter(function (op) { return op.id !== id; }));
+  }
+
+  /**
+   * Envoie, ou garde pour plus tard si le réseau manque.
+   * @returns {Promise<object>} `{ enFile: true }` quand l'envoi est différé.
+   */
+  function envoyer(chemin, options, type) {
+    return appeler(chemin, options).catch(function (erreur) {
+      if (!erreur.reseau) throw erreur;
+      mettreEnFile({ chemin: chemin, methode: options.method, corps: options.body, type: type });
+      return { enFile: true };
+    });
+  }
+
+  function viderFile() {
+    var file = lireFile();
+    if (!file.length) return Promise.resolve(false);
+
+    var aEnvoye = false;
+    return file
+      .reduce(function (chaine, operation) {
+        return chaine.then(function (arrete) {
+          if (arrete) return true;
+          return rejouer(operation)
+            .then(function () {
+              retirerDeLaFile(operation.id);
+              aEnvoye = true;
+              return false;
+            })
+            .catch(function (erreur) {
+              // Toujours hors ligne : on garde la file intacte pour plus tard.
+              if (erreur.reseau) return true;
+              // Refus du serveur : le rejouer indéfiniment ne servirait à rien.
+              retirerDeLaFile(operation.id);
+              afficherAlerte('Une note en attente a été refusée : ' + erreur.message);
+              return false;
+            });
+        });
+      }, Promise.resolve(false))
+      .then(function () {
+        majBandeauReseau();
+        return aEnvoye;
+      });
+  }
+
+  function rejouer(operation) {
+    var options = { method: operation.methode, body: operation.corps };
+    if (operation.type !== 'creation-note') return appeler(operation.chemin, options);
+
+    return dejaArrivee(operation).then(function (presente) {
+      return presente ? null : appeler(operation.chemin, options);
+    });
+  }
+
+  /** Une note identique est-elle déjà sur la séance ? Alors l'envoi avait abouti. */
+  function dejaArrivee(operation) {
+    var seanceId = (operation.chemin.match(/\/sessions\/([^/]+)\//) || [])[1];
+    if (!seanceId) return Promise.resolve(false);
+
+    return appeler('/sessions/' + seanceId).then(function (reponse) {
+      var seance = reponse.session;
+      var corps = operation.corps || {};
+      if (corps.texte !== undefined) {
+        return (seance.notesAthletes || []).some(function (note) {
+          return note.athleteId === corps.athleteId && note.texte === corps.texte;
+        });
+      }
+      return (seance.notesVocales || []).some(function (note) {
+        return note.transcription === corps.transcription;
+      });
+    }, function () {
+      return false; // séance illisible : on laisse le rejeu tenter sa chance
+    });
+  }
+
+  function majBandeauReseau() {
+    var enAttente = lireFile().length;
+    var horsLigne = navigator.onLine === false;
+
+    if (!enAttente && !horsLigne && !etat.dernierDepuisCache) {
+      els['bandeau-reseau'].hidden = true;
+      return;
+    }
+
+    var morceaux = [];
+    if (horsLigne) morceaux.push('Hors ligne');
+    else if (etat.dernierDepuisCache) morceaux.push('Affichage de la dernière semaine connue');
+    if (enAttente) morceaux.push(pluriel(enAttente, 'note') + ' en attente d’envoi');
+
+    els['bandeau-reseau'].textContent = morceaux.join(' · ') + '.';
+    els['bandeau-reseau'].hidden = false;
   }
 
   /* ---------- Athlètes ---------- */
@@ -175,6 +317,21 @@
     return pastille;
   }
 
+  /* ---------- Quelle présentation ? ----------
+
+     Les deux sont construites, mais une seule doit exister pour de bon :
+     masquée en CSS, l'autre resterait atteignable au clavier et annoncée par
+     un lecteur d'écran, avec ses boutons en double. L'attribut hidden la
+     retire de l'arbre d'accessibilité et de l'ordre de tabulation. */
+
+  var petitEcran = window.matchMedia('(max-width: 700px)');
+
+  function majPresentation() {
+    var cadre = document.querySelector('.cadre');
+    els['vue-jour'].hidden = !petitEcran.matches;
+    if (cadre) cadre.hidden = petitEcran.matches;
+  }
+
   /* ---------- Rendu de la semaine ---------- */
 
   function dessiner(calendrier) {
@@ -189,6 +346,7 @@
 
     dessinerEntete(calendrier);
     dessinerCorps(calendrier);
+    dessinerJour(calendrier);
     dessinerLegende(calendrier);
   }
 
@@ -230,17 +388,24 @@
   function dessinerCellule(cellule, jour, statuts) {
     var td = creer('td', { className: 'creneau' });
     if (jour.isPast) td.classList.add('passe');
+    td.appendChild(contenuCreneau(cellule, statuts));
+    return td;
+  }
+
+  /** Les séances d'un créneau, et le bouton d'ajout quand il a un sens. */
+  function contenuCreneau(cellule, statuts) {
+    var fragment = document.createDocumentFragment();
 
     cellule.sessions.forEach(function (seance) {
-      td.appendChild(dessinerSeance(seance, statuts));
+      fragment.appendChild(dessinerSeance(seance, statuts));
     });
 
     // Le planning appartient au coach : inutile de proposer un bouton qui
     // se ferait refuser.
-    if (!etat.coach) return td;
+    if (!etat.coach) return fragment;
 
     if (cellule.complet) {
-      td.appendChild(creer('p', { className: 'cellule-vide', textContent: 'Tous les lieux occupés' }));
+      fragment.appendChild(creer('p', { className: 'cellule-vide', textContent: 'Tous les lieux occupés' }));
     } else {
       var ajout = creer('button', {
         type: 'button',
@@ -249,9 +414,9 @@
         title: 'Ajouter une séance le ' + formaterDate(cellule.date) + ' à ' + cellule.time
       });
       ajout.addEventListener('click', function () { ouvrirCreation(cellule); });
-      td.appendChild(ajout);
+      fragment.appendChild(ajout);
     }
-    return td;
+    return fragment;
   }
 
   function dessinerSeance(seance, statuts) {
@@ -307,8 +472,15 @@
     });
     menu.addEventListener('change', function () {
       menu.disabled = true;
-      appeler('/sessions/' + seance.id, { method: 'PATCH', body: { statut: menu.value } })
-        .then(charger)
+      envoyer('/sessions/' + seance.id, { method: 'PATCH', body: { statut: menu.value } }, 'statut')
+        .then(function (reponse) {
+          if (reponse && reponse.enFile) {
+            afficherAlerte('Pas de réseau : le changement de statut partira au retour du réseau.');
+            menu.disabled = false;
+            return;
+          }
+          return charger();
+        })
         .catch(function (erreur) {
           afficherAlerte(erreur.message);
           return charger();
@@ -407,12 +579,17 @@
 
     els['note-enregistrer'].disabled = true;
     var chemin = '/sessions/' + seance.id + '/notes-athlete' + (existante ? '/' + existante.id : '');
-    appeler(chemin, {
-      method: existante ? 'PATCH' : 'POST',
-      body: { athleteId: athlete.id, texte: texte }
-    })
-      .then(function () {
+    envoyer(
+      chemin,
+      { method: existante ? 'PATCH' : 'POST', body: { athleteId: athlete.id, texte: texte } },
+      existante ? 'correction-note' : 'creation-note'
+    )
+      .then(function (reponse) {
         els['dialogue-note'].close();
+        if (reponse && reponse.enFile) {
+          afficherAlerte('Pas de réseau : votre note est gardée sur l’appareil et partira toute seule.');
+          return;
+        }
         return charger();
       })
       .catch(function (erreur) {
@@ -427,9 +604,13 @@
     var note = etat.noteEdition.note;
 
     els['note-supprimer'].disabled = true;
-    appeler('/sessions/' + seance.id + '/notes-athlete/' + note.id, { method: 'DELETE' })
-      .then(function () {
+    envoyer('/sessions/' + seance.id + '/notes-athlete/' + note.id, { method: 'DELETE' }, 'suppression-note')
+      .then(function (reponse) {
         els['dialogue-note'].close();
+        if (reponse && reponse.enFile) {
+          afficherAlerte('Pas de réseau : la suppression partira au retour du réseau.');
+          return;
+        }
         return charger();
       })
       .catch(function (erreur) {
@@ -502,6 +683,97 @@
     });
 
     return bloc;
+  }
+
+  /* ---------- Vue téléphone : un jour à la fois ----------
+
+     Sur 390 px, le tableau de la semaine demandait 1146 px de large : deux
+     colonnes visibles sur huit, et 782 px à faire défiler de côté pour
+     atteindre vendredi. Ici, la semaine tient dans une barre de sept
+     pastilles, et le jour choisi occupe toute la largeur. */
+
+  /** Le jour affiché : celui qu'on a choisi s'il est dans la semaine, sinon aujourd'hui. */
+  function jourAffiche(calendrier) {
+    var jours = calendrier.days;
+    var choisi = jours.filter(function (j) { return j.date === etat.jourChoisi; })[0];
+    if (choisi) return choisi;
+    return jours.filter(function (j) { return j.isToday; })[0] || jours[0];
+  }
+
+  function dessinerJour(calendrier) {
+    var jour = jourAffiche(calendrier);
+    etat.jourChoisi = jour.date;
+
+    dessinerBarreJours(calendrier, jour);
+    dessinerSeancesDuJour(calendrier, jour);
+  }
+
+  function dessinerBarreJours(calendrier, jourActif) {
+    vider(els['jours-barre']);
+
+    calendrier.days.forEach(function (jour) {
+      var puce = creer('button', { type: 'button', className: 'jour-puce' });
+      if (jour.date === jourActif.date) puce.classList.add('actif');
+      if (jour.isToday) puce.classList.add('aujourdhui');
+      if (jour.isPast) puce.classList.add('passe');
+      puce.setAttribute('aria-pressed', jour.date === jourActif.date ? 'true' : 'false');
+      puce.setAttribute('aria-label', formaterDate(jour.date, true));
+
+      puce.appendChild(creer('span', { className: 'jour-nom', textContent: jour.weekday.slice(0, 3) }));
+      puce.appendChild(creer('span', { className: 'jour-num', textContent: String(jour.dayOfMonth) }));
+
+      // Une pastille pleine dit « il y a quelque chose », sans chiffre à déchiffrer.
+      var points = creer('span', { className: 'jour-points' });
+      if (jour.totaux.total) {
+        points.textContent = jour.totaux.effectuee
+          ? jour.totaux.effectuee + '/' + jour.totaux.total
+          : String(jour.totaux.total);
+        if (jour.totaux.effectuee) points.classList.add('fait');
+      }
+      puce.appendChild(points);
+
+      puce.addEventListener('click', function () {
+        etat.jourChoisi = jour.date;
+        dessinerJour(etat.calendrier);
+      });
+      els['jours-barre'].appendChild(puce);
+    });
+  }
+
+  function dessinerSeancesDuJour(calendrier, jour) {
+    var contenu = els['jour-contenu'];
+    vider(contenu);
+
+    var entete = creer('h2', { className: 'jour-titre' });
+    entete.appendChild(creer('span', { className: 'jour-date', textContent: formaterDate(jour.date, true) }));
+    entete.appendChild(creer('span', {
+      className: 'jour-resume',
+      textContent: jour.totaux.total
+        ? pluriel(jour.totaux.total, 'séance') + ' · ' + jour.totaux.effectuee + ' effectuée' + (jour.totaux.effectuee > 1 ? 's' : '')
+        : 'aucune séance'
+    }));
+    contenu.appendChild(entete);
+
+    var index = calendrier.days.indexOf(jour);
+    calendrier.rows.forEach(function (ligne) {
+      var cellule = ligne.cells[index];
+      var vide = !cellule.sessions.length;
+
+      // Un créneau vide qu'on ne peut pas remplir n'a rien à dire : on le tait.
+      if (vide && !etat.coach) return;
+
+      var bloc = creer('section', { className: 'jour-creneau' });
+      bloc.appendChild(creer('h3', { className: 'jour-heure', textContent: ligne.time }));
+      bloc.appendChild(contenuCreneau(cellule, calendrier.statuts));
+      contenu.appendChild(bloc);
+    });
+
+    if (!contenu.querySelector('.jour-creneau')) {
+      contenu.appendChild(creer('p', {
+        className: 'jour-rien',
+        textContent: 'Rien de prévu ce jour-là.'
+      }));
+    }
   }
 
   function dessinerLegende(calendrier) {
@@ -880,8 +1152,13 @@
   }
 
   function televerser(sessionId, note) {
-    return appeler('/sessions/' + sessionId + '/notes-vocales', { method: 'POST', body: note })
+    return envoyer('/sessions/' + sessionId + '/notes-vocales', { method: 'POST', body: note }, 'creation-note')
       .then(function (reponse) {
+        if (reponse && reponse.enFile) {
+          els['vocal-etat'].textContent = 'Gardée — partira au retour du réseau';
+          els['champ-dictee'].value = '';
+          return reponse;
+        }
         etat.edition.seance = reponse.session;
         els['champ-dictee'].value = '';
         dictee.secondes = 0;
@@ -1068,14 +1345,17 @@
 
   els.precedent.addEventListener('click', function () {
     etat.start = etat.calendrier ? etat.calendrier.previousStart : null;
+    etat.jourChoisi = null;   // la semaine change : le jour choisi n'y est plus
     charger();
   });
   els.suivant.addEventListener('click', function () {
     etat.start = etat.calendrier ? etat.calendrier.nextStart : null;
+    etat.jourChoisi = null;
     charger();
   });
   els.aujourdhui.addEventListener('click', function () {
     etat.start = null;
+    etat.jourChoisi = null;
     charger();
   });
   els.annuler.addEventListener('click', function () { els.dialogue.close(); });
@@ -1118,6 +1398,30 @@
     }
   });
 
+  /* Le service worker garde la coquille et la dernière grille : l'application
+     s'ouvre au bord de la piste, réseau ou pas. Son absence ne gêne rien —
+     la page fonctionne comme avant, simplement sans hors ligne. */
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('./sw.js').catch(function () { /* tant pis */ });
+    });
+  }
+
+  petitEcran.addEventListener('change', majPresentation);
+  majPresentation();
+
+  window.addEventListener('online', function () {
+    majBandeauReseau();
+    viderFile().then(function (aEnvoye) {
+      if (aEnvoye) charger();
+    });
+  });
+  window.addEventListener('offline', majBandeauReseau);
+
   // Le référentiel des athlètes d'abord : la grille en dépend pour les pastilles.
-  chargerAthletes().then(charger);
+  chargerAthletes()
+    .then(charger)
+    // Ce qui attendait depuis la dernière fois part maintenant.
+    .then(function () { return viderFile(); })
+    .then(function (aEnvoye) { if (aEnvoye) return charger(); });
 })();

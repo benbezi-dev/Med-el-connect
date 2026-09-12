@@ -28,7 +28,7 @@ calendrier/
 │   ├── worker.mjs      Coquille Cloudflare Workers (fetch) + D1 ou R2
 │   ├── application.js  Assemblage des services, sans transport ni disque
 │   └── …               Calendrier, séances, athlètes, suivi, dépôts
-├── public/       Présentation 7 jours (HTML/CSS/JS, sans framework)
+├── public/       Présentation (HTML/CSS/JS, sans framework) + sw.js hors ligne
 ├── outils/       jeton-google.js (Drive) et icones.js (icônes, image de partage)
 ├── test/         109 tests (node:test)
 └── data/         Le document des séances, en stockage local
@@ -41,6 +41,33 @@ ne font que traduire — ce sont deux coquilles autour du même cœur.
 Les données vivent **sur le disque ou sur Google Drive**, au choix : le code
 ne connaît qu'un dépôt (`lire` / `ecrire` / `supprimer`), voir « Où vivent les
 données ».
+
+### Deux présentations, selon l'écran
+
+Au-dessus de 700 px, le tableau de la semaine. En dessous, **un jour à la
+fois** : une barre de sept pastilles, et les séances du jour en pleine
+largeur.
+
+Ce n'est pas un confort. Sur 390 px, le tableau demandait 1146 px de large :
+deux colonnes visibles sur huit, et 782 px à faire défiler de côté pour
+atteindre vendredi. Les deux vues sont construites ensemble et `hidden`
+retire l'autre de l'arbre d'accessibilité — la masquer en CSS la laisserait
+atteignable au clavier, avec ses boutons en double.
+
+### Hors ligne
+
+Un service worker garde la coquille et la dernière grille reçue. Au bord de
+la piste sans réseau, l'application s'ouvre sur la dernière semaine connue et
+le dit — plutôt que de laisser croire à des données fraîches.
+
+Une note écrite sans signal est gardée sur l'appareil et repart au retour du
+réseau. Seuls les gestes du terrain sont mis en file (notes, changements de
+statut) : créer ou supprimer une séance se fait au calme, et rejouer une
+création à l'aveugle risquerait des doublons de planning.
+
+Le rejeu d'une création vérifie d'abord si la note est déjà arrivée : si la
+réponse s'était perdue alors que le serveur avait bien écrit, la rejouer
+créerait un doublon.
 
 La présentation suit un thème sport : fond nuit, vert fluo pour l'interface
 (colonne « Heure », jour courant, bouton principal) et une couleur de couloir

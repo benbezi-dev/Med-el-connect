@@ -51,6 +51,23 @@ serveur.
 
 ## 2. La page
 
+### Sur téléphone
+
+C'est l'usage principal, et la page s'y adapte : une **barre de sept jours** en
+haut, le jour courant sélectionné, et dessous ses séances en pleine largeur. On
+change de jour d'une tape, de semaine avec « Précédent » et « Suivant ». Aucun
+défilement latéral.
+
+**Sans réseau, l'application s'ouvre quand même** et montre la dernière semaine
+qu'elle connaît, en l'annonçant dans un bandeau. Une note écrite sans signal est
+gardée sur l'appareil : le bandeau indique combien attendent, et elles partent
+toutes seules dès que le réseau revient. Vous n'avez rien à refaire.
+
+Pour l'ajouter à l'écran d'accueil : menu du navigateur → « Sur l'écran
+d'accueil » (iOS) ou « Installer l'application » (Android).
+
+### Sur ordinateur
+
 La grille tient sur sept jours, colonne **Heure** figée à gauche, jour courant en
 vert. Tout se fait au clic dans une cellule : **+ Ajouter** crée une séance, un
 clic sur une séance existante la modifie.
