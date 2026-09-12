@@ -5,21 +5,34 @@
    calendrier ici.
 
    Deux différences avec Node :
-   - il n'y a pas de disque, donc les données vivent dans un bucket R2 ;
+   - il n'y a pas de disque, donc les données vivent dans un bucket R2 ou
+     dans une base D1, selon ce qui est lié ;
    - il n'y a pas de processus qui dure, donc l'état est rechargé à chaque
-     requête (voir depot-r2.js pour ce que cela implique sur les écritures
-     simultanées).
+     requête (voir depot-r2.js ou depot-d1.js pour ce que cela implique sur
+     les écritures simultanées).
 
    Les fichiers de public/ sont servis par le binding ASSETS, déclaré dans
    wrangler.toml. */
 
 import applicationModule from './application.js';
 import depotR2Module from './depot-r2.js';
+import depotD1Module from './depot-d1.js';
 import erreursModule from './errors.js';
 
 const { creerApplication } = applicationModule;
 const { DepotR2 } = depotR2Module;
+const { DepotD1 } = depotD1Module;
 const { ApiError, badRequest } = erreursModule;
+
+/* Le stockage suit ce qui est lié au Worker. R2 d'abord quand les deux le
+   sont : c'est le dépôt fait pour des fichiers. D1 convient tout aussi bien
+   ici, puisque seules des données textuelles sont conservées. */
+function choisirDepot(env) {
+  const prefixe = env.CALENDAR_R2_PREFIX ?? '';
+  if (env.CALENDRIER) return new DepotR2(env.CALENDRIER, { prefixe });
+  if (env.CALENDRIER_DB) return new DepotD1(env.CALENDRIER_DB, { prefixe });
+  return null;
+}
 
 export default {
   async fetch(request, env) {
@@ -33,11 +46,14 @@ export default {
       return new Response(null, { status: 204, headers: entetesCors() });
     }
 
-    if (!env.CALENDRIER) {
+    const depot = choisirDepot(env);
+    if (!depot) {
       return json(500, {
         error: {
           code: 'stockage_absent',
-          message: 'Le bucket R2 « CALENDRIER » n’est pas lié à ce Worker (voir wrangler.toml).'
+          message:
+            'Aucun stockage n’est lié à ce Worker : il faut le bucket R2 « CALENDRIER » ' +
+            'ou la base D1 « CALENDRIER_DB » (voir wrangler.toml).'
         }
       });
     }
@@ -63,10 +79,7 @@ export default {
     }
 
     try {
-      const app = await creerApplication({
-        depot: new DepotR2(env.CALENDRIER, { prefixe: env.CALENDAR_R2_PREFIX ?? '' }),
-        cleCoach: env.CALENDAR_COACH_KEY ?? null
-      });
+      const app = await creerApplication({ depot, cleCoach: env.CALENDAR_COACH_KEY });
 
       const reponse = await app.routeur({
         methode: request.method,

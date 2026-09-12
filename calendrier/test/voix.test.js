@@ -1,112 +1,73 @@
+/* Les notes dictées du coach. Le micro sert à écrire vite : la dictée est
+   transcrite dans le navigateur, et seul le texte arrive jusqu'ici. */
+
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const { VoiceStore } = require('../src/voix');
-const { DepotFichier, DepotMemoire } = require('../src/stockage');
+const { preparerNote, corrigerNote, MAX_TRANSCRIPTION, DUREE_MAX } = require('../src/voix');
 
-const SON = Buffer.from('un petit bout de son');
-const base64 = SON.toString('base64');
+test('une note dictée ne garde que son texte', async () => {
+  const note = preparerNote({ transcription: '  Penser aux plots  ', duree: 7.44 });
 
-function dossierTemporaire(t) {
-  const dossier = fs.mkdtempSync(path.join(os.tmpdir(), 'voix-'));
-  t.after(() => fs.rmSync(dossier, { recursive: true, force: true }));
-  return dossier;
-}
-
-function depotLocal(t) {
-  return new DepotFichier(dossierTemporaire(t));
-}
-
-async function attendreErreur(fn, status) {
-  try {
-    await fn();
-  } catch (error) {
-    assert.equal(error.status, status, `attendu ${status}, reçu ${error.status} (${error.message})`);
-    return error;
-  }
-  assert.fail(`aucune erreur levée (attendu ${status})`);
-}
-
-test('le son est écrit sur disque et relu à l’identique', async (t) => {
-  const dossier = dossierTemporaire(t);
-  const store = new VoiceStore(new DepotFichier(dossier));
-
-  const note = await store.enregistrer('ses_1', { audio: base64, mimeType: 'audio/webm;codecs=opus', duree: 4.27 });
   assert.match(note.id, /^voc_/);
-  assert.equal(note.mimeType, 'audio/webm', 'le codec est retiré du type');
-  assert.equal(note.fichier, `${note.id}.webm`);
-  assert.equal(note.taille, SON.length);
-  assert.equal(note.duree, 4.3, 'la durée est arrondie au dixième');
+  assert.equal(note.transcription, 'Penser aux plots', 'les blancs de bord sont retirés');
+  assert.equal(note.duree, 7.4, 'la durée est arrondie au dixième');
+  assert.equal(note.source, 'dictee');
+  assert.ok(note.createdAt && note.updatedAt);
 
-  assert.deepEqual(await store.lire('ses_1', note), SON);
-  assert.deepEqual(
-    fs.readdirSync(path.join(dossier, 'notes-vocales', 'ses_1')),
-    [note.fichier],
-    'aucun fichier temporaire'
-  );
-
-  await store.supprimer('ses_1', note);
-  await attendreErreur(() => store.lire('ses_1', note), 404);
+  // Ce qui a disparu compte autant que ce qui reste : aucun son n'est conservé.
+  assert.ok(!('audio' in note));
+  assert.ok(!('fichier' in note));
+  assert.ok(!('mimeType' in note));
+  assert.ok(!('taille' in note));
 });
 
-test('les formats acceptés couvrent ce que produisent les navigateurs', async (t) => {
-  const store = new VoiceStore(depotLocal(t));
-  for (const [mimeType, extension] of Object.entries({
-    'audio/webm': '.webm',
-    'audio/ogg': '.ogg',
-    'audio/mp4': '.m4a',
-    'audio/mpeg': '.mp3',
-    'audio/wav': '.wav'
-  })) {
-    assert.ok((await store.enregistrer('ses_1', { audio: base64, mimeType })).fichier.endsWith(extension));
-  }
-  // Sans type déclaré, on suppose du webm (Chrome, Firefox).
-  assert.equal((await store.enregistrer('ses_1', { audio: base64 })).mimeType, 'audio/webm');
-  await attendreErreur(() => store.enregistrer('ses_1', { audio: base64, mimeType: 'audio/aiff' }), 400);
-  await attendreErreur(() => store.enregistrer('ses_1', { audio: base64, mimeType: 'video/mp4' }), 400);
+test('la transcription est la note : sans elle, rien à garder', async () => {
+  assert.throws(() => preparerNote({ duree: 3 }), /transcription/);
+  assert.throws(() => preparerNote({ transcription: '' }), /transcription/);
+  assert.throws(() => preparerNote({ transcription: '   \n  ' }), /vide/);
+  assert.throws(() => preparerNote({ transcription: 42 }), /transcription/);
+  assert.throws(() => preparerNote({ transcription: 'x'.repeat(MAX_TRANSCRIPTION + 1) }), /5000/);
+  assert.throws(() => preparerNote(null), /objet JSON/);
+  assert.throws(() => preparerNote([]), /objet JSON/);
+
+  // Le maximum lui-même passe.
+  assert.equal(preparerNote({ transcription: 'x'.repeat(MAX_TRANSCRIPTION) }).transcription.length, MAX_TRANSCRIPTION);
 });
 
-test('une data URL est acceptée telle que la produit le navigateur', async (t) => {
-  const store = new VoiceStore(depotLocal(t));
-  const note = await store.enregistrer('ses_1', { audio: `data:audio/webm;base64,${base64}`, mimeType: 'audio/webm' });
-  assert.deepEqual(await store.lire('ses_1', note), SON);
+test('la durée reste indicative, et bornée', async () => {
+  assert.equal(preparerNote({ transcription: 'Bon' }).duree, null, 'absente quand on a tapé');
+  assert.equal(preparerNote({ transcription: 'Bon', duree: null }).duree, null);
+  assert.equal(preparerNote({ transcription: 'Bon', duree: 0 }).duree, 0);
+  assert.equal(preparerNote({ transcription: 'Bon', duree: DUREE_MAX }).duree, DUREE_MAX);
+
+  assert.throws(() => preparerNote({ transcription: 'Bon', duree: -1 }), /duree/);
+  assert.throws(() => preparerNote({ transcription: 'Bon', duree: DUREE_MAX + 1 }), /duree/);
+  assert.throws(() => preparerNote({ transcription: 'Bon', duree: 'longtemps' }), /duree/);
 });
 
-test('les payloads invalides sont refusés en 400', async (t) => {
-  const store = new VoiceStore(depotLocal(t));
-  await attendreErreur(() => store.enregistrer('ses_1', {}), 400);
-  await attendreErreur(() => store.enregistrer('ses_1', { audio: '' }), 400);
-  await attendreErreur(() => store.enregistrer('ses_1', { audio: '!!!' }), 400);
-  await attendreErreur(() => store.enregistrer('ses_1', null), 400);
-  await attendreErreur(() => store.enregistrer('ses_1', { audio: base64, duree: -1 }), 400);
-  await attendreErreur(() => store.enregistrer('ses_1', { audio: base64, duree: 99999 }), 400);
-  await attendreErreur(() => store.enregistrer('ses_1', { audio: base64, transcription: 42 }), 400);
-  await attendreErreur(() => store.enregistrer('ses_1', { audio: base64, transcription: 'x'.repeat(5001) }), 400);
-
-  // 5 Mo maximum de son décodé.
-  const tropGros = Buffer.alloc(5 * 1024 * 1024 + 1).toString('base64');
-  await attendreErreur(() => store.enregistrer('ses_1', { audio: tropGros }), 400);
+test('la source dit si le texte a été dicté ou tapé', async () => {
+  assert.equal(preparerNote({ transcription: 'Bon' }).source, 'dictee');
+  assert.equal(preparerNote({ transcription: 'Bon', source: 'saisie' }).source, 'saisie');
+  assert.equal(preparerNote({ transcription: 'Bon', source: 'DICTEE' }).source, 'dictee');
+  assert.throws(() => preparerNote({ transcription: 'Bon', source: 'telepathie' }), /dictee/);
 });
 
-test('un identifiant piégé ne peut pas sortir du dossier', async (t) => {
-  const store = new VoiceStore(depotLocal(t));
-  await attendreErreur(() => store.lire('ses_1', { fichier: '../evasion.webm' }), 400);
-  await attendreErreur(() => store.lire('../..', { fichier: 'a.webm' }), 400);
-  await attendreErreur(() => store.supprimer('ses_1/../..', { fichier: 'a.webm' }), 400);
-});
+test('la reconnaissance vocale se trompe : une note se corrige', async () => {
+  const note = preparerNote({ transcription: 'Penser aux plots', duree: 6 });
 
-test('sans dépôt, le son reste en mémoire', async () => {
-  const store = new VoiceStore(null);
-  const note = await store.enregistrer('ses_1', { audio: base64 });
-  assert.deepEqual(await store.lire('ses_1', note), SON);
-  await store.supprimer('ses_1', note);
-  await attendreErreur(() => store.lire('ses_1', note), 404);
-});
+  const corrigee = corrigerNote(note, { transcription: 'Penser aux plots et aux haies', source: 'saisie' });
+  assert.equal(corrigee.id, note.id, 'la même note');
+  assert.equal(corrigee.createdAt, note.createdAt, 'créée au même moment');
+  assert.equal(corrigee.transcription, 'Penser aux plots et aux haies');
+  assert.equal(corrigee.source, 'saisie');
+  assert.equal(corrigee.duree, null, 'une correction au clavier prive la durée de sens');
+  assert.ok(corrigee.updatedAt >= note.updatedAt);
 
-test('le son suit le dépôt : mêmes chemins en mémoire et sur disque', async (t) => {
-  const memoire = new DepotMemoire();
-  const note = await new VoiceStore(memoire).enregistrer('ses_1', { audio: base64 });
-  assert.deepEqual([...memoire.fichiers.keys()], [`notes-vocales/ses_1/${note.fichier}`]);
+  // Une nouvelle dictée, elle, garde sa durée.
+  const redictee = corrigerNote(note, { transcription: 'Autre chose', duree: 3.2 });
+  assert.equal(redictee.duree, 3.2);
+  assert.equal(redictee.source, 'dictee');
+
+  // Et une correction vide est refusée comme à la création.
+  assert.throws(() => corrigerNote(note, { transcription: '  ' }), /vide/);
 });

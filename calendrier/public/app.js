@@ -16,15 +16,14 @@
     start: new URLSearchParams(location.search).get('start') || null,
     calendrier: null,
     edition: null,
-    noteEnAttente: null,   // note vocale enregistrée avant que la séance n'existe
+    noteEnAttente: null,   // note dictée avant que la séance n'existe
     anneeChargee: false,
     suiviCharge: false,
-    cle: lireCle(),        // clé coach : les notes vocales n'existent qu'avec elle
+    cle: lireCle(),        // clé coach : les notes du coach n'existent qu'avec elle
     coach: false,
     athletes: [],          // le référentiel, chargé une fois
     athlete: lireAthlete(),// « je suis » : une déclaration, pas une identification
-    noteEdition: null,     // { seance, note } pendant l'édition d'un compte rendu
-    sons: []               // URLs blob des sons chargés, à révoquer
+    noteEdition: null      // { seance, note } pendant l'édition d'un compte rendu
   };
 
   /** localStorage peut être bloqué (navigation privée) : on n'en dépend jamais. */
@@ -71,7 +70,7 @@
     'panneau-annee', 'annee-contenu',
     'dialogue', 'formulaire', 'dialogue-titre', 'dialogue-contexte', 'dialogue-alerte',
     'champ-statut', 'champ-lieu', 'champ-heure', 'champ-titre', 'champ-coach', 'champ-capacite', 'champ-notes',
-    'enregistrer-voix', 'vocal-etat', 'vocal-aide', 'vocal-liste',
+    'enregistrer-voix', 'ajouter-note', 'champ-dictee', 'vocal-etat', 'vocal-aide', 'vocal-liste',
     'archiver', 'enregistrer', 'annuler', 'precedent', 'suivant', 'aujourdhui',
     'vocal', 'bouton-coach', 'dialogue-coach', 'formulaire-coach', 'coach-alerte', 'champ-cle',
     'oublier-cle', 'coach-annuler',
@@ -277,7 +276,7 @@
     if (seance.notesVocales.length) {
       ouvrir.appendChild(creer('span', {
         className: 'vocal-indicateur',
-        textContent: '♪ ' + pluriel(seance.notesVocales.length, 'note vocale', 'notes vocales')
+        textContent: '✎ ' + pluriel(seance.notesVocales.length, 'note')
       }));
     }
     if (seance.notesAthletes && seance.notesAthletes.length) {
@@ -569,7 +568,7 @@
     bloc.appendChild(creer('h3', { textContent: 'Archives (' + archivees.length + ')' }));
     bloc.appendChild(creer('p', {
       className: 'archives-aide',
-      textContent: 'Les séances archivées quittent la grille mais restent enregistrées, avec leur historique et leurs notes vocales.'
+      textContent: 'Les séances archivées quittent la grille mais restent enregistrées, avec leur historique et leurs notes.'
     }));
 
     if (archivees.length) {
@@ -739,28 +738,34 @@
     charger();
   }
 
-  /* ---------- Notes vocales ---------- */
+  /* ---------- Notes du coach : dictées ou tapées ----------
 
-  var enregistreur = { media: null, flux: null, morceaux: [], debut: 0, minuteur: null, dictee: null, texte: '' };
+     Le micro sert à écrire vite, pas à archiver du son. La parole est
+     transcrite par le navigateur, et seul le texte part au serveur — rien
+     n'est jamais conservé en audio. D'où deux conséquences visibles ici :
+     la note se relit et se corrige avant d'être envoyée, et un navigateur
+     sans reconnaissance vocale reste parfaitement utilisable au clavier. */
 
-  function micDisponible() {
-    return Boolean(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+  var dictee = { reconnaissance: null, debut: 0, minuteur: null, secondes: 0, aDicte: false };
+
+  function reconnaissanceDisponible() {
+    return Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
   }
 
   function reinitialiserEnregistreur() {
-    arreterFlux();
-    enregistreur.morceaux = [];
-    enregistreur.texte = '';
-    els['enregistrer-voix'].textContent = '● Enregistrer';
-    els['enregistrer-voix'].classList.remove('actif');
+    arreterDictee();
+    dictee.secondes = 0;
+    dictee.aDicte = false;
+    els['champ-dictee'].value = '';
     els['vocal-etat'].textContent = 'Prêt';
+    majBoutonDictee(false);
 
-    if (!micDisponible()) {
-      els['enregistrer-voix'].disabled = true;
-      afficherAide('Ce navigateur ne permet pas l’enregistrement audio (il faut une connexion sécurisée ou localhost).');
-    } else {
+    if (reconnaissanceDisponible()) {
       els['enregistrer-voix'].disabled = false;
-      afficherAide(reconnaissanceDisponible() ? '' : 'Transcription automatique indisponible sur ce navigateur : seul le son sera enregistré.');
+      afficherAide('');
+    } else {
+      els['enregistrer-voix'].disabled = true;
+      afficherAide('Ce navigateur ne sait pas transcrire la parole — Firefox, notamment. Écrivez votre note au clavier.');
     }
   }
 
@@ -769,108 +774,118 @@
     els['vocal-aide'].hidden = !message;
   }
 
-  function reconnaissanceDisponible() {
-    return Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
+  function majBoutonDictee(actif) {
+    els['enregistrer-voix'].textContent = actif ? '■ Arrêter' : '🎙 Dicter';
+    els['enregistrer-voix'].classList.toggle('actif', actif);
   }
 
   function basculerEnregistrement() {
-    if (enregistreur.media && enregistreur.media.state === 'recording') {
-      enregistreur.media.stop();
+    if (dictee.reconnaissance) {
+      arreterDictee();
       return;
     }
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(demarrerEnregistrement)
-      .catch(function () {
-        afficherAlerte('Micro inaccessible : autorisez l’accès au microphone.', els['dialogue-alerte']);
-      });
-  }
-
-  function demarrerEnregistrement(flux) {
-    enregistreur.flux = flux;
-    enregistreur.morceaux = [];
-    enregistreur.texte = '';
-    enregistreur.media = new MediaRecorder(flux);
-    enregistreur.debut = Date.now();
-
-    enregistreur.media.addEventListener('dataavailable', function (evenement) {
-      if (evenement.data && evenement.data.size) enregistreur.morceaux.push(evenement.data);
-    });
-    enregistreur.media.addEventListener('stop', function () {
-      var duree = (Date.now() - enregistreur.debut) / 1000;
-      var blob = new Blob(enregistreur.morceaux, { type: enregistreur.media.mimeType || 'audio/webm' });
-      arreterFlux();
-      els['enregistrer-voix'].textContent = '● Enregistrer';
-      els['enregistrer-voix'].classList.remove('actif');
-      els['vocal-etat'].textContent = 'Envoi…';
-      conserverNote(blob, duree, enregistreur.texte.trim());
-    });
-
-    enregistreur.media.start();
     demarrerDictee();
-    els['enregistrer-voix'].textContent = '■ Arrêter';
-    els['enregistrer-voix'].classList.add('actif');
-    enregistreur.minuteur = setInterval(function () {
-      els['vocal-etat'].textContent = 'Enregistrement… ' + Math.round((Date.now() - enregistreur.debut) / 1000) + ' s';
-    }, 250);
   }
 
-  /** Transcription en direct quand le navigateur sait le faire (Chrome, Safari). */
   function demarrerDictee() {
     if (!reconnaissanceDisponible()) return;
     var Reconnaissance = window.SpeechRecognition || window.webkitSpeechRecognition;
-    var dictee = new Reconnaissance();
-    dictee.lang = 'fr-FR';
-    dictee.continuous = true;
-    dictee.interimResults = false;
-    dictee.addEventListener('result', function (evenement) {
+    var reconnaissance = new Reconnaissance();
+    reconnaissance.lang = 'fr-FR';
+    reconnaissance.continuous = true;
+    reconnaissance.interimResults = false;
+
+    reconnaissance.addEventListener('result', function (evenement) {
+      var ajout = '';
       for (var i = evenement.resultIndex; i < evenement.results.length; i += 1) {
-        if (evenement.results[i].isFinal) enregistreur.texte += evenement.results[i][0].transcript + ' ';
+        if (evenement.results[i].isFinal) ajout += evenement.results[i][0].transcript + ' ';
       }
+      if (!ajout) return;
+      var champ = els['champ-dictee'];
+      champ.value = (champ.value ? champ.value.replace(/\s*$/, ' ') : '') + ajout;
+      dictee.aDicte = true;
     });
-    dictee.addEventListener('error', function () { /* le son reste enregistré */ });
+
+    reconnaissance.addEventListener('error', function (evenement) {
+      arreterDictee();
+      afficherAide(evenement.error === 'not-allowed'
+        ? 'Micro refusé. Autorisez le microphone, ou écrivez au clavier.'
+        : 'La dictée s’est interrompue. Vous pouvez continuer au clavier.');
+    });
+
+    // La reconnaissance s'arrête d'elle-même après un silence : on referme
+    // proprement plutôt que de laisser le bouton mentir.
+    reconnaissance.addEventListener('end', function () {
+      if (dictee.reconnaissance) arreterDictee();
+    });
+
     try {
-      dictee.start();
-      enregistreur.dictee = dictee;
+      reconnaissance.start();
     } catch (erreur) {
-      enregistreur.dictee = null;
+      afficherAide('La dictée n’a pas pu démarrer. Écrivez votre note au clavier.');
+      return;
     }
+
+    dictee.reconnaissance = reconnaissance;
+    dictee.debut = Date.now();
+    majBoutonDictee(true);
+    dictee.minuteur = setInterval(function () {
+      els['vocal-etat'].textContent = 'Dictée… ' + Math.round(dictee.secondes + (Date.now() - dictee.debut) / 1000) + ' s';
+    }, 250);
   }
 
-  function arreterFlux() {
-    if (enregistreur.minuteur) clearInterval(enregistreur.minuteur);
-    enregistreur.minuteur = null;
-    if (enregistreur.dictee) {
-      try { enregistreur.dictee.stop(); } catch (erreur) { /* déjà arrêtée */ }
-      enregistreur.dictee = null;
+  function arreterDictee() {
+    if (dictee.minuteur) clearInterval(dictee.minuteur);
+    dictee.minuteur = null;
+    if (dictee.reconnaissance) {
+      dictee.secondes += (Date.now() - dictee.debut) / 1000;
+      var reconnaissance = dictee.reconnaissance;
+      dictee.reconnaissance = null;
+      try { reconnaissance.stop(); } catch (erreur) { /* déjà arrêtée */ }
+      els['vocal-etat'].textContent = els['champ-dictee'].value.trim() ? 'Relisez, puis « Ajouter »' : 'Prêt';
     }
-    if (enregistreur.flux) {
-      enregistreur.flux.getTracks().forEach(function (piste) { piste.stop(); });
-      enregistreur.flux = null;
-    }
+    majBoutonDictee(false);
   }
 
   /** Envoie la note si la séance existe, sinon la garde jusqu'à l'enregistrement. */
-  function conserverNote(blob, duree, transcription) {
-    return blobEnBase64(blob)
-      .then(function (audio) {
-        var note = { audio: audio, mimeType: blob.type || 'audio/webm', duree: duree, transcription: transcription };
-        if (etat.edition && etat.edition.mode === 'edition') return televerser(etat.edition.id, note);
+  function ajouterNote() {
+    arreterDictee();
+    var texte = els['champ-dictee'].value.trim();
+    if (!texte) {
+      afficherAide('Écrivez ou dictez quelque chose avant d’ajouter.');
+      return;
+    }
 
-        etat.noteEnAttente = note;
-        etat.noteEnAttente.apercu = URL.createObjectURL(blob);
-        els['vocal-etat'].textContent = 'Note prête — elle partira avec la séance';
-        dessinerNotesVocales();
-      })
-      .catch(function (erreur) {
-        els['vocal-etat'].textContent = 'Prêt';
-        afficherAlerte(erreur.message, els['dialogue-alerte']);
-      });
+    var note = {
+      transcription: texte,
+      duree: dictee.aDicte ? Math.round(dictee.secondes * 10) / 10 : null,
+      source: dictee.aDicte ? 'dictee' : 'saisie'
+    };
+
+    if (etat.edition && etat.edition.mode === 'edition') {
+      els['ajouter-note'].disabled = true;
+      televerser(etat.edition.id, note)
+        .catch(function (erreur) { afficherAlerte(erreur.message, els['dialogue-alerte']); })
+        .then(function () { els['ajouter-note'].disabled = false; });
+      return;
+    }
+
+    // La séance n'existe pas encore : la note partira juste après sa création.
+    etat.noteEnAttente = note;
+    els['champ-dictee'].value = '';
+    dictee.secondes = 0;
+    dictee.aDicte = false;
+    els['vocal-etat'].textContent = 'Note prête — elle partira avec la séance';
+    dessinerNotesVocales();
   }
 
   function televerser(sessionId, note) {
     return appeler('/sessions/' + sessionId + '/notes-vocales', { method: 'POST', body: note })
       .then(function (reponse) {
         etat.edition.seance = reponse.session;
+        els['champ-dictee'].value = '';
+        dictee.secondes = 0;
+        dictee.aDicte = false;
         els['vocal-etat'].textContent = 'Note ajoutée';
         dessinerNotesVocales();
         return reponse;
@@ -881,15 +896,11 @@
     if (!etat.noteEnAttente) return Promise.resolve();
     var note = etat.noteEnAttente;
     etat.noteEnAttente = null;
-    return appeler('/sessions/' + sessionId + '/notes-vocales', {
-      method: 'POST',
-      body: { audio: note.audio, mimeType: note.mimeType, duree: note.duree, transcription: note.transcription }
-    });
+    return appeler('/sessions/' + sessionId + '/notes-vocales', { method: 'POST', body: note });
   }
 
   function dessinerNotesVocales() {
     var liste = els['vocal-liste'];
-    libererSons();
     vider(liste);
 
     var seance = etat.edition && etat.edition.seance;
@@ -903,87 +914,91 @@
         id: 'en-attente',
         duree: etat.noteEnAttente.duree,
         transcription: etat.noteEnAttente.transcription,
-        createdAt: new Date().toISOString(),
-        apercu: etat.noteEnAttente.apercu
+        createdAt: new Date().toISOString()
       }, null, true));
     }
     if (!liste.children.length) {
-      liste.appendChild(creer('li', { className: 'vocal-vide', textContent: 'Aucune note vocale.' }));
+      liste.appendChild(creer('li', { className: 'vocal-vide', textContent: 'Aucune note sur cette séance.' }));
     }
   }
 
   function dessinerNote(note, sessionId, enAttente) {
     var item = creer('li', { className: 'vocal-note' });
 
-    var son = creer('audio', { controls: true });
-    if (enAttente) {
-      son.src = note.apercu;
-    } else {
-      chargerSon('/sessions/' + sessionId + '/notes-vocales/' + note.id)
-        .then(function (lien) { son.src = lien; })
-        .catch(function (erreur) {
-          item.replaceChild(creer('p', { className: 'vocal-meta', textContent: erreur.message }), son);
-        });
-    }
-    item.appendChild(son);
-
+    item.appendChild(creer('p', { className: 'vocal-transcription', textContent: note.transcription }));
     item.appendChild(creer('span', {
       className: 'vocal-meta',
-      textContent: (note.duree ? Math.round(note.duree) + ' s · ' : '') +
+      textContent: (note.duree ? 'dictée, ' + Math.round(note.duree) + ' s · ' : '') +
         formaterHorodatage(note.createdAt) + (enAttente ? ' · en attente' : '')
     }));
 
-    if (note.transcription) {
-      item.appendChild(creer('p', { className: 'vocal-transcription', textContent: '« ' + note.transcription + ' »' }));
-    }
+    if (enAttente) return item;
 
-    if (!enAttente) {
-      var supprimer = creer('button', { type: 'button', className: 'danger', textContent: 'Supprimer' });
-      supprimer.addEventListener('click', function () {
-        if (!confirm('Supprimer cette note vocale ?')) return;
-        supprimer.disabled = true;
-        appeler('/sessions/' + sessionId + '/notes-vocales/' + note.id, { method: 'DELETE' })
-          .then(function (reponse) {
-            etat.edition.seance = reponse.session;
-            dessinerNotesVocales();
-            return charger();
-          })
-          .catch(function (erreur) {
-            afficherAlerte(erreur.message, els['dialogue-alerte']);
-            supprimer.disabled = false;
-          });
-      });
-      item.appendChild(supprimer);
-    }
+    var actions = creer('div', { className: 'vocal-actions' });
+
+    var corriger = creer('button', { type: 'button', textContent: 'Corriger' });
+    corriger.addEventListener('click', function () { ouvrirCorrection(item, note, sessionId); });
+    actions.appendChild(corriger);
+
+    var supprimer = creer('button', { type: 'button', className: 'danger', textContent: 'Supprimer' });
+    supprimer.addEventListener('click', function () {
+      if (!confirm('Supprimer cette note ?')) return;
+      supprimer.disabled = true;
+      appeler('/sessions/' + sessionId + '/notes-vocales/' + note.id, { method: 'DELETE' })
+        .then(function (reponse) {
+          etat.edition.seance = reponse.session;
+          dessinerNotesVocales();
+          return charger();
+        })
+        .catch(function (erreur) {
+          afficherAlerte(erreur.message, els['dialogue-alerte']);
+          supprimer.disabled = false;
+        });
+    });
+    actions.appendChild(supprimer);
+
+    item.appendChild(actions);
     return item;
   }
 
-  /** Récupère le son avec la clé coach, puis le sert à la balise <audio>. */
-  function chargerSon(chemin) {
-    return fetch(API + chemin, { headers: entetes(false) })
-      .then(function (reponse) {
-        if (!reponse.ok) throw new Error('Note vocale illisible (clé coach ?).');
-        return reponse.blob();
+  /** La reconnaissance vocale se trompe : la note se reprend sur place. */
+  function ouvrirCorrection(item, note, sessionId) {
+    vider(item);
+
+    var champ = creer('textarea', { className: 'vocal-correction', rows: 3, value: note.transcription });
+    champ.maxLength = 5000;
+    item.appendChild(champ);
+
+    var actions = creer('div', { className: 'vocal-actions' });
+    var valider = creer('button', { type: 'button', className: 'principal', textContent: 'Enregistrer' });
+    var annuler = creer('button', { type: 'button', textContent: 'Annuler' });
+
+    valider.addEventListener('click', function () {
+      var texte = champ.value.trim();
+      if (!texte) {
+        afficherAlerte('Une note vide n’a rien à conserver.', els['dialogue-alerte']);
+        return;
+      }
+      valider.disabled = true;
+      appeler('/sessions/' + sessionId + '/notes-vocales/' + note.id, {
+        method: 'PATCH',
+        body: { transcription: texte, source: 'saisie' }
       })
-      .then(function (blob) {
-        var lien = URL.createObjectURL(blob);
-        etat.sons.push(lien);
-        return lien;
-      });
-  }
-
-  function libererSons() {
-    etat.sons.forEach(function (lien) { URL.revokeObjectURL(lien); });
-    etat.sons = [];
-  }
-
-  function blobEnBase64(blob) {
-    return new Promise(function (resoudre, rejeter) {
-      var lecteur = new FileReader();
-      lecteur.onload = function () { resoudre(String(lecteur.result).split(',')[1]); };
-      lecteur.onerror = function () { rejeter(new Error('Lecture de l’enregistrement impossible.')); };
-      lecteur.readAsDataURL(blob);
+        .then(function (reponse) {
+          etat.edition.seance = reponse.session;
+          dessinerNotesVocales();
+        })
+        .catch(function (erreur) {
+          afficherAlerte(erreur.message, els['dialogue-alerte']);
+          valider.disabled = false;
+        });
     });
+    annuler.addEventListener('click', dessinerNotesVocales);
+
+    actions.appendChild(annuler);
+    actions.appendChild(valider);
+    item.appendChild(actions);
+    champ.focus();
   }
 
   /* ---------- Utilitaires ---------- */
@@ -1061,10 +1076,13 @@
   els.archiver.addEventListener('click', archiver);
   els.formulaire.addEventListener('submit', enregistrer);
   els['enregistrer-voix'].addEventListener('click', basculerEnregistrement);
+  els['ajouter-note'].addEventListener('click', ajouterNote);
+  // Taper après avoir dicté reste de la dictée corrigée : c'est l'envoi qui tranche.
+  els['champ-dictee'].addEventListener('keydown', function (evenement) {
+    if (evenement.key === 'Enter' && (evenement.metaKey || evenement.ctrlKey)) ajouterNote();
+  });
   els.dialogue.addEventListener('close', function () {
-    arreterFlux();
-    libererSons();
-    if (etat.noteEnAttente && etat.noteEnAttente.apercu) URL.revokeObjectURL(etat.noteEnAttente.apercu);
+    arreterDictee();
     etat.noteEnAttente = null;
   });
   els['bouton-coach'].addEventListener('click', ouvrirCoach);

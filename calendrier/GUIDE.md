@@ -20,15 +20,15 @@ node --version            # 1. vérifier Node (≥ 18)
 tar xzf calendrier-api.tar.gz
 cd calendrier             # 2. extraire l'archive
 
-npm test                  # 3. vérifier : 103 tests, aucun réseau nécessaire
+npm test                  # 3. vérifier : 109 tests, aucun réseau nécessaire
 npm start                 # 4. démarrer
 ```
 
 `npm test` doit afficher :
 
 ```
-# tests 103
-# pass 103
+# tests 109
+# pass 109
 # fail 0
 ```
 
@@ -92,10 +92,21 @@ En **mode coach**, vous saisissez la clé une fois : elle reste dans le
 `localStorage` de ce navigateur, sur votre appareil seulement, et accompagne chaque
 requête. « Oublier la clé » revient à la vue athlète.
 
-> **Le micro exige une connexion sécurisée.** L'enregistrement marche sur
-> `localhost`, mais en ligne il faudra du HTTPS — sinon le bouton se désactive en
-> l'expliquant. La transcription automatique existe sur Chrome et Safari ; sur
-> Firefox, seul le son est enregistré.
+### Vos notes à vous
+
+Sur chaque séance, en mode coach, un encadré **« Mes notes sur la séance »**.
+Le bouton **Dicter** lance la reconnaissance vocale : parlez, le texte s'écrit
+dans le champ, vous le relisez et vous corrigez avant d'ajouter. Une note déjà
+ajoutée se reprend aussi, par **Corriger** — la dictée se trompe souvent sur
+les noms propres.
+
+> **Le son n'est jamais conservé.** Le micro sert à écrire vite ; seul le texte
+> est enregistré. Rien à stocker, rien à réécouter, rien qui traîne.
+>
+> La dictée demande une connexion sécurisée : elle marche sur `localhost` et en
+> HTTPS. Elle existe sur Chrome et Safari ; sur **Firefox**, le bouton est
+> désactivé avec l'explication et vous écrivez au clavier — la note est la
+> même.
 
 La page peut aussi être hébergée ailleurs que l'API : ouvrez-la avec
 `?api=https://mon-serveur/api`.
@@ -198,21 +209,28 @@ curl -H "X-Cle-Coach: $(cat data/cle-coach.txt)" \
   "http://localhost:3000/api/suivi?jours=30"
 ```
 
-**6 · Une note vocale — coach uniquement**
+**6 · Une note dictée — coach uniquement**
 
 ```bash
 # sans la clé → 401
 curl -X POST http://localhost:3000/api/sessions/ses_…/notes-vocales \
   -H 'Content-Type: application/json' \
-  -d '{"audio":"AAECAwQ=","transcription":"Apporter les plots"}'
+  -d '{"transcription":"Apporter les plots"}'
 
 # avec la clé → 201
 curl -X POST http://localhost:3000/api/sessions/ses_…/notes-vocales \
   -H "X-Cle-Coach: $(cat data/cle-coach.txt)" \
   -H 'Content-Type: application/json' \
-  -d '{"audio":"AAECAwQ=","mimeType":"audio/webm","duree":3.2,
-       "transcription":"Apporter les plots"}'
+  -d '{"transcription":"Apporter les plots","duree":3.2}'
+
+# la dictée se trompe : on corrige
+curl -X PATCH http://localhost:3000/api/sessions/ses_…/notes-vocales/voc_… \
+  -H "X-Cle-Coach: $(cat data/cle-coach.txt)" \
+  -H 'Content-Type: application/json' \
+  -d '{"transcription":"Apporter les plots et les haies","source":"saisie"}'
 ```
+
+Aucun son n'est envoyé ni conservé : la transcription **est** la note.
 
 **7 · Vérifier que rien ne fuit** — la même requête, avec et sans la clé :
 
@@ -275,46 +293,63 @@ Au démarrage, le serveur annonce toujours où il écrit :
 | `GOOGLE_DRIVE_FOLDER_NAME` | Calendrier entraînements | Dossier Drive à créer ou réutiliser |
 | `GOOGLE_DRIVE_FOLDER_ID` | — | Dossier Drive existant, par son identifiant |
 
-## 6. Mettre en ligne sur Cloudflare Workers
+## 6. Mettre en ligne, depuis un téléphone
 
-C'est le chemin recommandé pour un lien qui circule sur WhatsApp : le Worker ne
-dort pas. Un athlète qui ouvre le lien après trois jours de silence n'attend rien —
-là où un plan gratuit classique met une trentaine de secondes à se réveiller, le
-temps que la plupart des gens referment la page.
+Tout se fait au navigateur. Aucune commande, aucun terminal.
+
+**1. Fusionner la branche.** Ouvrez la pull request du dépôt, « Ready for
+review », puis « Merge ». Le code arrive sur `main`.
+
+**2. Créer le Worker depuis le dépôt.** Sur `dash.cloudflare.com` →
+**Workers & Pages** → **Create** → **Import a repository** → choisissez le
+dépôt. Un seul réglage compte : **Root directory = `calendrier`**. Cloudflare
+lit `wrangler.toml`, construit et déploie. À chaque push ensuite, il redéploie
+tout seul.
+
+**3. Poser la clé coach.** Une fois le Worker créé : **Settings → Variables and
+Secrets → Add**, type **Secret**, nom `CALENDAR_COACH_KEY`, valeur : quelque
+chose de long et d'imprévisible. Gardez-la ailleurs — elle ne sera plus jamais
+affichée.
+
+> Tant que ce secret manque, le Worker répond `503` en le disant. Ce n'est pas
+> une panne : un Worker ne garde rien entre deux requêtes, donc une clé tirée
+> au sort changerait à chaque appel et personne ne pourrait jamais passer en
+> mode coach. Mieux vaut un refus clair qu'un calendrier que vous ne pouvez
+> pas administrer.
+
+**4. Copier l'adresse** affichée en haut du Worker, et la coller dans WhatsApp.
+L'aperçu du lien montrera la piste et les cinq couloirs.
+
+### Depuis un ordinateur
 
 ```bash
 cd calendrier
-npx wrangler r2 bucket create calendrier-entrainements
-npx wrangler secret put CALENDAR_COACH_KEY   # notez-la : rien ne la réaffichera
+npx wrangler secret put CALENDAR_COACH_KEY
 npx wrangler deploy
 ```
 
-Wrangler affiche l'adresse du Worker à la fin. C'est **celle-là** que vous collez
-dans WhatsApp.
-
-Tout est déjà déclaré dans `wrangler.toml` : le bucket R2 pour les données, les
-fichiers de `public/` pour la page, et la règle qui fait passer la page par le
-Worker — sans elle, l'aperçu du lien s'afficherait sans vignette.
-
-Vérifiez après déploiement :
+### Vérifier après déploiement
 
 ```bash
-curl https://votre-worker.workers.dev/api/health     # doit annoncer "type": "r2"
+curl https://votre-worker.workers.dev/api/health     # doit annoncer "type": "d1"
 ```
 
 ### Ce qu'il faut savoir
 
-- **HTTPS est fourni** par Cloudflare, donc le micro des notes vocales fonctionne.
-- **La clé coach est un secret**, pas une variable : `wrangler secret put`. Elle
-  n'est plus jamais affichée — gardez-la ailleurs.
-- **Deux enregistrements au même instant** : le second reçoit un `409` et la page
-  se recharge, plutôt que d'écraser le premier. Rien n'est perdu sans le dire.
-- **Ajouter un athlète** se fait dans `src/athletes.js`, puis `npx wrangler deploy`.
+- **HTTPS est fourni** par Cloudflare : la dictée fonctionne.
+- **Les données** vivent dans une base D1, déjà déclarée dans `wrangler.toml`.
+  R2 conviendrait aussi ; le code prend les deux, c'est le binding présent qui
+  décide.
+- **Deux enregistrements au même instant** : le second reçoit un `409` et la
+  page se recharge, plutôt que d'écraser le premier. Rien n'est perdu sans le
+  dire.
+- **Ajouter un athlète** se fait dans `src/athletes.js`, puis un push : le
+  déploiement suit tout seul.
 
 ### Si vous préférez un serveur Node
 
-Il vous faut un hébergeur qui **exécute Node** — la PWA MED-EL Connect à la racine
-du dépôt est un site statique et ne peut pas l'héberger. Fixez alors
+Il vous faut un hébergeur qui **exécute Node** — la PWA MED-EL Connect à la
+racine du dépôt est un site statique et ne peut pas l'héberger. Fixez alors
 `CALENDAR_COACH_KEY` dans l'environnement, et si le disque ne survit pas aux
 redémarrages, passez les données sur Google Drive (section 5).
 
@@ -331,9 +366,10 @@ redémarrages, passez les données sur Google Drive (section 5).
 | `EADDRINUSE` | Le port est déjà pris — un serveur tourne encore. Arrêtez-le, ou démarrez ailleurs : `PORT=3100 npm start`. |
 | `401` sur les notes vocales | Clé absente ou fausse. Relisez `data/cle-coach.txt`, ou repassez en mode coach dans la page. |
 | `409` à la création | Ce lieu est déjà pris sur ce créneau. Annulez la séance existante — elle libère son lieu — ou choisissez un autre lieu. |
-| Bouton d'enregistrement désactivé | Le micro exige `localhost` ou HTTPS. L'explication est affichée sous le bouton. |
+| Bouton « Dicter » désactivé | Ce navigateur ne sait pas transcrire la parole (Firefox). Écrivez la note au clavier : c'est le même résultat. |
+| La dictée s'arrête toute seule | La reconnaissance coupe après un silence. Relancez « Dicter » : le texte déjà écrit est conservé. |
 | `Démarrage impossible : …` | Dépôt injoignable ou `sessions.json` illisible. Le serveur refuse de démarrer plutôt que de servir un calendrier vide ; le message dit lequel des deux. |
-| Pas de transcription automatique | Firefox ne la fournit pas. Le son est bien enregistré ; la transcription peut être saisie à la main. |
+| `409` en enregistrant | Quelqu'un a modifié le calendrier pendant votre saisie. La page recharge l'état à jour ; recommencez. Rien n'a été écrasé. |
 
 **Se remettre à zéro** : tout l'état tient dans `data/`. En supprimer le contenu
 efface les séances, les notes vocales et la clé coach — le prochain démarrage repart

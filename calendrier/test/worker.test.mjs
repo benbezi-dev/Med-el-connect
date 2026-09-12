@@ -224,6 +224,60 @@ test('sans secret de clé coach, le Worker refuse au lieu de tirer une clé au h
   assert.equal((await appeler(env, '/')).status, 200);
 });
 
+test('le Worker sert aussi bien depuis D1 que depuis R2', async () => {
+  const { DatabaseSync } = await import('node:sqlite');
+
+  // Le binding D1, imité sur du vrai SQLite : le SQL est réellement exécuté.
+  const sqlite = new DatabaseSync(':memory:');
+  const base = {
+    prepare(sql) {
+      let liens = [];
+      const lanceur = {
+        bind(...args) {
+          liens = args.map((v) => (v instanceof ArrayBuffer ? new Uint8Array(v) : v));
+          return lanceur;
+        },
+        async first() {
+          return sqlite.prepare(sql).get(...liens) ?? null;
+        },
+        async run() {
+          return { success: true, meta: { changes: Number(sqlite.prepare(sql).run(...liens).changes) } };
+        }
+      };
+      return lanceur;
+    }
+  };
+
+  const env = { ...environnement(new FauxBucket()), CALENDRIER: undefined, CALENDRIER_DB: base };
+
+  const creation = await appeler(env, '/api/sessions', {
+    coach: true,
+    method: 'POST',
+    body: { date: HIER, time: '18:00', locationId: 'valbonne-stadium', title: 'Côtes' }
+  });
+  assert.equal(creation.status, 201);
+  const id = creation.body.session.id;
+
+  const note = await appeler(env, `/api/sessions/${id}/notes-athlete`, {
+    athlete: 'yvon',
+    method: 'POST',
+    body: { texte: 'Bien passé.' }
+  });
+  assert.equal(note.status, 201);
+
+  // Requête neuve : tout est relu depuis D1.
+  const suivi = await appeler(env, '/api/suivi', { coach: true });
+  assert.equal(suivi.body.total, 1);
+  assert.equal(suivi.body.athletes.find((a) => a.id === 'yvon').notes[0].texte, 'Bien passé.');
+
+  const sante = await appeler(env, '/api/health', { coach: true });
+  assert.equal(sante.body.stockage.type, 'd1');
+
+  // Une seule table, un seul document : les notes dictées sont du texte.
+  const lignes = sqlite.prepare('SELECT chemin FROM documents').all();
+  assert.deepEqual(lignes.map((l) => l.chemin), ['sessions.json']);
+});
+
 test('le préflight CORS laisse passer les en-têtes du calendrier', async () => {
   const env = environnement(new FauxBucket());
   const reponse = await worker.fetch(

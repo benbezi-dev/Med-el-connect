@@ -2,15 +2,14 @@
 
    Ce module ne connaît ni node:http ni fetch : il reçoit une requête décrite
    simplement et rend une réponse décrite simplement. Deux coquilles
-   l'utilisent — `server.js` pour Node, `worker.js` pour Cloudflare Workers —
+   l'utilisent — `server.js` pour Node, `worker.mjs` pour Cloudflare Workers —
    et il n'existe donc qu'une seule implémentation des routes.
 
    La requête :
      { methode, url: URL, entetes: {…}, lireJson: (limiteOctets) => Promise }
 
-   `lireJson` est paresseux à dessein : la limite de taille dépend de la route
-   (8 Mo pour une note vocale, 64 ko ailleurs), et on ne veut pas avaler un
-   corps de 8 Mo avant de savoir où il va. */
+   `lireJson` est paresseux à dessein : on ne lit le corps que si la route en
+   veut un, et jamais au-delà de la limite. */
 
 const { buildCalendar } = require('./calendar');
 const { buildAnnee } = require('./annee');
@@ -18,16 +17,16 @@ const { buildSuivi } = require('./suivi');
 const { LOCATIONS, TIMES, STATUTS, TIMEZONE, DAYS_IN_VIEW, MOIS_HORIZON } = require('./reference');
 const { ATHLETES } = require('./athletes');
 const { estCoach, athleteDeclare, protege, ENTETE, ENTETE_ATHLETE } = require('./acces');
+const { preparerNote, corrigerNote } = require('./voix');
 const { ApiError, notFound } = require('./errors');
 
 const MAX_BODY_BYTES = 64 * 1024;
-const MAX_AUDIO_BODY_BYTES = 8 * 1024 * 1024; // base64 d'une note vocale de 5 Mo
 
 /**
- * @param {{sessions: object, voix: object, acces: object, stockage: object}} services
+ * @param {{sessions: object, acces: object, stockage: object}} services
  * @returns {(requete: object) => Promise<{statut: number, entetes: object, corps: string|Uint8Array}>}
  */
-function creerRouteur({ sessions, voix, acces, stockage }) {
+function creerRouteur({ sessions, acces, stockage }) {
   return async function routeur(requete) {
     // acces.js lit les en-têtes d'un objet façon node:http.
     const porteur = { headers: requete.entetes };
@@ -37,7 +36,7 @@ function creerRouteur({ sessions, voix, acces, stockage }) {
     };
 
     try {
-      return await distribuer(requete, qui, { sessions, voix, stockage });
+      return await distribuer(requete, qui, { sessions, stockage });
     } catch (erreur) {
       return erreurEnReponse(erreur);
     }
@@ -47,7 +46,7 @@ function creerRouteur({ sessions, voix, acces, stockage }) {
 async function distribuer(requete, qui, services) {
   const { url, methode } = requete;
   const { coach, athleteId } = qui;
-  const { sessions, voix, stockage } = services;
+  const { sessions, stockage } = services;
 
   const route = url.pathname.replace(/^\/api\/?/, '').replace(/\/$/, '');
   const segments = route ? route.split('/') : [];
@@ -95,7 +94,7 @@ async function distribuer(requete, qui, services) {
         start: url.searchParams.get('start') ?? undefined,
         days: url.searchParams.get('days') ?? undefined
       });
-      // `coach` dit à la page si elle doit proposer les notes vocales,
+      // `coach` dit à la page si elle doit proposer la dictée,
       // `athlete` qui elle doit laisser écrire.
       return json(200, protege({ ...grille, coach, athlete: athleteId }, coach, athleteId));
     }
@@ -121,7 +120,7 @@ async function distribuer(requete, qui, services) {
 async function routerSeances(requete, segments, qui, services) {
   const { url, methode } = requete;
   const { coach, athleteId } = qui;
-  const { sessions, voix } = services;
+  const { sessions } = services;
   const [, id, sub, subId] = segments;
 
   if (!id) {
@@ -171,20 +170,15 @@ async function routerSeances(requete, segments, qui, services) {
   if (sub === 'notes-athlete') return routerNotesAthlete(requete, { id, noteId: subId }, qui, sessions);
 
   if (sub === 'notes-vocales') {
-    // Les notes vocales sont réservées au coach, en lecture comme en écriture.
+    // Les notes du coach sont réservées au coach, en lecture comme en écriture.
     if (!coach) throw cleCoachRequise();
 
     if (!subId) {
       if (methode === 'GET') return json(200, { notesVocales: sessions.get(id).notesVocales });
       if (methode === 'POST') {
         sessions.get(id); // 404 avant d'écrire quoi que ce soit
-        const note = await voix.enregistrer(id, await requete.lireJson(MAX_AUDIO_BODY_BYTES));
-        const session = await sessions.ajouterNoteVocale(id, note).catch(async (erreur) => {
-          // Le son est arrivé mais la séance n'a pas pu être mise à jour :
-          // on retire le son plutôt que de laisser un orphelin dans le dépôt.
-          await voix.supprimer(id, note).catch(() => {});
-          throw erreur;
-        });
+        const note = preparerNote(await requete.lireJson(MAX_BODY_BYTES));
+        const session = await sessions.ajouterNoteVocale(id, note);
         return json(201, { noteVocale: note, session }, {
           Location: `/api/sessions/${id}/notes-vocales/${note.id}`
         });
@@ -193,24 +187,16 @@ async function routerSeances(requete, segments, qui, services) {
     }
 
     const note = sessions.trouverNoteVocale(id, subId);
-    if (methode === 'GET') {
-      const bytes = await voix.lire(id, note);
-      return {
-        statut: 200,
-        entetes: {
-          'Content-Type': note.mimeType,
-          'Content-Disposition': `inline; filename="${note.fichier}"`,
-          'Cache-Control': 'private, max-age=3600'
-        },
-        corps: bytes
-      };
+    // La reconnaissance vocale se trompe : une note se relit et se corrige.
+    if (methode === 'PATCH' || methode === 'PUT') {
+      const corrigee = corrigerNote(note, await requete.lireJson(MAX_BODY_BYTES));
+      const session = await sessions.remplacerNoteVocale(id, subId, corrigee);
+      return json(200, { noteVocale: corrigee, session });
     }
     if (methode === 'DELETE') {
-      const session = await sessions.supprimerNoteVocale(id, subId);
-      await voix.supprimer(id, note);
-      return json(200, { session, deleted: true });
+      return json(200, { session: await sessions.supprimerNoteVocale(id, subId), deleted: true });
     }
-    throw methodNotAllowed(methode, ['GET', 'DELETE']);
+    throw methodNotAllowed(methode, ['PATCH', 'DELETE']);
   }
 
   throw notFound(`Route inconnue : ${url.pathname}`);
@@ -312,7 +298,9 @@ function apiIndex() {
     notesVocales: {
       acces: 'coach',
       entete: ENTETE,
-      description: 'Les notes vocales ne sont ni listées ni lisibles sans la clé coach.'
+      description:
+        'Dictées dans le navigateur : seul le texte est conservé, jamais le son. ' +
+        'Ni listées ni lisibles sans la clé coach.'
     },
     notesAthletes: {
       acces: 'athlète déclaré',
@@ -381,20 +369,20 @@ function apiIndex() {
       {
         method: 'POST',
         path: '/api/sessions/:id/notes-vocales',
-        description: 'Ajoute une note vocale ({ audio: base64, mimeType, duree, transcription }). Coach uniquement.'
+        description: 'Ajoute une note dictée ({ transcription, duree, source }). Coach uniquement.'
       },
       {
-        method: 'GET',
+        method: 'PATCH',
         path: '/api/sessions/:id/notes-vocales/:noteId',
-        description: 'Renvoie le son de la note vocale. Coach uniquement.'
+        description: 'Corrige le texte d’une note dictée. Coach uniquement.'
       },
       {
         method: 'DELETE',
         path: '/api/sessions/:id/notes-vocales/:noteId',
-        description: 'Supprime une note vocale. Coach uniquement.'
+        description: 'Supprime une note dictée. Coach uniquement.'
       }
     ]
   };
 }
 
-module.exports = { creerRouteur, MAX_BODY_BYTES, MAX_AUDIO_BODY_BYTES };
+module.exports = { creerRouteur, MAX_BODY_BYTES };

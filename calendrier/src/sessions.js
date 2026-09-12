@@ -152,7 +152,7 @@ class SessionService {
     return decorate(restauree);
   }
 
-  /** Attache les métadonnées d'une note vocale (le son est stocké par VoiceStore). */
+  /** Ajoute une note dictée du coach : seul son texte est conservé. */
   async ajouterNoteVocale(id, note) {
     const existing = this.mustFind(id);
     const updated = {
@@ -169,6 +169,19 @@ class SessionService {
     const note = (session.notesVocales ?? []).find((n) => n.id === noteId);
     if (!note) throw notFound(`Aucune note vocale « ${noteId} » sur cette séance.`);
     return note;
+  }
+
+  /** Remplace une note dictée par sa version corrigée. */
+  async remplacerNoteVocale(id, noteId, note) {
+    const existing = this.mustFind(id);
+    this.trouverNoteVocale(id, noteId);
+    const updated = {
+      ...existing,
+      notesVocales: (existing.notesVocales ?? []).map((n) => (n.id === noteId ? note : n)),
+      updatedAt: new Date().toISOString()
+    };
+    await this.store.remplacer(this.store.all().map((s) => (s.id === id ? updated : s)));
+    return decorate(updated);
   }
 
   async supprimerNoteVocale(id, noteId) {

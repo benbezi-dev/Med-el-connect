@@ -7,9 +7,9 @@ une **colonne « Heure »** à gauche, deux créneaux possibles (**18:00** et
 La planification court sur **12 mois**, mais la page n'affiche jamais qu'une
 **semaine** ; la vue année, repliée en bas de page, sert au suivi. Chaque
 séance porte un **statut** (prévue, effectuée, annulée) réglable depuis un
-menu déroulant posé sur sa carte, et peut recevoir des **notes vocales —
-réservées au coach** : les athlètes ne les voient nulle part. Rien n'est
-jamais effacé : supprimer une séance l'archive.
+menu déroulant posé sur sa carte, et peut recevoir les **notes du coach —
+dictées puis relues, jamais conservées en son** : les athlètes ne les voient
+nulle part. Rien n'est jamais effacé : supprimer une séance l'archive.
 
 Le lien se partage : chaque athlète se déclare dans un menu déroulant et
 écrit son **compte rendu** sur les séances qui ont eu lieu. Il ne voit que
@@ -25,13 +25,13 @@ calendrier/
 ├── src/
 │   ├── routeur.js      Les routes — la seule implémentation, partagée
 │   ├── server.js       Coquille Node (node:http) + fichiers de public/
-│   ├── worker.mjs      Coquille Cloudflare Workers (fetch) + R2
+│   ├── worker.mjs      Coquille Cloudflare Workers (fetch) + D1 ou R2
 │   ├── application.js  Assemblage des services, sans transport ni disque
 │   └── …               Calendrier, séances, athlètes, suivi, dépôts
 ├── public/       Présentation 7 jours (HTML/CSS/JS, sans framework)
 ├── outils/       jeton-google.js (Drive) et icones.js (icônes, image de partage)
-├── test/         103 tests (node:test)
-└── data/         Séances (JSON) et notes vocales (audio) en stockage local
+├── test/         109 tests (node:test)
+└── data/         Le document des séances, en stockage local
 ```
 
 Le routage ne vit qu'à un endroit : `routeur.js` reçoit une requête décrite
@@ -60,39 +60,57 @@ un seul endroit, en haut de `public/styles.css` :
 ```bash
 cd calendrier
 npm start                 # http://localhost:3000 — page + API sous /api
-npm test                  # 103 tests, aucun réseau nécessaire
+npm test                  # 109 tests, aucun réseau nécessaire
 ```
 
 ## Mettre en ligne sur Cloudflare Workers
 
 Le Worker ne dort jamais : un athlète qui ouvre le lien depuis WhatsApp
-n'attend pas de réveil, même après des jours sans visite. Les données vivent
-dans un bucket R2, et les fichiers de `public/` sont servis par le binding
-`ASSETS`.
+n'attend pas de réveil, même après des jours sans visite.
+
+**Sans ordinateur**, tout se fait au navigateur : fusionnez la branche, puis
+dans le tableau de bord Cloudflare, **Workers & Pages → Create → Import a
+repository**, en réglant **Root directory** sur `calendrier`. Le détail
+pas à pas est dans [`GUIDE.md`](GUIDE.md), section 6.
+
+**Depuis un ordinateur** :
 
 ```bash
-npx wrangler r2 bucket create calendrier-entrainements
 npx wrangler secret put CALENDAR_COACH_KEY     # notez-la : rien ne la réaffichera
 npx wrangler deploy
 ```
 
-Tout est déclaré dans `wrangler.toml`. Un point y mérite attention :
-`run_worker_first = ["/", "/index.html"]`. Sans lui, Cloudflare sert les
+Tout est déclaré dans `wrangler.toml` : la base **D1** pour les données, les
+fichiers de `public/` pour la page. Deux points y méritent attention.
+
+`run_worker_first = ["/", "/index.html"]` — sans lui, Cloudflare sert les
 fichiers **avant** d'appeler le Worker, la page part avec son gabarit
 `{{origine}}` intact, et l'aperçu du lien n'affiche aucune vignette.
 
+`CALENDAR_COACH_KEY` est un **secret**, pas une variable. Sans lui, le Worker
+répond `503` en le disant : un Worker ne gardant rien entre deux requêtes, la
+clé serait tirée au sort à chaque appel et le mode coach deviendrait
+inatteignable — en silence, si l'on n'y prenait garde.
+
 > **Écritures simultanées.** Un serveur Node garde les séances en mémoire ;
 > un Worker recharge tout à chaque requête. Deux écritures simultanées
-> liraient donc la même version, et la seconde écraserait la première. Le
-> dépôt R2 retient l'ETag de sa lecture et n'écrit qu'à condition que
-> l'objet n'ait pas bougé : en cas de collision, l'API répond `409` et la
-> page — qui recharge après chaque enregistrement — représente l'état à
-> jour. Rien n'est perdu silencieusement. Pour un groupe de neuf, cela
-> suffit ; au-delà, un Durable Object sérialiserait proprement les écritures.
+> liraient donc la même version, et la seconde écraserait la première. Les
+> dépôts D1 et R2 retiennent la version (numéro de révision, ou ETag) de leur
+> lecture et n'écrivent qu'à condition qu'elle n'ait pas bougé : en cas de
+> collision, l'API répond `409` et la page — qui recharge après chaque
+> enregistrement — représente l'état à jour. Rien n'est perdu silencieusement.
+> Pour un groupe de neuf, cela suffit ; au-delà, un Durable Object
+> sérialiserait proprement les écritures.
+
+**D1 ou R2 ?** Les deux conviennent, et le code prend les deux sans rien
+changer d'autre : c'est le binding présent qui décide. D1 est le choix par
+défaut ici parce qu'il ne demande aucune activation préalable. R2 serait plus
+naturel pour des fichiers — mais il n'y en a plus : les notes dictées sont du
+texte.
 
 Google Drive reste possible sur Workers **par OAuth** (un simple échange de
 jeton). Le compte de service, lui, signe un JWT avec `node:crypto` : ce
-chemin n'a pas été porté sur WebCrypto, et R2 le remplace avantageusement.
+chemin n'a pas été porté sur WebCrypto.
 
 Variables d'environnement : `PORT` (3000), `HOST` (0.0.0.0),
 `CALENDAR_DATA_FILE` (`data/sessions.json`), `CALENDAR_COACH_KEY` (voir
@@ -140,10 +158,10 @@ calculé sur `Europe/Paris`.
 | `POST` | `/api/sessions/:id/notes-athlete` | Un athlète écrit son compte rendu |
 | `PATCH` | `/api/sessions/:id/notes-athlete/:noteId` | Un athlète corrige **sa** note |
 | `DELETE` | `/api/sessions/:id/notes-athlete/:noteId` | Un athlète supprime **sa** note ; le coach, n'importe laquelle |
-| `GET` | `/api/sessions/:id/notes-vocales` | Notes vocales de la séance — **coach** |
-| `POST` | `/api/sessions/:id/notes-vocales` | Ajoute une note vocale — **coach** |
-| `GET` | `/api/sessions/:id/notes-vocales/:noteId` | Renvoie le son — **coach** |
-| `DELETE` | `/api/sessions/:id/notes-vocales/:noteId` | Supprime une note vocale — **coach** |
+| `GET` | `/api/sessions/:id/notes-vocales` | Notes dictées de la séance — **coach** |
+| `POST` | `/api/sessions/:id/notes-vocales` | Ajoute une note dictée — **coach** |
+| `PATCH` | `/api/sessions/:id/notes-vocales/:noteId` | Corrige le texte d'une note — **coach** |
+| `DELETE` | `/api/sessions/:id/notes-vocales/:noteId` | Supprime une note dictée — **coach** |
 
 CORS est ouvert (`*`) sur toutes les routes `/api`.
 
@@ -350,58 +368,45 @@ son identifiant, dans `/api/sessions?archivees=true` et dans `/api/export` ;
 `POST /api/sessions/:id/restaurer` la remet en place si son créneau est resté
 libre (sinon 409).
 
-### Notes vocales
+### Notes dictées du coach
 
-Le son part en base64 dans du JSON — rien à installer côté serveur :
+Le micro sert à **écrire vite, pas à archiver du son**. La parole est
+transcrite par le navigateur, et seul le texte arrive au serveur : aucun
+enregistrement audio n'est conservé, nulle part.
 
 ```bash
 curl -X POST http://localhost:3000/api/sessions/ses_…/notes-vocales \
+  -H "X-Cle-Coach: $(cat data/cle-coach.txt)" \
   -H 'Content-Type: application/json' \
-  -d '{"audio":"<base64>","mimeType":"audio/webm","duree":7.4,
-       "transcription":"Penser à apporter les plots"}'
+  -d '{"transcription":"Penser à apporter les plots","duree":7.4}'
 ```
 
 | Champ | Obligatoire | Règle |
 |---|---|---|
-| `audio` | oui | base64 (ou data URL), ≤ 5 Mo décodés |
-| `mimeType` | non | `audio/webm` (défaut), `audio/ogg`, `audio/mp4`, `audio/mpeg`, `audio/wav` |
-| `duree` | non | secondes, 0 à 1800 |
-| `transcription` | non | ≤ 5000 caractères |
+| `transcription` | oui | 1 à 5000 caractères — c'est la note elle-même |
+| `duree` | non | secondes de dictée, 0 à 1800 ; absente quand le texte a été tapé |
+| `source` | non | `dictee` (défaut) ou `saisie` |
 
-Le son est rangé sous `notes-vocales/<séance>/<note>.<ext>` dans le dépôt
-choisi (disque ou Google Drive, voir « Où vivent les données ») et se relit sur
-`GET /api/sessions/:id/notes-vocales/:noteId`, avec son type.
+La reconnaissance vocale se trompe : une note **se corrige**, d'où le `PATCH`.
+Une correction au clavier passe `source` à `saisie` et remet `duree` à `null`,
+qui n'aurait plus de sens.
+
+```bash
+curl -X PATCH http://localhost:3000/api/sessions/ses_…/notes-vocales/voc_… \
+  -H "X-Cle-Coach: $(cat data/cle-coach.txt)" \
+  -H 'Content-Type: application/json' \
+  -d '{"transcription":"Penser aux plots et aux haies","source":"saisie"}'
+```
 
 Ces quatre routes exigent la clé coach (voir « Accès coach ») ; sans elle,
 `401 cle_coach_requise`.
 
-Dans la page — **en mode coach uniquement** — le bouton **Enregistrer** capte
-le micro (`MediaRecorder`) et, quand le navigateur sait le faire (Chrome,
-Safari), transcrit en direct via l'API `SpeechRecognition` : le texte est
-attaché à la note. Sans micro
-disponible — navigateur ancien, ou page servie en HTTP sur autre chose que
-`localhost` — le bouton est désactivé et l'explication affichée. Une note
-enregistrée avant que la séance n'existe est mise de côté et envoyée juste
-après sa création.
-
-### Erreurs
-
-Toutes les erreurs partagent la même forme, avec un message en français :
-
-```json
-{
-  "error": {
-    "code": "invalid_request",
-    "message": "Le champ « time » doit valoir 18:00 ou 18:30.",
-    "details": { "heuresPossibles": ["18:00", "18:30"] }
-  }
-}
-```
-
-`400` saisie invalide · `401` clé coach requise (notes vocales) · `404` séance,
-note ou route inconnue · `405` méthode non autorisée · `409` créneau déjà pris ·
-`413` corps trop volumineux (64 Ko, 8 Mo sur l'envoi d'une note vocale) · `500`
-erreur interne.
+Dans la page — **en mode coach uniquement** — le bouton **Dicter** lance la
+reconnaissance vocale du navigateur (`SpeechRecognition`, disponible sur Chrome
+et Safari) et le texte s'écrit dans un champ que le coach relit avant
+d'envoyer. Sur un navigateur qui ne sait pas transcrire — Firefox, notamment —
+le bouton est désactivé avec l'explication, et la note s'écrit au clavier :
+rien n'est perdu, puisque c'est le texte qui compte.
 
 ## Où vivent les données
 

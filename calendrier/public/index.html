@@ -165,9 +165,18 @@
       </label>
 
       <section class="vocal" id="vocal" aria-labelledby="vocal-titre">
-        <h3 id="vocal-titre">Notes vocales</h3>
+        <h3 id="vocal-titre">Mes notes sur la séance</h3>
+        <p class="vocal-intro">Dictez ou tapez. Seul le texte est conservé — jamais le son.</p>
+
+        <label class="vocal-champ" for="champ-dictee">
+          <span class="vocal-etiquette">Nouvelle note</span>
+          <textarea id="champ-dictee" rows="3" maxlength="5000"
+                    placeholder="Dictez, ou écrivez directement…"></textarea>
+        </label>
+
         <div class="vocal-barre">
-          <button type="button" id="enregistrer-voix">● Enregistrer</button>
+          <button type="button" id="enregistrer-voix">🎙 Dicter</button>
+          <button type="button" id="ajouter-note" class="principal">Ajouter</button>
           <span class="vocal-etat" id="vocal-etat">Prêt</span>
         </div>
         <p class="vocal-aide" id="vocal-aide" hidden></p>

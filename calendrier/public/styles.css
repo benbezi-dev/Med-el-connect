@@ -177,9 +177,24 @@ td.creneau.passe { background: rgba(0, 0, 0, 0.22); }
 .vocal-liste { list-style: none; display: grid; gap: 10px; }
 .vocal-vide { font-size: 13px; color: #5A6E8C; }
 .vocal-note { background: var(--surface-haute); border: 1px solid var(--bordure); border-radius: 8px; padding: 10px; display: grid; gap: 6px; justify-items: start; }
-.vocal-note audio { width: 100%; }
+.vocal-note { width: 100%; }
 .vocal-meta { font-size: 12px; color: var(--encre-douce); font-variant-numeric: tabular-nums; }
-.vocal-transcription { font-size: 13px; color: var(--encre); font-style: italic; }
+.vocal-transcription { font-size: 13px; color: var(--encre); line-height: 1.5; white-space: pre-wrap; }
+
+/* Dicter, relire, corriger. Le son n'est jamais conservé : c'est le texte
+   qui est la note, donc il doit être confortable à écrire et à reprendre. */
+.vocal-intro { font-size: 12px; color: var(--encre-douce); margin-top: -4px; }
+.vocal-champ { display: grid; gap: 5px; }
+.vocal-etiquette { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--encre-douce); }
+.vocal textarea {
+  font: inherit; width: 100%; resize: vertical;
+  background: var(--surface-haute); color: var(--encre);
+  border: 1px solid var(--bordure-forte); border-radius: 8px; padding: 8px 10px;
+}
+.vocal textarea:focus-visible { outline: 2px solid var(--fluo); outline-offset: 1px; }
+#enregistrer-voix.actif { color: var(--alerte); border-color: var(--alerte); }
+.vocal-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.vocal-correction { width: 100%; }
 .vocal-note button { padding: 5px 10px; font-size: 12px; }
 
 /* ---------- Boîte de dialogue ---------- */

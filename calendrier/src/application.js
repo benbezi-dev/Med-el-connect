@@ -6,7 +6,6 @@
 
 const { Store } = require('./store');
 const { SessionService } = require('./sessions');
-const { VoiceStore } = require('./voix');
 const { resoudreCle } = require('./acces');
 const { creerRouteur } = require('./routeur');
 
@@ -17,11 +16,10 @@ const { creerRouteur } = require('./routeur');
 async function creerApplication({ depot, nomFichier, cleCoach, dataFile = null }) {
   const store = await new Store(depot, nomFichier).charger();
   const sessions = new SessionService(store);
-  const voix = new VoiceStore(depot);
   const acces = resoudreCle({ cleCoach, dataFile });
-  const routeur = creerRouteur({ sessions, voix, acces, stockage: depot });
+  const routeur = creerRouteur({ sessions, acces, stockage: depot });
 
-  return { routeur, sessions, voix, store, depot, acces };
+  return { routeur, sessions, store, depot, acces };
 }
 
 module.exports = { creerApplication };

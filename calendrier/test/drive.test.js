@@ -4,6 +4,7 @@ const http = require('node:http');
 const { DepotDrive, TYPE_DOSSIER } = require('../src/drive');
 const { FournisseurJeton } = require('../src/google-jeton');
 const { createApp } = require('../src/server');
+const { preparerNote } = require('../src/voix');
 
 /**
  * Faux Google Drive : arbre de fichiers en mémoire, servi par les routes
@@ -259,16 +260,13 @@ test('l’application complète tourne sur Drive, et retrouve tout au redémarra
     title: 'Côtes'
   });
   await premier.sessions.update(seance.id, { statut: 'effectuee' });
-  const note = await premier.voix.enregistrer(seance.id, {
-    audio: Buffer.from('son de démonstration').toString('base64'),
-    duree: 4,
-    transcription: 'Penser aux plots'
-  });
+  const note = preparerNote({ transcription: 'Penser aux plots', duree: 4 });
   await premier.sessions.ajouterNoteVocale(seance.id, note);
 
-  // Tout est bien parti sur Drive, et nulle part ailleurs.
+  // Un seul document part sur Drive : les notes dictées sont du texte, rangé
+  // dans la séance, et plus aucun son n'est stocké à côté.
   const noms = [...google.fichiers.values()].map((f) => f.name).sort();
-  assert.deepEqual(noms, ['Calendrier entraînements', 'notes-vocales', seance.id, 'sessions.json', note.fichier].sort());
+  assert.deepEqual(noms, ['Calendrier entraînements', 'sessions.json'].sort());
 
   // Un second démarrage ne lit que Drive : les données doivent revenir entières.
   const second = await createApp({ dataFile: null, depot: google.depot(), cleCoach: 'cle' });
@@ -278,11 +276,7 @@ test('l’application complète tourne sur Drive, et retrouve tout au redémarra
   assert.deepEqual(rechargee.historique.map((h) => h.statut), ['prevue', 'effectuee']);
   assert.equal(rechargee.notesVocales.length, 1);
   assert.equal(rechargee.notesVocales[0].transcription, 'Penser aux plots');
-  assert.equal(
-    (await second.voix.lire(seance.id, rechargee.notesVocales[0])).toString(),
-    'son de démonstration',
-    'le son se relit depuis Drive'
-  );
+  assert.equal(rechargee.notesVocales[0].duree, 4);
 });
 
 test('Drive injoignable : le démarrage échoue au lieu de servir un calendrier vide', async (t) => {

@@ -80,7 +80,6 @@ async function createApp({ dataFile = DEFAULT_DATA_FILE, depot, cleCoach, env = 
   };
 
   handler.sessions = app.sessions;
-  handler.voix = app.voix;
   handler.store = app.store;
   handler.depot = app.depot;
   handler.acces = app.acces;

@@ -197,22 +197,24 @@ test('le statut se change par PATCH et se filtre dans la grille', async (t) => {
   assert.equal((await appeler(`/api/sessions/${id}`, { coach: true, method: 'PATCH', body: { statut: 'reportee' } })).status, 400);
 });
 
-test('cycle de vie d’une note vocale', async (t) => {
-  const { appeler, fermer, base: racine } = await demarrer();
+test('cycle de vie d’une note dictée', async (t) => {
+  const { appeler, fermer } = await demarrer();
   t.after(fermer);
 
   const id = (await appeler('/api/sessions', { coach: true, method: 'POST', body: base })).body.session.id;
-  const son = Buffer.from('bip bip bip');
 
   const ajout = await appeler(`/api/sessions/${id}/notes-vocales`, {
     coach: true,
     method: 'POST',
-    body: { audio: son.toString('base64'), mimeType: 'audio/webm', duree: 5.5, transcription: 'Penser aux plots' }
+    body: { transcription: 'Penser aux plots', duree: 5.5 }
   });
   assert.equal(ajout.status, 201);
   const note = ajout.body.noteVocale;
-  assert.equal(note.duree, 5.5);
   assert.equal(note.transcription, 'Penser aux plots');
+  assert.equal(note.duree, 5.5);
+  assert.equal(note.source, 'dictee');
+  assert.ok(!('fichier' in note), 'plus de fichier : le son n’est pas conservé');
+  assert.ok(!('mimeType' in note), 'ni de type audio');
   assert.equal(ajout.body.session.notesVocales.length, 1);
   assert.equal(ajout.headers.get('location'), `/api/sessions/${id}/notes-vocales/${note.id}`);
 
@@ -220,41 +222,60 @@ test('cycle de vie d’une note vocale', async (t) => {
   assert.equal((await appeler(`/api/sessions/${id}/notes-vocales`, { coach: true })).body.notesVocales.length, 1);
   assert.equal((await appeler(`/api/sessions/${id}`, { coach: true })).body.session.notesVocales[0].id, note.id);
 
-  // Le son se relit tel quel, avec son type.
-  const lecture = await fetch(`${racine}/api/sessions/${id}/notes-vocales/${note.id}`, {
-    headers: { 'X-Cle-Coach': CLE_COACH }
+  // La dictée se trompe : la note se corrige, et la durée dictée perd son sens.
+  const correction = await appeler(`/api/sessions/${id}/notes-vocales/${note.id}`, {
+    coach: true,
+    method: 'PATCH',
+    body: { transcription: 'Penser aux plots et aux haies', source: 'saisie' }
   });
-  assert.equal(lecture.status, 200);
-  assert.equal(lecture.headers.get('content-type'), 'audio/webm');
-  assert.deepEqual(Buffer.from(await lecture.arrayBuffer()), son);
+  assert.equal(correction.status, 200);
+  assert.equal(correction.body.noteVocale.transcription, 'Penser aux plots et aux haies');
+  assert.equal(correction.body.noteVocale.source, 'saisie');
+  assert.equal(correction.body.noteVocale.duree, null);
+  assert.equal(correction.body.noteVocale.id, note.id, 'la même note, corrigée');
+
+  // Le son n’existe plus nulle part : la route qui le servait a disparu.
+  assert.equal((await appeler(`/api/sessions/${id}/notes-vocales/${note.id}`, { coach: true })).status, 405);
 
   const suppression = await appeler(`/api/sessions/${id}/notes-vocales/${note.id}`, { coach: true, method: 'DELETE' });
   assert.equal(suppression.status, 200);
   assert.equal(suppression.body.session.notesVocales.length, 0);
-  assert.equal((await appeler(`/api/sessions/${id}/notes-vocales/${note.id}`, { coach: true })).status, 404);
 });
 
-test('une note vocale invalide ou orpheline est refusée', async (t) => {
+test('une note dictée sans texte est refusée', async (t) => {
   const { appeler, fermer } = await demarrer();
   t.after(fermer);
 
   const id = (await appeler('/api/sessions', { coach: true, method: 'POST', body: base })).body.session.id;
 
-  assert.equal((await appeler('/api/sessions/ses_inconnu/notes-vocales', { coach: true, method: 'POST', body: { audio: 'AAAA' } })).status, 404);
-
-  const sansAudio = await appeler(`/api/sessions/${id}/notes-vocales`, { coach: true, method: 'POST', body: { duree: 3 } });
-  assert.equal(sansAudio.status, 400);
-
-  const mauvaisFormat = await appeler(`/api/sessions/${id}/notes-vocales`, {
-    coach: true,
-    method: 'POST',
-    body: { audio: Buffer.from('x').toString('base64'), mimeType: 'audio/aiff' }
+  // La transcription EST la note : sans elle, il ne reste rien à conserver.
+  const sansTexte = await appeler(`/api/sessions/${id}/notes-vocales`, {
+    coach: true, method: 'POST', body: { duree: 3 }
   });
-  assert.equal(mauvaisFormat.status, 400);
-  assert.ok(mauvaisFormat.body.error.details.formatsAcceptes.includes('audio/webm'));
+  assert.equal(sansTexte.status, 400);
+  assert.match(sansTexte.body.error.message, /transcription/);
 
-  // La séance reste propre après ces refus.
-  assert.deepEqual((await appeler(`/api/sessions/${id}`, { coach: true })).body.session.notesVocales, []);
+  const vide = await appeler(`/api/sessions/${id}/notes-vocales`, {
+    coach: true, method: 'POST', body: { transcription: '   ' }
+  });
+  assert.equal(vide.status, 400);
+
+  const dureeAberrante = await appeler(`/api/sessions/${id}/notes-vocales`, {
+    coach: true, method: 'POST', body: { transcription: 'Bon', duree: -2 }
+  });
+  assert.equal(dureeAberrante.status, 400);
+
+  const sourceInconnue = await appeler(`/api/sessions/${id}/notes-vocales`, {
+    coach: true, method: 'POST', body: { transcription: 'Bon', source: 'telepathie' }
+  });
+  assert.equal(sourceInconnue.status, 400);
+  assert.deepEqual(sourceInconnue.body.error.details.sourcesPossibles, ['dictee', 'saisie']);
+
+  // Sur une séance qui n’existe pas : 404, et rien d’écrit.
+  const orpheline = await appeler('/api/sessions/ses_inconnue/notes-vocales', {
+    coach: true, method: 'POST', body: { transcription: 'Dans le vide' }
+  });
+  assert.equal(orpheline.status, 404);
 });
 
 test('un athlète ne voit aucune note vocale, nulle part', async (t) => {
