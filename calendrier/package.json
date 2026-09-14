@@ -8,7 +8,8 @@
     "start": "node src/server.js",
     "test": "node --test",
     "deploy": "wrangler deploy",
-    "dev:cloudflare": "wrangler dev"
+    "dev:cloudflare": "wrangler dev",
+    "cloudflare:init": "node outils/cloudflare-init.js"
   },
   "engines": {
     "node": ">=18"

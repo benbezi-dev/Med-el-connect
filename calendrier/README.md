@@ -446,11 +446,16 @@ réécrit — `cloudflare/adaptateur.js` présente la requête du Worker au mêm
 code que le serveur Node, et `src/api.js` ne connaît ni disque ni node:http.
 
 ```bash
-npx wrangler login
-npx wrangler kv namespace create CALENDRIER     # colle l'id dans wrangler.toml
-npx wrangler secret put CALENDAR_COACH_KEY      # choisis ta clé coach
+cd calendrier                    # tout part de ce dossier
+npx wrangler login               # ouvre le navigateur
+npm run cloudflare:init          # crée l'espace KV et l'inscrit dans wrangler.toml
+npx wrangler secret put CALENDAR_COACH_KEY
 npm run deploy
 ```
+
+`cloudflare:init` évite d'éditer `wrangler.toml` à la main : il crée l'espace
+KV, lit l'identifiant dans la réponse de wrangler et l'inscrit à la bonne
+ligne. Relancé une seconde fois, il constate que c'est déjà fait.
 
 Le déploiement renvoie une adresse en `…workers.dev`, à donner à l'équipe.
 
