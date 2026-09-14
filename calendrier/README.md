@@ -110,10 +110,19 @@ CORS est ouvert (`*`) sur toutes les routes `/api`.
 
 ## Accès coach
 
+La clé coach sépare deux usages :
+
+| Sans clé — l'équipe | Avec la clé — le coach |
+|---|---|
+| Consulter la semaine, la vue année, une séance | Créer, modifier, archiver, restaurer une séance |
+| S'inscrire à une séance, s'en retirer | Changer un statut |
+| Laisser un mot | Enregistrer, écouter et supprimer les notes vocales |
+| | Retirer le mot d'un athlète |
+
 Les notes vocales sont privées : elles n'apparaissent **ni dans la grille, ni
-dans `/api/sessions`, ni dans `/api/export`** sans la clé coach, et leurs
-quatre routes répondent `401`. Tout le reste — grille, statuts, séances, vue
-année — reste ouvert à vos athlètes.
+dans `/api/sessions`, ni dans `/api/export`** sans la clé, et leurs quatre
+routes répondent `401`. Les écritures réservées répondent `401` elles aussi,
+avec un message qui dit ce qui manque.
 
 La clé vient, dans l'ordre : de `CALENDAR_COACH_KEY`, du fichier
 `data/cle-coach.txt`, ou d'un tirage au sort au premier démarrage (le serveur
@@ -134,9 +143,10 @@ notes est chargé par `fetch` authentifié, jamais par une URL contenant la clé
 En mode athlète, la section « Notes vocales » du formulaire n'existe pas et
 aucune séance n'indique qu'elle en porte.
 
-> La clé protège les notes vocales, pas l'écriture : n'importe qui peut encore
-> créer ou modifier une séance. Si le calendrier doit être ouvert en lecture
-> seule aux athlètes, c'est une étape à ajouter.
+Dans la page, un athlète voit la grille sans les boutons d'édition : pas de
+« + Ajouter », menus de statut grisés, champs de la séance en lecture seule.
+Ne restent actifs que les siens : les pastilles de présence et le fil des
+messages.
 
 ### `GET /api/calendar`
 

@@ -184,6 +184,8 @@
       td.appendChild(dessinerSeance(seance, statuts));
     });
 
+    if (!etat.coach) return td;          // un athlète consulte, il n'ajoute pas
+
     if (cellule.complet) {
       td.appendChild(creer('p', { className: 'cellule-vide', textContent: 'Tous les lieux occupés' }));
     } else {
@@ -239,6 +241,7 @@
       title: 'Statut de la séance'
     });
     menu.setAttribute('aria-label', 'Statut de la séance du ' + formaterDate(seance.date) + ' à ' + seance.time);
+    menu.disabled = !etat.coach;
     statuts.forEach(function (statut) {
       var option = creer('option', { value: statut.id, textContent: statut.label });
       if (statut.id === seance.statut) option.selected = true;
@@ -332,6 +335,10 @@
           textContent: formaterDateAnnee(seance.date) + ' · ' + seance.time + ' · ' +
             (seance.location ? seance.location.name : seance.locationId) + ' — ' + seance.title
         }));
+        if (!etat.coach) {
+          liste.appendChild(item);
+          return;
+        }
         var restaurer = creer('button', { type: 'button', textContent: 'Restaurer' });
         restaurer.addEventListener('click', function () {
           restaurer.disabled = true;
@@ -403,7 +410,7 @@
 
   function ouvrirEdition(seance) {
     etat.edition = { mode: 'edition', date: seance.date, id: seance.id, seance: seance };
-    els['dialogue-titre'].textContent = 'Modifier la séance';
+    els['dialogue-titre'].textContent = etat.coach ? 'Modifier la séance' : 'La séance';
     els['dialogue-contexte'].textContent = formaterDate(seance.date, true) + ' à ' + seance.time;
     // Les lieux déjà pris sur ce créneau sont grisés ; celui de la séance reste choisi.
     remplirSelects(lieuxLibresDe(seance.date, seance.time), seance.locationId, seance.time, seance.statut);
@@ -411,14 +418,22 @@
     els['champ-coach'].value = seance.coach || '';
     els['champ-capacite'].value = String(seance.capacity);
     els['champ-notes'].value = seance.notes || '';
-    els.archiver.hidden = false;
+    els.archiver.hidden = !etat.coach;
     ouvrirDialogue();
+  }
+
+  /** L'équipe consulte la séance ; seul le coach la modifie. */
+  function verrouillerFormulaire() {
+    ['champ-statut', 'champ-lieu', 'champ-heure', 'champ-titre', 'champ-coach', 'champ-capacite', 'champ-notes']
+      .forEach(function (id) { els[id].disabled = !etat.coach; });
+    els.enregistrer.hidden = !etat.coach;
   }
 
   function ouvrirDialogue() {
     afficherAlerte(null, els['dialogue-alerte']);
     etat.noteEnAttente = null;
     els.vocal.hidden = !etat.coach;   // réservées au coach
+    verrouillerFormulaire();
     els['champ-mot'].value = '';
     dessinerEquipe();
     dessinerNotesVocales();

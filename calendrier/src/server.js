@@ -156,6 +156,7 @@ async function handleSessions(req, res, url, segments, sessions, voix, coach) {
       return sendJson(res, 200, protege({ sessions: list, total: list.length }, coach));
     }
     if (method === 'POST') {
+      if (!coach) throw cleCoachRequise('Seul le coach peut créer une séance.');
       const created = await sessions.create(await readJsonBody(req));
       res.setHeader('Location', `/api/sessions/${created.id}`);
       return sendJson(res, 201, protege({ session: created }, coach));
@@ -166,10 +167,12 @@ async function handleSessions(req, res, url, segments, sessions, voix, coach) {
   if (!sub) {
     if (method === 'GET') return sendJson(res, 200, protege({ session: sessions.get(id) }, coach));
     if (method === 'PATCH' || method === 'PUT') {
+      if (!coach) throw cleCoachRequise('Seul le coach peut modifier une séance.');
       return sendJson(res, 200, protege({ session: await sessions.update(id, await readJsonBody(req)) }, coach));
     }
     if (method === 'DELETE') {
       // Archivage, pas suppression : la séance reste dans le fichier.
+      if (!coach) throw cleCoachRequise('Seul le coach peut archiver une séance.');
       return sendJson(res, 200, protege({ session: await sessions.archive(id), archivee: true }, coach));
     }
     throw methodNotAllowed(method, ['GET', 'PATCH', 'DELETE']);
@@ -177,6 +180,7 @@ async function handleSessions(req, res, url, segments, sessions, voix, coach) {
 
   if (sub === 'restaurer' && !subId) {
     if (method !== 'POST') throw methodNotAllowed(method, ['POST']);
+    if (!coach) throw cleCoachRequise('Seul le coach peut restaurer une séance.');
     return sendJson(res, 200, protege({ session: await sessions.restore(id) }, coach));
   }
 
@@ -248,10 +252,10 @@ function apiIndex() {
   return {
     name: 'API Calendrier — planification sur un an, présentation sur 7 jours',
     timezone: TIMEZONE,
-    notesVocales: {
-      acces: 'coach',
+    acces: {
       entete: ENTETE,
-      description: 'Les notes vocales ne sont ni listées ni lisibles sans la clé coach.'
+      coach: 'Créer, modifier, archiver et restaurer une séance ; les notes vocales ; retirer un message.',
+      equipe: 'Consulter le calendrier, s’inscrire à une séance, s’en retirer, laisser un mot.'
     },
     joursVisibles: DAYS_IN_VIEW,
     moisHorizon: MOIS_HORIZON,
@@ -281,11 +285,11 @@ function apiIndex() {
         path: '/api/sessions?from=&to=&location=&time=&statut=&archivees=',
         description: 'Liste des séances, filtrable.'
       },
-      { method: 'POST', path: '/api/sessions', description: 'Crée une séance (date, time, locationId).' },
+      { method: 'POST', path: '/api/sessions', description: 'Crée une séance (date, time, locationId). Coach uniquement.' },
       { method: 'GET', path: '/api/sessions/:id', description: 'Détail d’une séance.' },
-      { method: 'PATCH', path: '/api/sessions/:id', description: 'Modifie une séance (dont son statut).' },
-      { method: 'DELETE', path: '/api/sessions/:id', description: 'Archive une séance (rien n’est effacé).' },
-      { method: 'POST', path: '/api/sessions/:id/restaurer', description: 'Sort une séance des archives.' },
+      { method: 'PATCH', path: '/api/sessions/:id', description: 'Modifie une séance (dont son statut). Coach uniquement.' },
+      { method: 'DELETE', path: '/api/sessions/:id', description: 'Archive une séance (rien n’est effacé). Coach uniquement.' },
+      { method: 'POST', path: '/api/sessions/:id/restaurer', description: 'Sort une séance des archives. Coach uniquement.' },
       {
         method: 'POST',
         path: '/api/sessions/:id/participants',
