@@ -470,7 +470,8 @@ relu dans KV à chaque fois : deux appareils voient le même état. KV étant
 éventuellement cohérent, une écriture peut mettre quelques secondes à se
 propager d'une région à l'autre.
 
-`npx wrangler deploy --dry-run` empaquette sans rien publier — utile pour
+Rien n'est à installer : les scripts passent par `npx`, qui récupère
+wrangler à la volée. `npm run deploy -- --dry-run` empaquette sans rien publier — utile pour
 vérifier que tout se construit (96 Ko, 21 Ko compressés).
 
 ### Vérification
