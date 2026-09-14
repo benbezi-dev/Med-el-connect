@@ -139,6 +139,30 @@ td.creneau.passe { background: rgba(0, 0, 0, 0.22); }
 .ajouter:hover { color: var(--encre); border-color: var(--bordure-forte); background: var(--surface-haute); }
 .cellule-vide { color: #62666C; font-size: 13px; padding: 4px 0 8px; }
 
+/* ---------- Vue téléphone : un bloc par jour ---------- */
+.jours { list-style: none; display: grid; }
+.jour-carte { border-bottom: 1px solid var(--bordure); padding: 12px 14px; display: grid; gap: 10px; }
+.jour-carte:last-child { border-bottom: 0; }
+.jour-carte.passe { background: rgba(0, 0, 0, 0.22); }
+.jour-carte.aujourdhui { background: #241413; box-shadow: inset 3px 0 0 var(--accent); }
+
+.jour-entete { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.jour-nom { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--encre-douce); }
+.jour-date { display: block; font-size: 18px; font-weight: 800; }
+.jour-carte.aujourdhui .jour-nom, .jour-carte.aujourdhui .jour-date { color: var(--accent); }
+.jour-entete .compteur { font-size: 11px; font-weight: 700; color: var(--encre-douce); }
+.jour-entete .compteur.fait { color: var(--valide); }
+
+.jour-creneau { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 10px; align-items: start; }
+.jour-heure { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; padding-top: 6px; }
+.jour-seances { display: grid; gap: 6px; min-width: 0; }
+.jour-seances .seance { margin-bottom: 0; }
+.jour-vide { font-size: 13px; color: #62666C; }
+
+.jour-ajouts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.jour-ajouts-titre { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--encre-douce); }
+.ajouter.compact { width: auto; padding: 5px 10px; font-variant-numeric: tabular-nums; }
+
 /* ---------- Légende ---------- */
 .legende { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .puce { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--bordure); border-radius: 999px; padding: 5px 14px 5px 10px; font-size: 13px; color: var(--encre-douce); }
@@ -233,10 +257,16 @@ textarea { resize: vertical; min-height: 64px; }
 
 .etat { padding: 24px; text-align: center; color: var(--encre-douce); }
 
-@media (max-width: 640px) {
+@media (max-width: 700px) {
   .page { padding: 16px 12px 48px; }
   .entete h1 { font-size: 21px; }
   .entete-actions { width: 100%; align-items: stretch; }
   .navigation { width: 100%; }
   .navigation button { flex: 1; padding: 9px 8px; }
+  .cadre { overflow-x: visible; }
+  .legende { gap: 6px; }
+  .puce { font-size: 12px; padding: 4px 10px 4px 8px; }
+  /* Le formulaire occupe l'écran : plus de place pour écrire. */
+  dialog { width: 100%; max-width: none; max-height: 100%; border-radius: 0; border: 0; }
+  dialog form { padding: 16px 14px 24px; }
 }

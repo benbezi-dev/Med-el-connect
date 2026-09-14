@@ -10,6 +10,7 @@
   var API = new URLSearchParams(location.search).get('api') || './api';
 
   var CLE_STOCKAGE = 'calendrier.cleCoach';
+  var ETROIT = window.matchMedia('(max-width: 700px)');
 
   var etat = {
     start: new URLSearchParams(location.search).get('start') || null,
@@ -59,7 +60,7 @@
 
   var els = {};
   [
-    'periode', 'alerte', 'etat', 'entete-jours', 'corps', 'legende',
+    'periode', 'alerte', 'etat', 'entete-jours', 'corps', 'legende', 'calendrier', 'jours',
     'panneau-annee', 'annee-contenu',
     'dialogue', 'formulaire', 'dialogue-titre', 'dialogue-contexte', 'dialogue-alerte',
     'champ-statut', 'champ-lieu', 'champ-heure', 'champ-titre', 'champ-coach', 'champ-capacite', 'champ-notes',
@@ -135,9 +136,83 @@
     els.etat.textContent = '';
     els.etat.hidden = true;
 
-    dessinerEntete(calendrier);
-    dessinerCorps(calendrier);
+    // Sept colonnes ne tiennent pas sur un téléphone : on déroule les jours.
+    var etroit = ETROIT.matches;
+    els.calendrier.hidden = etroit;
+    els.jours.hidden = !etroit;
+
+    if (etroit) {
+      dessinerJours(calendrier);
+    } else {
+      dessinerEntete(calendrier);
+      dessinerCorps(calendrier);
+    }
     dessinerLegende(calendrier);
+  }
+
+  /* ---------- Vue téléphone : un bloc par jour ---------- */
+
+  function dessinerJours(calendrier) {
+    vider(els.jours);
+
+    calendrier.days.forEach(function (jour, index) {
+      var carte = creer('li', { className: 'jour-carte' });
+      if (jour.isToday) carte.classList.add('aujourdhui');
+      if (jour.isPast) carte.classList.add('passe');
+
+      var entete = creer('div', { className: 'jour-entete' });
+      var titre = creer('div');
+      titre.appendChild(creer('span', { className: 'jour-nom', textContent: jour.weekday }));
+      titre.appendChild(creer('span', { className: 'jour-date', textContent: jour.dayLabel }));
+      entete.appendChild(titre);
+      if (jour.totaux.total) {
+        entete.appendChild(creer('span', {
+          className: 'compteur' + (jour.totaux.effectuee ? ' fait' : ''),
+          textContent: jour.totaux.effectuee + '/' + jour.totaux.total + (jour.totaux.total > 1 ? ' effectuées' : ' effectuée')
+        }));
+      }
+      carte.appendChild(entete);
+
+      var creneauxLibres = [];
+      calendrier.rows.forEach(function (ligne) {
+        var cellule = ligne.cells[index];
+        if (!cellule.sessions.length) {
+          if (!cellule.complet) creneauxLibres.push(cellule);
+          return;
+        }
+        var bloc = creer('div', { className: 'jour-creneau' });
+        bloc.appendChild(creer('span', { className: 'jour-heure', textContent: ligne.time }));
+        var pile = creer('div', { className: 'jour-seances' });
+        cellule.sessions.forEach(function (seance) {
+          pile.appendChild(dessinerSeance(seance, calendrier.statuts));
+        });
+        if (etat.coach && !cellule.complet) {
+          var ajout = creer('button', { type: 'button', className: 'ajouter', textContent: '+ Ajouter' });
+          ajout.addEventListener('click', function () { ouvrirCreation(cellule); });
+          pile.appendChild(ajout);
+        }
+        bloc.appendChild(pile);
+        carte.appendChild(bloc);
+      });
+
+      if (!jour.totaux.total) {
+        carte.appendChild(creer('p', { className: 'jour-vide', textContent: 'Pas de séance.' }));
+      }
+
+      // Le coach ajoute d'un geste sur le créneau voulu.
+      if (etat.coach && creneauxLibres.length) {
+        var ligneAjout = creer('div', { className: 'jour-ajouts' });
+        ligneAjout.appendChild(creer('span', { className: 'jour-ajouts-titre', textContent: 'Ajouter à' }));
+        creneauxLibres.forEach(function (cellule) {
+          var bouton = creer('button', { type: 'button', className: 'ajouter compact', textContent: '+ ' + cellule.time });
+          bouton.addEventListener('click', function () { ouvrirCreation(cellule); });
+          ligneAjout.appendChild(bouton);
+        });
+        carte.appendChild(ligneAjout);
+      }
+
+      els.jours.appendChild(carte);
+    });
   }
 
   function dessinerEntete(calendrier) {
@@ -427,6 +502,19 @@
     ['champ-statut', 'champ-lieu', 'champ-heure', 'champ-titre', 'champ-coach', 'champ-capacite', 'champ-notes']
       .forEach(function (id) { els[id].disabled = !etat.coach; });
     els.enregistrer.hidden = !etat.coach;
+  }
+
+  /** Les lieux disponibles dépendent du créneau : on les recalcule au changement. */
+  function majLieuxSelonHeure() {
+    if (!etat.edition) return;
+    var heure = els['champ-heure'].value;
+    var libres = lieuxLibresDe(etat.edition.date, heure) || [];
+    var sien = etat.edition.seance && etat.edition.seance.time === heure
+      ? etat.edition.seance.locationId
+      : null;
+    var actuel = els['champ-lieu'].value;
+    var garder = (libres.indexOf(actuel) !== -1 || actuel === sien) ? actuel : null;
+    remplirSelects(libres, garder, heure, els['champ-statut'].value);
   }
 
   function ouvrirDialogue() {
@@ -965,6 +1053,7 @@
   els.archiver.addEventListener('click', archiver);
   els.formulaire.addEventListener('submit', enregistrer);
   els['enregistrer-voix'].addEventListener('click', basculerEnregistrement);
+  els['champ-heure'].addEventListener('change', majLieuxSelonHeure);
   els['envoyer-mot'].addEventListener('click', envoyerMot);
   els['champ-mot'].addEventListener('keydown', function (evenement) {
     // Entrée envoie le mot sans valider tout le formulaire.
@@ -988,6 +1077,10 @@
       etat.anneeChargee = true;
       chargerAnnee();
     }
+  });
+
+  ETROIT.addEventListener('change', function () {
+    if (etat.calendrier) dessiner(etat.calendrier);
   });
 
   charger();
