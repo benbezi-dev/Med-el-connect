@@ -102,7 +102,7 @@
     var t = calendrier.totaux;
     els.periode.textContent =
       'Du ' + formaterDate(calendrier.start) + ' au ' + formaterDate(calendrier.end) +
-      ' · créneaux ' + calendrier.times.join(' et ') +
+      ' · créneaux ' + enumerer(calendrier.times) +
       ' · ' + pluriel(t.total, 'séance') +
       ' (' + pluriel(t.effectuee, 'effectuée') + ', ' + pluriel(t.prevue, 'prévue') + ')';
     els.etat.textContent = '';
@@ -125,7 +125,8 @@
       cellule.appendChild(creer('span', { className: 'date', textContent: jour.dayLabel }));
       if (jour.totaux.total) {
         cellule.appendChild(creer('span', {
-          className: 'compteur',
+          // Le vert ne s'allume qu'à partir d'une séance faite.
+          className: 'compteur' + (jour.totaux.effectuee ? ' fait' : ''),
           textContent: jour.totaux.effectuee + '/' + jour.totaux.total + (jour.totaux.total > 1 ? ' effectuées' : ' effectuée'),
           title: pluriel(jour.totaux.prevue, 'prévue') + ', ' + pluriel(jour.totaux.effectuee, 'effectuée') +
             ', ' + pluriel(jour.totaux.annulee, 'annulée')
@@ -731,6 +732,12 @@
       month: complet ? 'long' : 'short',
       year: complet ? 'numeric' : undefined
     });
+  }
+
+  /** « 10:30, 18:00 et 18:30 » — une énumération lisible, quel que soit le nombre. */
+  function enumerer(liste) {
+    if (liste.length < 2) return liste.join('');
+    return liste.slice(0, -1).join(', ') + ' et ' + liste[liste.length - 1];
   }
 
   /** « 1 séance », « 3 séances » — le pluriel irrégulier peut être passé. */

@@ -232,7 +232,7 @@ function apiIndex() {
     endpoints: [
       { method: 'GET', path: '/api/health', description: 'État du service.' },
       { method: 'GET', path: '/api/locations', description: 'Les 5 lieux possibles.' },
-      { method: 'GET', path: '/api/times', description: 'Les heures possibles (18:00, 18:30).' },
+      { method: 'GET', path: '/api/times', description: 'Les heures possibles (10:30, 18:00, 18:30).' },
       { method: 'GET', path: '/api/statuts', description: 'Statuts : prévue, effectuée, annulée.' },
       {
         method: 'GET',

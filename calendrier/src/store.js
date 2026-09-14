@@ -1,7 +1,7 @@
 /* Persistance des séances : un seul document JSON dans le dépôt choisi
    (mémoire, fichier local ou Google Drive).
 
-   Le volume attendu (2 créneaux x 5 lieux x quelques semaines) tient largement
+   Le volume attendu (quelques créneaux x 5 lieux x quelques semaines) tient largement
    en mémoire : on garde tout chargé et on réécrit le document à chaque
    mutation. L'écriture est faite AVANT de basculer la mémoire — si le dépôt
    refuse, l'appelant reçoit l'erreur et rien n'a changé nulle part. */

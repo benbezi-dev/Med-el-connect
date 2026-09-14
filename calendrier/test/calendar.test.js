@@ -15,14 +15,38 @@ test('la grille fait 7 jours et une ligne par heure possible', async () => {
   assert.equal(grille.start, '2026-09-11');
   assert.equal(grille.end, '2026-09-17');
   assert.equal(grille.days.length, 7);
-  assert.deepEqual(grille.times, ['18:00', '18:30']);
+  assert.deepEqual(grille.times, ['10:30', '18:00', '18:30']);
   assert.equal(grille.rows.length, TIMES.length);
   for (const ligne of grille.rows) {
     assert.equal(ligne.cells.length, 7, 'une cellule par jour');
   }
-  assert.deepEqual(grille.rows.map((r) => r.time), ['18:00', '18:30']);
+  assert.deepEqual(grille.rows.map((r) => r.time), ['10:30', '18:00', '18:30'],
+    'les lignes suivent l’ordre de la journée');
   assert.equal(grille.locations.length, 5);
   assert.deepEqual(grille.locations.map((l) => l.name), LOCATIONS.map((l) => l.name));
+});
+
+test('le créneau de 10:30 vit sa propre ligne, indépendante du soir', async () => {
+  const svc = service();
+  const matin = await svc.create({ date: '2026-09-12', time: '10:30', locationId: 'valbonne-hill', title: 'Sortie longue' });
+  // Le même lieu peut resservir le soir : ce sont deux créneaux distincts.
+  await svc.create({ date: '2026-09-12', time: '18:00', locationId: 'valbonne-hill' });
+
+  const grille = buildCalendar(svc, { start: '2026-09-12' });
+  const [ligne1030, ligne1800, ligne1830] = grille.rows;
+
+  assert.equal(ligne1030.cells[0].sessions[0].id, matin.id);
+  assert.equal(ligne1030.cells[0].sessions[0].title, 'Sortie longue');
+  assert.equal(ligne1030.cells[0].lieuxLibres.length, 4, 'le lieu du matin est pris, les autres non');
+  assert.equal(ligne1800.cells[0].sessions.length, 1);
+  assert.equal(ligne1830.cells[0].sessions.length, 0);
+  assert.equal(grille.days[0].totaux.total, 2, 'les deux séances comptent pour le même jour');
+
+  // Et le doublon reste interdit à l'intérieur du créneau du matin.
+  await assert.rejects(
+    () => svc.create({ date: '2026-09-12', time: '10:30', locationId: 'valbonne-hill' }),
+    (erreur) => erreur.status === 409
+  );
 });
 
 test('la navigation avance et recule de 7 jours', async () => {
@@ -38,9 +62,10 @@ test('chaque séance tombe dans la bonne cellule jour x heure', async () => {
   await svc.create({ date: '2026-09-11', time: '18:00', locationId: 'antibes-fort-carre-stade' });
 
   const grille = buildCalendar(svc, { start: '2026-09-11' });
-  const [ligne1800, ligne1830] = grille.rows;
+  const [ligne1030, ligne1800, ligne1830] = grille.rows;
 
   assert.equal(grille.total, 3);
+  assert.equal(ligne1030.cells.every((c) => c.sessions.length === 0), true, 'rien à 10:30');
   assert.equal(ligne1800.cells[0].sessions.length, 1);
   assert.equal(ligne1800.cells[0].sessions[0].location.name, 'Antibes Fort Carré Stade');
   assert.equal(ligne1830.cells[0].sessions.length, 0);
@@ -54,7 +79,8 @@ test('une cellule est complète quand les 5 lieux sont pris', async () => {
   for (const lieu of LOCATIONS) {
     await svc.create({ date: '2026-09-12', time: '18:00', locationId: lieu.id });
   }
-  const cellule = buildCalendar(svc, { start: '2026-09-12' }).rows[0].cells[0];
+  const cellule = buildCalendar(svc, { start: '2026-09-12' }).rows
+    .find((r) => r.time === '18:00').cells[0];
   assert.equal(cellule.sessions.length, 5);
   assert.deepEqual(cellule.lieuxLibres, []);
   assert.equal(cellule.complet, true);
@@ -68,7 +94,7 @@ test('les séances hors fenêtre sont ignorées', async () => {
 
   const grille = buildCalendar(svc, { start: '2026-09-11' });
   assert.equal(grille.total, 1);
-  assert.equal(grille.rows[0].cells[6].sessions.length, 1);
+  assert.equal(grille.rows.find((r) => r.time === '18:00').cells[6].sessions.length, 1);
 });
 
 test('les paramètres invalides sont rejetés en 400', async () => {

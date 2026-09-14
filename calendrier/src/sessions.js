@@ -1,6 +1,6 @@
 /* Séances du calendrier : validation, unicité, statuts et CRUD.
 
-   Une séance = un lieu, un jour, une heure (18:00 ou 18:30). Deux séances ne
+   Une séance = un lieu, un jour, l'une des heures possibles. Deux séances ne
    peuvent pas occuper le même lieu au même créneau ; en revanche les 5 lieux
    peuvent tourner en parallèle sur le même créneau.
 

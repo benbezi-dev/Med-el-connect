@@ -10,8 +10,8 @@ const LOCATIONS = [
   { id: 'valbonne-city-workout', name: 'Valbonne City Workout', city: 'Valbonne' }
 ];
 
-/** Les 2 heures possibles, dans l'ordre d'affichage de la colonne « Heure ». */
-const TIMES = ['18:00', '18:30'];
+/** Les heures possibles, dans l'ordre d'affichage de la colonne « Heure ». */
+const TIMES = ['10:30', '18:00', '18:30'];
 
 /** États d'une séance, alimentés par le menu déroulant de chaque séance. */
 const STATUTS = [

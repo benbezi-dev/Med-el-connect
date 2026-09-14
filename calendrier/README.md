@@ -1,8 +1,8 @@
 # API Calendrier — planification sur un an, présentation sur 7 jours
 
 Calendrier de réservation de créneaux d'entraînement : une grille de 7 jours,
-une **colonne « Heure »** à gauche, deux créneaux possibles (**18:00** et
-**18:30**) et cinq lieux.
+une **colonne « Heure »** à gauche, trois créneaux possibles (**10:30**,
+**18:00** et **18:30**) et cinq lieux.
 
 La planification court sur **12 mois**, mais la page n'affiche jamais qu'une
 **semaine** ; la vue année, repliée en bas de page, sert au suivi. Chaque
@@ -19,7 +19,7 @@ calendrier/
 ├── src/          API HTTP (node:http) + logique calendrier + dépôts de données
 ├── public/       Présentation 7 jours (HTML/CSS/JS, sans framework)
 ├── outils/       jeton-google.js : obtenir un jeton de rafraîchissement Drive
-├── test/         87 tests (node:test)
+├── test/         88 tests (node:test)
 └── data/         Séances (JSON) et notes vocales (audio) en stockage local
 ```
 
@@ -62,9 +62,9 @@ Les seules valeurs acceptées par l'API — toute autre valeur est refusée en 4
 
 | Heures possibles | Lieux possibles (`locationId`) | Nom | Statuts (`statut`) |
 |---|---|---|---|
-| `18:00` | `antibes-fort-carre-stade` | Antibes Fort Carré Stade | `prevue` (défaut) |
-| `18:30` | `valbonne-stadium` | Valbonne Stadium | `effectuee` |
-| | `grasse-stadium` | Grasse Stadium | `annulee` |
+| `10:30` | `antibes-fort-carre-stade` | Antibes Fort Carré Stade | `prevue` (défaut) |
+| `18:00` | `valbonne-stadium` | Valbonne Stadium | `effectuee` |
+| `18:30` | `grasse-stadium` | Grasse Stadium | `annulee` |
 | | `valbonne-hill` | Valbonne Hill | |
 | | `valbonne-city-workout` | Valbonne City Workout | |
 
@@ -78,7 +78,7 @@ calculé sur `Europe/Paris`.
 | `GET` | `/api` | Index des endpoints, heures et lieux |
 | `GET` | `/api/health` | État du service |
 | `GET` | `/api/locations` | Les 5 lieux |
-| `GET` | `/api/times` | Les heures possibles |
+| `GET` | `/api/times` | Les heures possibles (10:30, 18:00, 18:30) |
 | `GET` | `/api/statuts` | Prévue, effectuée, annulée |
 | `GET` | `/api/calendar?start=&days=` | **Grille prête à afficher** (7 jours par défaut, 366 au plus) |
 | `GET` | `/api/annee?start=&mois=` | **Suivi sur 12 mois** : totaux par mois et jours occupés |
@@ -142,7 +142,7 @@ curl "http://localhost:3000/api/calendar?start=2026-09-11"
   "start": "2026-09-11", "end": "2026-09-17", "today": "2026-09-11",
   "timezone": "Europe/Paris",
   "previousStart": "2026-09-04", "nextStart": "2026-09-18",
-  "times": ["18:00", "18:30"],
+  "times": ["10:30", "18:00", "18:30"],
   "statuts": [ { "id": "prevue", "label": "Prévue" } ],
   "locations": [ { "id": "antibes-fort-carre-stade", "name": "Antibes Fort Carré Stade", "city": "Antibes" } ],
   "days": [
@@ -209,7 +209,7 @@ curl -X POST http://localhost:3000/api/sessions \
 | Champ | Obligatoire | Règle |
 |---|---|---|
 | `date` | oui | `YYYY-MM-DD` existante |
-| `time` | oui | `18:00` ou `18:30` |
+| `time` | oui | `10:30`, `18:00` ou `18:30` |
 | `locationId` | oui | un des 5 identifiants |
 | `statut` | non | `prevue` (défaut), `effectuee` ou `annulee` |
 | `title` | non | ≤ 120 caractères (défaut « Entraînement ») |
@@ -285,8 +285,8 @@ Toutes les erreurs partagent la même forme, avec un message en français :
 {
   "error": {
     "code": "invalid_request",
-    "message": "Le champ « time » doit valoir 18:00 ou 18:30.",
-    "details": { "heuresPossibles": ["18:00", "18:30"] }
+    "message": "Le champ « time » doit valoir 10:30 ou 18:00 ou 18:30.",
+    "details": { "heuresPossibles": ["10:30", "18:00", "18:30"] }
   }
 }
 ```
@@ -383,7 +383,7 @@ font les tests.
 
 ### Vérification
 
-Les 87 tests couvrent les trois dépôts. Le dépôt Drive est exercé contre un
+Les 88 tests couvrent les trois dépôts. Le dépôt Drive est exercé contre un
 faux Google local — création du dossier, mise à jour d'un fichier existant,
 sous-dossiers des notes vocales, aller-retour binaire, renouvellement du jeton
 sur 401, échappement des apostrophes — et l'application entière est démarrée

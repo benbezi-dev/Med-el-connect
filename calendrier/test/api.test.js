@@ -40,7 +40,7 @@ test('GET /api décrit les endpoints, les heures et les lieux', async (t) => {
 
   const { status, body } = await appeler('/api');
   assert.equal(status, 200);
-  assert.deepEqual(body.heuresPossibles, ['18:00', '18:30']);
+  assert.deepEqual(body.heuresPossibles, ['10:30', '18:00', '18:30']);
   assert.equal(body.joursVisibles, 7, 'les utilisateurs ne voient qu’une semaine');
   assert.equal(body.moisHorizon, 12, 'la planification couvre un an');
   assert.deepEqual(body.statuts, ['prevue', 'effectuee', 'annulee']);
@@ -64,7 +64,7 @@ test('GET /api/locations et /api/times renvoient les référentiels', async (t) 
   ]);
 
   const heures = await appeler('/api/times');
-  assert.deepEqual(heures.body.times, ['18:00', '18:30']);
+  assert.deepEqual(heures.body.times, ['10:30', '18:00', '18:30']);
   assert.equal(heures.body.timezone, 'Europe/Paris');
 
   const sante = await appeler('/api/health');
@@ -78,7 +78,8 @@ test('GET /api/calendar renvoie la grille 7 jours', async (t) => {
   const { status, body } = await appeler('/api/calendar?start=2026-09-11');
   assert.equal(status, 200);
   assert.equal(body.days.length, 7);
-  assert.equal(body.rows.length, 2);
+  assert.equal(body.rows.length, 3, 'une ligne par créneau possible');
+  assert.deepEqual(body.rows.map((r) => r.time), ['10:30', '18:00', '18:30']);
   assert.equal(body.rows[0].cells.length, 7);
 
   const invalide = await appeler('/api/calendar?start=demain');
@@ -107,8 +108,9 @@ test('cycle de vie complet d’une séance via l’API', async (t) => {
 
   // La séance apparaît bien dans la grille, au bon créneau.
   const grille = await appeler('/api/calendar?start=2026-09-14');
-  assert.equal(grille.body.rows[1].cells[0].sessions[0].id, id);
-  assert.equal(grille.body.rows[1].cells[0].lieuxLibres.length, 4);
+  const ligne1830 = grille.body.rows.find((r) => r.time === '18:30');
+  assert.equal(ligne1830.cells[0].sessions[0].id, id);
+  assert.equal(ligne1830.cells[0].lieuxLibres.length, 4);
 
   // DELETE archive : la séance sort de la grille mais reste consultable.
   const archivage = await appeler(`/api/sessions/${id}`, { method: 'DELETE' });
@@ -131,7 +133,7 @@ test('POST /api/sessions valide l’entrée et signale les conflits', async (t) 
 
   const heureInterdite = await appeler('/api/sessions', { method: 'POST', body: { ...base, time: '19:00' } });
   assert.equal(heureInterdite.status, 400);
-  assert.deepEqual(heureInterdite.body.error.details.heuresPossibles, ['18:00', '18:30']);
+  assert.deepEqual(heureInterdite.body.error.details.heuresPossibles, ['10:30', '18:00', '18:30']);
 
   const lieuInconnu = await appeler('/api/sessions', { method: 'POST', body: { ...base, locationId: 'nice' } });
   assert.equal(lieuInconnu.status, 400);
@@ -272,8 +274,8 @@ test('un athlète ne voit aucune note vocale, nulle part', async (t) => {
   // Vue athlète : la séance est là, ses notes vocales non.
   const grille = await appeler('/api/calendar?start=2026-09-14');
   assert.equal(grille.body.coach, false);
-  assert.equal(grille.body.rows[0].cells[0].sessions.length, 0);
-  const seance = grille.body.rows[1].cells[0].sessions[0];
+  assert.equal(grille.body.rows[0].cells[0].sessions.length, 0, 'rien à 10:30');
+  const seance = grille.body.rows.find((r) => r.time === base.time).cells[0].sessions[0];
   assert.equal(seance.id, id, 'la séance reste visible');
   assert.deepEqual(seance.notesVocales, [], 'mais sans ses notes vocales');
 
