@@ -1,0 +1,21 @@
+# Déploiement du calendrier sur Cloudflare Workers.
+#
+#   npx wrangler login
+#   npx wrangler kv namespace create CALENDRIER   # colle l'id ci-dessous
+#   npx wrangler secret put CALENDAR_COACH_KEY
+#   npx wrangler deploy
+
+name = "calendrier-entrainements"
+main = "cloudflare/worker.mjs"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# La page (HTML, CSS, JS) est servie directement par Cloudflare.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# Les séances et les notes vocales vivent ici.
+[[kv_namespaces]]
+binding = "CALENDRIER"
+id = "REMPLACER_PAR_L_ID_RENVOYE_PAR_WRANGLER"

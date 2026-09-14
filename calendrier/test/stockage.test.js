@@ -4,7 +4,8 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { creerDepot, DepotMemoire, DepotFichier, segments } = require('../src/stockage');
+const { creerDepot, DepotMemoire, segments } = require('../src/stockage');
+const { DepotFichier } = require('../src/depot-fichier');
 
 const CLE_SERVICE = JSON.stringify({
   client_email: 'calendrier@projet.iam.gserviceaccount.com',

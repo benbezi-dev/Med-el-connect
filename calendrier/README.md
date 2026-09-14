@@ -17,10 +17,11 @@ le reste de l'application MED-EL Connect à la racine du dépôt.
 
 ```
 calendrier/
-├── src/          API HTTP (node:http) + logique calendrier + dépôts de données
+├── src/          Le cœur de l'API, la logique calendrier, les dépôts de données
+├── cloudflare/   Le même code en Worker (adaptateur + point d'entrée)
 ├── public/       Présentation 7 jours (HTML/CSS/JS, sans framework)
 ├── outils/       jeton-google.js : obtenir un jeton de rafraîchissement Drive
-├── test/         94 tests (node:test)
+├── test/         100 tests (node:test)
 └── data/         Séances (JSON) et notes vocales (audio) en stockage local
 ```
 
@@ -437,10 +438,43 @@ de serveur, pas une donnée du calendrier. Ces fichiers sont ignorés par git.
 Passer `dataFile: null` à `createApp()` garde tout en mémoire, c'est ce que
 font les tests.
 
+### Sur Cloudflare Workers
+
+Le calendrier tourne aussi sans serveur à soi : adresse stable, disponible en
+permanence, données dans un espace **Cloudflare KV**. Rien de l'API n'est
+réécrit — `cloudflare/adaptateur.js` présente la requête du Worker au même
+code que le serveur Node, et `src/api.js` ne connaît ni disque ni node:http.
+
+```bash
+npx wrangler login
+npx wrangler kv namespace create CALENDRIER     # colle l'id dans wrangler.toml
+npx wrangler secret put CALENDAR_COACH_KEY      # choisis ta clé coach
+npm run deploy
+```
+
+Le déploiement renvoie une adresse en `…workers.dev`, à donner à l'équipe.
+
+| Réglage | Rôle |
+|---|---|
+| `[[kv_namespaces]] CALENDRIER` | où vivent les séances et les notes vocales |
+| `CALENDAR_COACH_KEY` | la clé coach, en secret — sans elle le Worker refuse de servir l'API plutôt que d'en inventer une |
+| `[assets] ./public` | la page, servie par Cloudflare sans passer par le Worker |
+
+Le noyau est reconstruit à chaque requête, donc le document des séances est
+relu dans KV à chaque fois : deux appareils voient le même état. KV étant
+éventuellement cohérent, une écriture peut mettre quelques secondes à se
+propager d'une région à l'autre.
+
+`npx wrangler deploy --dry-run` empaquette sans rien publier — utile pour
+vérifier que tout se construit (96 Ko, 21 Ko compressés).
+
 ### Vérification
 
-Les 94 tests couvrent les trois dépôts. Le dépôt Drive est exercé contre un
-faux Google local — création du dossier, mise à jour d'un fichier existant,
+Les 100 tests couvrent les quatre dépôts. Six d'entre eux font tourner le
+**Worker entier** dans Node contre un faux KV — page servie, séance créée puis
+relue depuis KV, inscription et message d'un athlète, écriture refusée sans
+clé, note vocale rendue octet pour octet, préflight CORS. Le dépôt Drive est
+exercé contre un faux Google local — création du dossier, mise à jour d'un fichier existant,
 sous-dossiers des notes vocales, aller-retour binaire, renouvellement du jeton
 sur 401, échappement des apostrophes — et l'application entière est démarrée
 deux fois sur ce dépôt pour vérifier qu'elle retrouve tout. La signature du

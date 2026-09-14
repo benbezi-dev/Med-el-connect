@@ -6,7 +6,7 @@
    locaux ou Google Drive). */
 
 const crypto = require('node:crypto');
-const { DepotMemoire } = require('./stockage');
+const { DepotMemoire } = require('./depot-base');
 const { badRequest, notFound } = require('./errors');
 
 const TAILLE_MAX = 5 * 1024 * 1024; // 5 Mo de son décodé

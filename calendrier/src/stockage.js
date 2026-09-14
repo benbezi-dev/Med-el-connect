@@ -1,93 +1,10 @@
-/* Stockage : où vivent les données.
+/* Le choix du dépôt, côté serveur Node.
 
-   Trois dépôts derrière la même interface — mémoire (tests), fichiers locaux
-   et Google Drive. Chacun sait lire, écrire et supprimer un chemin relatif
-   (« sessions.json », « notes-vocales/ses_x/voc_y.webm ») :
+   Drive si l'identification Google est présente, le disque sinon, la mémoire
+   quand aucune racine n'est donnée. Les dépôts eux-mêmes vivent dans leurs
+   propres modules, chargés seulement si on les utilise. */
 
-     lire(chemin)                 -> Buffer, ou null si absent
-     ecrire(chemin, bytes, type)  -> écrit (ou remplace)
-     supprimer(chemin)            -> efface si présent
-     decrire()                    -> { type, emplacement } pour /api/health
-
-   Tout est asynchrone : sur Drive, une écriture est un appel réseau, et
-   l'appelant doit pouvoir échouer proprement plutôt que perdre une saisie. */
-
-const fs = require('node:fs');
-const fsp = require('node:fs/promises');
-const path = require('node:path');
-const { badRequest } = require('./errors');
-
-const SEGMENT = /^[A-Za-z0-9_.@+-]+$/;
-
-/** Découpe et contrôle un chemin : rien ne doit pouvoir sortir du dépôt. */
-function segments(chemin) {
-  const parts = String(chemin ?? '').split('/').filter(Boolean);
-  if (!parts.length || parts.some((p) => !SEGMENT.test(p) || p === '.' || p === '..')) {
-    throw badRequest(`Chemin de stockage invalide : « ${chemin} ».`);
-  }
-  return parts;
-}
-
-/** Dépôt en mémoire : ne survit pas au processus, sert aux tests. */
-class DepotMemoire {
-  constructor() {
-    this.fichiers = new Map();
-  }
-
-  async lire(chemin) {
-    return this.fichiers.get(segments(chemin).join('/')) ?? null;
-  }
-
-  async ecrire(chemin, bytes) {
-    this.fichiers.set(segments(chemin).join('/'), Buffer.from(bytes));
-  }
-
-  async supprimer(chemin) {
-    this.fichiers.delete(segments(chemin).join('/'));
-  }
-
-  decrire() {
-    return { type: 'memoire', emplacement: null };
-  }
-}
-
-/** Dépôt local : un fichier par chemin, écrit puis renommé. */
-class DepotFichier {
-  constructor(racine) {
-    this.racine = path.resolve(racine);
-  }
-
-  chemin(relatif) {
-    return path.join(this.racine, ...segments(relatif));
-  }
-
-  async lire(relatif) {
-    try {
-      return await fsp.readFile(this.chemin(relatif));
-    } catch (erreur) {
-      if (erreur.code === 'ENOENT') return null;
-      throw erreur;
-    }
-  }
-
-  async ecrire(relatif, bytes) {
-    const cible = this.chemin(relatif);
-    await fsp.mkdir(path.dirname(cible), { recursive: true });
-    // Écriture puis renommage : une coupure ne laisse jamais un fichier
-    // à moitié écrit à la place de l'ancien.
-    const temporaire = `${cible}.${process.pid}.tmp`;
-    await fsp.writeFile(temporaire, bytes);
-    await fsp.rename(temporaire, cible);
-  }
-
-  async supprimer(relatif) {
-    await fsp.rm(this.chemin(relatif), { force: true });
-  }
-
-  decrire() {
-    return { type: 'fichier', emplacement: this.racine };
-  }
-}
+const { DepotMemoire, segments } = require('./depot-base');
 
 /**
  * Choisit le dépôt : Drive si la configuration Google est présente (ou si
@@ -98,6 +15,8 @@ class DepotFichier {
 function creerDepot({ racine, env = process.env, depot } = {}) {
   if (depot) return depot;                       // dépôt fourni (tests)
   if (racine === null || racine === undefined) return new DepotMemoire();
+
+  const { DepotFichier } = require('./depot-fichier');
 
   const demande = String(env.CALENDAR_STORAGE ?? '').toLowerCase();
   if (demande === 'memoire') return new DepotMemoire();
@@ -122,4 +41,4 @@ function creerDepot({ racine, env = process.env, depot } = {}) {
   });
 }
 
-module.exports = { DepotMemoire, DepotFichier, creerDepot, segments };
+module.exports = { creerDepot, DepotMemoire, segments };

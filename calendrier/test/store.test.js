@@ -5,7 +5,8 @@ const os = require('node:os');
 const path = require('node:path');
 const { Store } = require('../src/store');
 const { SessionService } = require('../src/sessions');
-const { DepotFichier, DepotMemoire } = require('../src/stockage');
+const { DepotMemoire } = require('../src/stockage');
+const { DepotFichier } = require('../src/depot-fichier');
 
 function dossierTemporaire(t) {
   const dossier = fs.mkdtempSync(path.join(os.tmpdir(), 'calendrier-'));

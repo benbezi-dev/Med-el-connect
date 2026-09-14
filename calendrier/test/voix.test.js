@@ -4,7 +4,8 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { VoiceStore } = require('../src/voix');
-const { DepotFichier, DepotMemoire } = require('../src/stockage');
+const { DepotMemoire } = require('../src/stockage');
+const { DepotFichier } = require('../src/depot-fichier');
 
 const SON = Buffer.from('un petit bout de son');
 const base64 = SON.toString('base64');

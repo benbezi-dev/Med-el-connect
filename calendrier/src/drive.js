@@ -7,7 +7,7 @@
    Tout passe par fetch et l'API Drive v3 — aucune bibliothèque à installer. */
 
 const { FournisseurJeton } = require('./google-jeton');
-const { segments } = require('./stockage');
+const { segments } = require('./depot-base');
 
 const BASE = 'https://www.googleapis.com/drive/v3';
 const BASE_UPLOAD = 'https://www.googleapis.com/upload/drive/v3';

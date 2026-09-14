@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { resoudreCle, estCoach, masquerNotesVocales, FICHIER_CLE } = require('../src/acces');
+const { resoudreCleLocale } = require('../src/cle-fichier');
 
 function requete(entetes) {
   return { headers: entetes || {} };
@@ -13,14 +14,18 @@ function lien(query) {
 }
 
 test('la clé explicite l’emporte, sinon l’environnement', () => {
-  assert.deepEqual(resoudreCle({ cleCoach: 'abc', dataFile: null }), { cle: 'abc', origine: 'explicite' });
+  assert.deepEqual(resoudreCle({ cleCoach: 'abc' }), { cle: 'abc', origine: 'explicite' });
 
   process.env.CALENDAR_COACH_KEY = 'depuis-env';
   try {
-    assert.deepEqual(resoudreCle({ dataFile: null }), { cle: 'depuis-env', origine: 'env' });
+    assert.deepEqual(resoudreCle({}), { cle: 'depuis-env', origine: 'env' });
   } finally {
     delete process.env.CALENDAR_COACH_KEY;
   }
+
+  // Sans rien, une clé est tirée — sauf si l'appelant veut aller voir ailleurs.
+  assert.equal(resoudreCle({}).origine, 'memoire');
+  assert.equal(resoudreCle({ tirerSiAbsente: false }), null);
 });
 
 test('sans clé configurée, elle est tirée au sort puis relue du fichier', (t) => {
@@ -28,7 +33,7 @@ test('sans clé configurée, elle est tirée au sort puis relue du fichier', (t)
   t.after(() => fs.rmSync(dossier, { recursive: true, force: true }));
   const dataFile = path.join(dossier, 'sessions.json');
 
-  const premiere = resoudreCle({ dataFile });
+  const premiere = resoudreCleLocale({ dataFile });
   assert.equal(premiere.origine, 'generee');
   assert.ok(premiere.cle.length >= 24, 'la clé tirée est longue');
 
@@ -37,7 +42,7 @@ test('sans clé configurée, elle est tirée au sort puis relue du fichier', (t)
   assert.equal(fs.statSync(fichier).mode & 0o777, 0o600, 'le fichier n’est lisible que par son propriétaire');
 
   // Au redémarrage, la même clé est reprise : le coach ne la ressaisit pas.
-  const seconde = resoudreCle({ dataFile });
+  const seconde = resoudreCleLocale({ dataFile });
   assert.deepEqual(seconde, { cle: premiere.cle, origine: 'fichier' });
 });
 
