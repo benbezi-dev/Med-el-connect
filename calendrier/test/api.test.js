@@ -327,6 +327,73 @@ test('l’athlète garde la main sur le reste de la grille', async (t) => {
   assert.equal((await appeler(`/api/sessions/${id}`, { method: 'DELETE' })).status, 200);
 });
 
+test('l’équipe s’inscrit et s’exprime sans clé coach', async (t) => {
+  const { appeler, fermer } = await demarrer();
+  t.after(fermer);
+
+  const equipe = await appeler('/api/athletes');
+  assert.equal(equipe.status, 200);
+  assert.equal(equipe.body.total, 9);
+  assert.deepEqual(equipe.body.athletes.map((a) => a.nom), [
+    'Yvon', 'Kaila', 'Autumn', 'Scarlett', 'Elliot', 'Alex L', 'Ludo', 'Zoe', 'Melina'
+  ]);
+
+  const id = (await appeler('/api/sessions', { method: 'POST', body: { ...base, capacity: 2 } })).body.session.id;
+
+  // Sans aucune clé : un athlète annonce sa venue.
+  const venue = await appeler(`/api/sessions/${id}/participants`, { method: 'POST', body: { athleteId: 'kaila' } });
+  assert.equal(venue.status, 200);
+  assert.deepEqual(venue.body.session.inscrits.map((a) => a.nom), ['Kaila']);
+  assert.equal(venue.body.session.placesRestantes, 1);
+
+  // …et laisse un mot.
+  const mot = await appeler(`/api/sessions/${id}/messages`, {
+    method: 'POST',
+    body: { athleteId: 'ludo', texte: 'J’amène les plots' }
+  });
+  assert.equal(mot.status, 201);
+  assert.equal(mot.body.message.athlete.nom, 'Ludo');
+  assert.equal(mot.headers.get('location'), `/api/sessions/${id}/messages/${mot.body.message.id}`);
+
+  // Tout le monde voit les mots, y compris dans la grille.
+  assert.equal((await appeler(`/api/sessions/${id}/messages`)).body.messages.length, 1);
+  const grille = await appeler('/api/calendar?start=2026-09-14');
+  const seance = grille.body.rows.find((r) => r.time === base.time).cells[0].sessions[0];
+  assert.equal(seance.messages[0].texte, 'J’amène les plots');
+  assert.deepEqual(seance.inscrits.map((a) => a.id), ['kaila']);
+
+  // Les refus sont explicites.
+  assert.equal((await appeler(`/api/sessions/${id}/participants`, { method: 'POST', body: { athleteId: 'personne' } })).status, 400);
+  await appeler(`/api/sessions/${id}/participants`, { method: 'POST', body: { athleteId: 'zoe' } });
+  const complet = await appeler(`/api/sessions/${id}/participants`, { method: 'POST', body: { athleteId: 'yvon' } });
+  assert.equal(complet.status, 409);
+  assert.match(complet.body.error.message, /complète/);
+
+  // Se retirer libère la place.
+  assert.equal((await appeler(`/api/sessions/${id}/participants/kaila`, { method: 'DELETE' })).body.session.placesRestantes, 1);
+});
+
+test('retirer le mot d’un athlète est réservé au coach', async (t) => {
+  const { appeler, fermer } = await demarrer();
+  t.after(fermer);
+
+  const id = (await appeler('/api/sessions', { method: 'POST', body: base })).body.session.id;
+  const mot = await appeler(`/api/sessions/${id}/messages`, {
+    method: 'POST',
+    body: { athleteId: 'melina', texte: 'Je ne pourrai pas venir' }
+  });
+  const messageId = mot.body.message.id;
+
+  const refus = await appeler(`/api/sessions/${id}/messages/${messageId}`, { method: 'DELETE' });
+  assert.equal(refus.status, 401);
+  assert.equal(refus.body.error.code, 'cle_coach_requise');
+  assert.equal((await appeler(`/api/sessions/${id}/messages`)).body.messages.length, 1, 'le mot est toujours là');
+
+  const retrait = await appeler(`/api/sessions/${id}/messages/${messageId}`, { coach: true, method: 'DELETE' });
+  assert.equal(retrait.status, 200);
+  assert.deepEqual(retrait.body.session.messages, []);
+});
+
 test('route inconnue et méthode interdite', async (t) => {
   const { appeler, fermer } = await demarrer();
   t.after(fermer);

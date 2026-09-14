@@ -18,10 +18,12 @@ const { isValidDateISO } = require('./dates');
 const {
   findLocation,
   findStatut,
+  findAthlete,
   isValidTime,
   TIMES,
   LOCATIONS,
   STATUTS,
+  ATHLETES,
   STATUT_PAR_DEFAUT
 } = require('./reference');
 const { badRequest, notFound, conflict } = require('./errors');
@@ -30,7 +32,9 @@ const MAX_TITLE = 120;
 const MAX_COACH = 80;
 const MAX_NOTES = 2000;
 const MAX_CAPACITY = 200;
-const MAX_PARTICIPANTS = 200;
+const MAX_PARTICIPANTS = ATHLETES.length;
+const MAX_MESSAGE = 500;
+const MAX_MESSAGES = 200;
 const DEFAULT_TITLE = 'Entraînement';
 const DEFAULT_CAPACITY = 20;
 
@@ -97,6 +101,7 @@ class SessionService {
       id: `ses_${crypto.randomUUID()}`,
       ...input,
       notesVocales: [],
+      messages: [],
       historique: [{ statut: input.statut, at: now }],
       archivee: false,
       archiveeLe: null,
@@ -146,6 +151,83 @@ class SessionService {
 
     await this.store.remplacer(this.store.all().map((s) => (s.id === id ? restauree : s)));
     return decorate(restauree);
+  }
+
+  /* ---------- ce que disent les athlètes ---------- */
+
+  /** L'athlète annonce sa venue. Deux fois de suite ne change rien. */
+  async inscrire(id, athleteId) {
+    const existing = this.mustFind(id);
+    const athlete = athleteConnu(athleteId);
+
+    if (existing.statut === 'annulee') throw conflict('Cette séance est annulée.');
+    const participants = existing.participants ?? [];
+    if (participants.includes(athlete.id)) return decorate(existing);
+    if (participants.length >= existing.capacity) {
+      throw conflict('Cette séance est complète.', { capacity: existing.capacity });
+    }
+
+    return this.remplacerSeance(id, {
+      ...existing,
+      participants: [...participants, athlete.id],
+      updatedAt: new Date().toISOString()
+    });
+  }
+
+  /** L'athlète se retire. Absent de la liste, la demande passe quand même. */
+  async desinscrire(id, athleteId) {
+    const existing = this.mustFind(id);
+    const athlete = athleteConnu(athleteId);
+    const participants = (existing.participants ?? []).filter((inscrit) => inscrit !== athlete.id);
+    if (participants.length === (existing.participants ?? []).length) return decorate(existing);
+
+    return this.remplacerSeance(id, { ...existing, participants, updatedAt: new Date().toISOString() });
+  }
+
+  /** Un mot laissé sur la séance, signé du nom choisi dans l'équipe. */
+  async ajouterMessage(id, payload) {
+    const existing = this.mustFind(id);
+    if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) {
+      throw badRequest('Le corps de la requête doit être un objet JSON.');
+    }
+    const athlete = athleteConnu(payload.athleteId);
+    const texte = text(payload.texte, 'texte', MAX_MESSAGE);
+
+    const messages = existing.messages ?? [];
+    if (messages.length >= MAX_MESSAGES) {
+      throw conflict(`Cette séance porte déjà ${MAX_MESSAGES} messages.`);
+    }
+
+    const message = {
+      id: `msg_${crypto.randomUUID()}`,
+      athleteId: athlete.id,
+      texte,
+      createdAt: new Date().toISOString()
+    };
+    return this.remplacerSeance(id, {
+      ...existing,
+      messages: [...messages, message],
+      updatedAt: new Date().toISOString()
+    });
+  }
+
+  async supprimerMessage(id, messageId) {
+    const existing = this.mustFind(id);
+    const messages = existing.messages ?? [];
+    if (!messages.some((m) => m.id === messageId)) {
+      throw notFound(`Aucun message « ${messageId} » sur cette séance.`);
+    }
+    return this.remplacerSeance(id, {
+      ...existing,
+      messages: messages.filter((m) => m.id !== messageId),
+      updatedAt: new Date().toISOString()
+    });
+  }
+
+  /** Persiste une séance modifiée à la place de l'ancienne. */
+  async remplacerSeance(id, seance) {
+    await this.store.remplacer(this.store.all().map((s) => (s.id === id ? seance : s)));
+    return decorate(seance);
   }
 
   /** Attache les métadonnées d'une note vocale (le son est stocké par VoiceStore). */
@@ -209,6 +291,11 @@ function decorate(session) {
   return {
     ...session,
     participants,
+    inscrits: participants.map((id) => findAthlete(id) ?? { id, nom: id }),
+    messages: (session.messages ?? []).map((message) => ({
+      ...message,
+      athlete: findAthlete(message.athleteId) ?? { id: message.athleteId, nom: message.athleteId }
+    })),
     statut,
     statutLabel: findStatut(statut)?.label ?? statut,
     notesVocales: session.notesVocales ?? [],
@@ -300,9 +387,19 @@ function validate(payload, { partial }) {
   if (has('participants')) {
     const list = payload.participants;
     if (!Array.isArray(list) || list.length > MAX_PARTICIPANTS) {
-      throw badRequest(`Le champ « participants » doit être un tableau d'au plus ${MAX_PARTICIPANTS} noms.`);
+      throw badRequest(`Le champ « participants » doit être un tableau d'au plus ${MAX_PARTICIPANTS} athlètes.`);
     }
-    result.participants = list.map((name, index) => text(name, `participants[${index}]`, MAX_COACH));
+    // Des identifiants d'athlètes, pas des noms libres : deux orthographes du
+    // même prénom compteraient pour deux inscrits.
+    result.participants = [...new Set(list.map((valeur, index) => {
+      const athlete = findAthlete(valeur);
+      if (!athlete) {
+        throw badRequest(`« participants[${index}] » ne correspond à aucun athlète de l'équipe.`, {
+          athletes: ATHLETES.map((a) => a.id)
+        });
+      }
+      return athlete.id;
+    }))];
   } else if (!partial) {
     result.participants = [];
   }
@@ -321,4 +418,15 @@ function text(value, label, max, { allowEmpty = false } = {}) {
   return trimmed;
 }
 
-module.exports = { SessionService, occupeLeCreneau, MAX_NOTES };
+/** @returns {{id: string, nom: string}} l'athlète, ou une 400 s'il est inconnu. */
+function athleteConnu(athleteId) {
+  const athlete = findAthlete(athleteId);
+  if (!athlete) {
+    throw badRequest('Le champ « athleteId » ne correspond à aucun athlète de l’équipe.', {
+      athletes: ATHLETES.map((a) => ({ id: a.id, nom: a.nom }))
+    });
+  }
+  return athlete;
+}
+
+module.exports = { SessionService, occupeLeCreneau, MAX_NOTES, MAX_MESSAGE };

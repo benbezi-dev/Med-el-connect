@@ -7,9 +7,10 @@ une **colonne « Heure »** à gauche, trois créneaux possibles (**10:30**,
 La planification court sur **12 mois**, mais la page n'affiche jamais qu'une
 **semaine** ; la vue année, repliée en bas de page, sert au suivi. Chaque
 séance porte un **statut** (prévue, effectuée, annulée) réglable depuis un
-menu déroulant posé sur sa carte, et peut recevoir des **notes vocales —
-réservées au coach** : les athlètes ne les voient nulle part. Rien n'est
-jamais effacé : supprimer une séance l'archive.
+menu déroulant posé sur sa carte. Les **athlètes de l'équipe** annoncent leur
+venue et laissent un mot sur chaque séance ; les **notes vocales**, elles,
+sont **réservées au coach** et n'apparaissent nulle part côté athlète. Rien
+n'est jamais effacé : supprimer une séance l'archive.
 
 Le module est autonome : il ne dépend d'aucun paquet npm et n'a aucun lien avec
 le reste de l'application MED-EL Connect à la racine du dépôt.
@@ -19,7 +20,7 @@ calendrier/
 ├── src/          API HTTP (node:http) + logique calendrier + dépôts de données
 ├── public/       Présentation 7 jours (HTML/CSS/JS, sans framework)
 ├── outils/       jeton-google.js : obtenir un jeton de rafraîchissement Drive
-├── test/         88 tests (node:test)
+├── test/         94 tests (node:test)
 └── data/         Séances (JSON) et notes vocales (audio) en stockage local
 ```
 
@@ -68,6 +69,11 @@ Les seules valeurs acceptées par l'API — toute autre valeur est refusée en 4
 | | `valbonne-hill` | Valbonne Hill | |
 | | `valbonne-city-workout` | Valbonne City Workout | |
 
+L'équipe (`athleteId`) : `yvon`, `kaila`, `autumn`, `scarlett`, `elliot`,
+`alex-l`, `ludo`, `zoe`, `melina`. Un athlète s'identifie en choisissant son
+nom dans cette liste — jamais en le tapant, pour que deux orthographes ne
+fassent pas deux personnes.
+
 Les dates sont des chaînes `YYYY-MM-DD` sans fuseau ; le jour courant est
 calculé sur `Europe/Paris`.
 
@@ -80,6 +86,7 @@ calculé sur `Europe/Paris`.
 | `GET` | `/api/locations` | Les 5 lieux |
 | `GET` | `/api/times` | Les heures possibles (10:30, 18:00, 18:30) |
 | `GET` | `/api/statuts` | Prévue, effectuée, annulée |
+| `GET` | `/api/athletes` | L'équipe (9 athlètes) |
 | `GET` | `/api/calendar?start=&days=` | **Grille prête à afficher** (7 jours par défaut, 366 au plus) |
 | `GET` | `/api/annee?start=&mois=` | **Suivi sur 12 mois** : totaux par mois et jours occupés |
 | `GET` | `/api/export` | Toutes les séances, archives comprises |
@@ -89,6 +96,11 @@ calculé sur `Europe/Paris`.
 | `PATCH` | `/api/sessions/:id` | Modification partielle (dont le statut) |
 | `DELETE` | `/api/sessions/:id` | **Archive** la séance (rien n'est effacé) |
 | `POST` | `/api/sessions/:id/restaurer` | Sort une séance des archives |
+| `POST` | `/api/sessions/:id/participants` | Un athlète annonce sa venue |
+| `DELETE` | `/api/sessions/:id/participants/:athleteId` | Un athlète se retire |
+| `GET` | `/api/sessions/:id/messages` | Les mots laissés sur la séance |
+| `POST` | `/api/sessions/:id/messages` | Un athlète laisse un mot |
+| `DELETE` | `/api/sessions/:id/messages/:messageId` | Retire un mot — **coach** |
 | `GET` | `/api/sessions/:id/notes-vocales` | Notes vocales de la séance — **coach** |
 | `POST` | `/api/sessions/:id/notes-vocales` | Ajoute une note vocale — **coach** |
 | `GET` | `/api/sessions/:id/notes-vocales/:noteId` | Renvoie le son — **coach** |
@@ -243,6 +255,40 @@ son identifiant, dans `/api/sessions?archivees=true` et dans `/api/export` ;
 `POST /api/sessions/:id/restaurer` la remet en place si son créneau est resté
 libre (sinon 409).
 
+### Ce que disent les athlètes
+
+Deux façons de s'exprimer, toutes deux **ouvertes sans clé coach** — c'est
+l'équipe qui parle.
+
+**Annoncer sa venue.** L'inscription se fait par identifiant d'athlète ; la
+demande est idempotente (s'inscrire deux fois ne compte qu'une fois) et
+refusée en `409` si la séance est complète ou annulée.
+
+```bash
+curl -X POST http://localhost:3000/api/sessions/ses_…/participants \
+  -H 'Content-Type: application/json' -d '{"athleteId":"kaila"}'
+
+curl -X DELETE http://localhost:3000/api/sessions/ses_…/participants/kaila
+```
+
+**Laisser un mot.** Le message est signé du nom choisi, daté, et visible de
+tous — coach compris.
+
+```bash
+curl -X POST http://localhost:3000/api/sessions/ses_…/messages \
+  -H 'Content-Type: application/json' \
+  -d '{"athleteId":"autumn","texte":"Je serai là avec 10 min de retard"}'
+```
+
+| Champ | Règle |
+|---|---|
+| `athleteId` | un des neuf identifiants de l'équipe |
+| `texte` | non vide, ≤ 500 caractères |
+
+La séance renvoie `inscrits` (les athlètes, avec leur nom) et `messages`
+(chacun avec son auteur résolu), en plus de `placesRestantes`. Seul le coach
+peut **retirer** un message : c'est de la modération, pas de l'expression.
+
 ### Notes vocales
 
 Le son part en base64 dans du JSON — rien à installer côté serveur :
@@ -383,7 +429,7 @@ font les tests.
 
 ### Vérification
 
-Les 88 tests couvrent les trois dépôts. Le dépôt Drive est exercé contre un
+Les 94 tests couvrent les trois dépôts. Le dépôt Drive est exercé contre un
 faux Google local — création du dossier, mise à jour d'un fichier existant,
 sous-dossiers des notes vocales, aller-retour binaire, renouvellement du jeton
 sur 401, échappement des apostrophes — et l'application entière est démarrée

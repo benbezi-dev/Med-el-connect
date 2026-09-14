@@ -19,6 +19,8 @@
     anneeChargee: false,
     cle: lireCle(),        // clé coach : les notes vocales n'existent qu'avec elle
     coach: false,
+    athletes: [],          // l'équipe, chargée une fois
+    auteur: lireAuteur(),  // le dernier athlète à avoir écrit, sur cet appareil
     sons: []               // URLs blob des sons chargés, à révoquer
   };
 
@@ -29,6 +31,22 @@
     } catch (erreur) {
       return '';
     }
+  }
+
+  /** Le nom choisi pour écrire est retenu : on ne le resélectionne pas à chaque fois. */
+  function lireAuteur() {
+    try {
+      return localStorage.getItem('calendrier.auteur') || '';
+    } catch (erreur) {
+      return '';
+    }
+  }
+
+  function ecrireAuteur(id) {
+    etat.auteur = id;
+    try {
+      if (id) localStorage.setItem('calendrier.auteur', id);
+    } catch (erreur) { /* sans mémoire, tant pis */ }
   }
 
   function ecrireCle(cle) {
@@ -48,7 +66,8 @@
     'enregistrer-voix', 'vocal-etat', 'vocal-aide', 'vocal-liste',
     'archiver', 'enregistrer', 'annuler', 'precedent', 'suivant', 'aujourdhui',
     'vocal', 'bouton-coach', 'dialogue-coach', 'formulaire-coach', 'coach-alerte', 'champ-cle',
-    'oublier-cle', 'coach-annuler'
+    'oublier-cle', 'coach-annuler',
+    'equipe', 'equipe-liste', 'mots-liste', 'champ-auteur', 'champ-mot', 'envoyer-mot'
   ].forEach(function (id) {
     els[id] = document.getElementById(id);
   });
@@ -78,8 +97,16 @@
     });
   }
 
+  function chargerEquipe() {
+    if (etat.athletes.length) return Promise.resolve();
+    return appeler('/athletes')
+      .then(function (reponse) { etat.athletes = reponse.athletes; })
+      .catch(function () { etat.athletes = []; });
+  }
+
   function charger() {
     afficherAlerte(null);
+    chargerEquipe();
     return appeler('/calendar' + (etat.start ? '?start=' + encodeURIComponent(etat.start) : ''))
       .then(function (calendrier) {
         etat.calendrier = calendrier;
@@ -191,6 +218,12 @@
         ? 'Complet'
         : pluriel(seance.placesRestantes, 'place') + (seance.placesRestantes > 1 ? ' libres' : ' libre')
     }));
+    if (seance.inscrits.length || seance.messages.length) {
+      var echos = [];
+      if (seance.inscrits.length) echos.push(pluriel(seance.inscrits.length, 'inscrit'));
+      if (seance.messages.length) echos.push(pluriel(seance.messages.length, 'mot'));
+      ouvrir.appendChild(creer('span', { className: 'echo', textContent: echos.join(' · ') }));
+    }
     if (seance.notesVocales.length) {
       ouvrir.appendChild(creer('span', {
         className: 'vocal-indicateur',
@@ -386,6 +419,8 @@
     afficherAlerte(null, els['dialogue-alerte']);
     etat.noteEnAttente = null;
     els.vocal.hidden = !etat.coach;   // réservées au coach
+    els['champ-mot'].value = '';
+    dessinerEquipe();
     dessinerNotesVocales();
     reinitialiserEnregistreur();
     els.dialogue.showModal();
@@ -425,6 +460,135 @@
       .then(function () { els.dialogue.close(); return charger(); })
       .catch(function (erreur) { afficherAlerte(erreur.message, els['dialogue-alerte']); })
       .then(function () { basculerChargement(false); });
+  }
+
+  /* ---------- L'équipe : qui vient, et ce qu'elle en dit ---------- */
+
+  function dessinerEquipe() {
+    var seance = etat.edition && etat.edition.seance;
+    // Une séance qui n'existe pas encore n'a ni inscrits ni messages.
+    els.equipe.hidden = !seance;
+    if (!seance) return;
+
+    dessinerPresences(seance);
+    dessinerMots(seance);
+    remplirAuteurs();
+  }
+
+  function dessinerPresences(seance) {
+    var liste = els['equipe-liste'];
+    vider(liste);
+
+    var inscrits = seance.inscrits.map(function (a) { return a.id; });
+    var complet = seance.placesRestantes === 0;
+
+    etat.athletes.forEach(function (athlete) {
+      var present = inscrits.indexOf(athlete.id) !== -1;
+      var item = creer('li');
+      var bouton = creer('button', {
+        type: 'button',
+        className: 'athlete' + (present ? ' present' : ''),
+        textContent: athlete.nom,
+        title: present ? athlete.nom + ' vient' : 'Inscrire ' + athlete.nom
+      });
+      bouton.setAttribute('aria-pressed', present ? 'true' : 'false');
+      bouton.disabled = (!present && complet) || seance.statut === 'annulee';
+
+      bouton.addEventListener('click', function () {
+        bouton.disabled = true;
+        var requete = present
+          ? appeler('/sessions/' + seance.id + '/participants/' + athlete.id, { method: 'DELETE' })
+          : appeler('/sessions/' + seance.id + '/participants', { method: 'POST', body: { athleteId: athlete.id } });
+
+        requete
+          .then(function (reponse) {
+            etat.edition.seance = reponse.session;
+            dessinerEquipe();
+            return charger();
+          })
+          .catch(function (erreur) {
+            afficherAlerte(erreur.message, els['dialogue-alerte']);
+            bouton.disabled = false;
+          });
+      });
+      item.appendChild(bouton);
+      liste.appendChild(item);
+    });
+
+    if (complet) {
+      liste.appendChild(creer('li', { className: 'equipe-note', textContent: 'Séance complète.' }));
+    } else if (seance.statut === 'annulee') {
+      liste.appendChild(creer('li', { className: 'equipe-note', textContent: 'Séance annulée : les inscriptions sont fermées.' }));
+    }
+  }
+
+  function dessinerMots(seance) {
+    var liste = els['mots-liste'];
+    vider(liste);
+
+    if (!seance.messages.length) {
+      liste.appendChild(creer('li', { className: 'equipe-note', textContent: 'Aucun mot pour l’instant.' }));
+      return;
+    }
+
+    seance.messages.forEach(function (message) {
+      var item = creer('li', { className: 'mot' });
+      var entete = creer('p', { className: 'mot-entete' });
+      entete.appendChild(creer('b', { textContent: message.athlete.nom }));
+      entete.appendChild(creer('span', { textContent: formaterHorodatage(message.createdAt) }));
+      item.appendChild(entete);
+      item.appendChild(creer('p', { className: 'mot-texte', textContent: message.texte }));
+
+      if (etat.coach) {
+        var retirer = creer('button', { type: 'button', className: 'danger', textContent: 'Retirer' });
+        retirer.addEventListener('click', function () {
+          if (!confirm('Retirer ce mot de ' + message.athlete.nom + ' ?')) return;
+          retirer.disabled = true;
+          appeler('/sessions/' + seance.id + '/messages/' + message.id, { method: 'DELETE' })
+            .then(function (reponse) {
+              etat.edition.seance = reponse.session;
+              dessinerEquipe();
+              return charger();
+            })
+            .catch(function (erreur) {
+              afficherAlerte(erreur.message, els['dialogue-alerte']);
+              retirer.disabled = false;
+            });
+        });
+        item.appendChild(retirer);
+      }
+      liste.appendChild(item);
+    });
+  }
+
+  function remplirAuteurs() {
+    vider(els['champ-auteur']);
+    els['champ-auteur'].appendChild(creer('option', { value: '', textContent: 'Qui écrit ?' }));
+    etat.athletes.forEach(function (athlete) {
+      var option = creer('option', { value: athlete.id, textContent: athlete.nom });
+      if (athlete.id === etat.auteur) option.selected = true;
+      els['champ-auteur'].appendChild(option);
+    });
+  }
+
+  function envoyerMot() {
+    var auteur = els['champ-auteur'].value;
+    var texte = els['champ-mot'].value.trim();
+    if (!auteur) return afficherAlerte('Choisissez votre nom avant d’écrire.', els['dialogue-alerte']);
+    if (!texte) return afficherAlerte('Le message est vide.', els['dialogue-alerte']);
+
+    els['envoyer-mot'].disabled = true;
+    appeler('/sessions/' + etat.edition.id + '/messages', { method: 'POST', body: { athleteId: auteur, texte: texte } })
+      .then(function (reponse) {
+        ecrireAuteur(auteur);
+        etat.edition.seance = reponse.session;
+        els['champ-mot'].value = '';
+        afficherAlerte(null, els['dialogue-alerte']);
+        dessinerEquipe();
+        return charger();
+      })
+      .catch(function (erreur) { afficherAlerte(erreur.message, els['dialogue-alerte']); })
+      .then(function () { els['envoyer-mot'].disabled = false; });
   }
 
   /* ---------- Mode coach ---------- */
@@ -786,6 +950,14 @@
   els.archiver.addEventListener('click', archiver);
   els.formulaire.addEventListener('submit', enregistrer);
   els['enregistrer-voix'].addEventListener('click', basculerEnregistrement);
+  els['envoyer-mot'].addEventListener('click', envoyerMot);
+  els['champ-mot'].addEventListener('keydown', function (evenement) {
+    // Entrée envoie le mot sans valider tout le formulaire.
+    if (evenement.key === 'Enter') {
+      evenement.preventDefault();
+      envoyerMot();
+    }
+  });
   els.dialogue.addEventListener('close', function () {
     arreterFlux();
     libererSons();

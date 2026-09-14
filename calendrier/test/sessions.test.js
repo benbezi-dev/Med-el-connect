@@ -84,9 +84,10 @@ test('update modifie partiellement et contrôle les conflits', async () => {
   const seance = await svc.create(base);
   const autre = await svc.create({ ...base, locationId: 'grasse-stadium' });
 
-  const modifiee = await svc.update(seance.id, { title: 'Fractionné', participants: ['Léa', 'Sam'] });
+  const modifiee = await svc.update(seance.id, { title: 'Fractionné', participants: ['kaila', 'ludo'] });
   assert.equal(modifiee.title, 'Fractionné');
   assert.equal(modifiee.placesRestantes, 18);
+  assert.deepEqual(modifiee.inscrits.map((a) => a.nom), ['Kaila', 'Ludo']);
   assert.equal(modifiee.time, '18:00', 'les champs non fournis restent inchangés');
   assert.notEqual(modifiee.updatedAt, undefined);
 
@@ -153,6 +154,74 @@ test('une séance annulée libère son créneau', async () => {
   assert.equal(svc.list({ statut: 'annulee' }).length, 1);
   // Et elle ne peut pas redevenir « prévue » tant que le créneau est repris.
   await attendreErreur(() => svc.update(seance.id, { statut: 'prevue' }), 409);
+});
+
+test('un athlète annonce sa venue, puis se retire', async () => {
+  const svc = service();
+  const seance = await svc.create({ ...base, capacity: 2 });
+  assert.deepEqual(seance.inscrits, []);
+
+  const avec = await svc.inscrire(seance.id, 'kaila');
+  assert.deepEqual(avec.participants, ['kaila']);
+  assert.deepEqual(avec.inscrits, [{ id: 'kaila', nom: 'Kaila' }]);
+  assert.equal(avec.placesRestantes, 1);
+
+  // S'inscrire deux fois ne compte qu'une fois.
+  assert.equal((await svc.inscrire(seance.id, 'kaila')).participants.length, 1);
+
+  await svc.inscrire(seance.id, 'alex-l');
+  await attendreErreur(() => svc.inscrire(seance.id, 'zoe'), 409);   // complet
+  await attendreErreur(() => svc.inscrire(seance.id, 'inconnu'), 400);
+
+  const sans = await svc.desinscrire(seance.id, 'kaila');
+  assert.deepEqual(sans.inscrits.map((a) => a.nom), ['Alex L']);
+  // Se retirer alors qu'on n'était pas inscrit ne lève pas d'erreur.
+  assert.equal((await svc.desinscrire(seance.id, 'kaila')).participants.length, 1);
+  // La place libérée profite au suivant.
+  assert.equal((await svc.inscrire(seance.id, 'zoe')).placesRestantes, 0);
+});
+
+test('on ne s’inscrit pas à une séance annulée', async () => {
+  const svc = service();
+  const seance = await svc.create(base);
+  await svc.update(seance.id, { statut: 'annulee' });
+  await attendreErreur(() => svc.inscrire(seance.id, 'yvon'), 409);
+});
+
+test('les athlètes laissent des mots signés de leur nom', async () => {
+  const svc = service();
+  const seance = await svc.create(base);
+  assert.deepEqual(seance.messages, []);
+
+  const avec = await svc.ajouterMessage(seance.id, { athleteId: 'autumn', texte: '  Je serai en retard  ' });
+  assert.equal(avec.messages.length, 1);
+  assert.equal(avec.messages[0].texte, 'Je serai en retard', 'le texte est nettoyé');
+  assert.deepEqual(avec.messages[0].athlete, { id: 'autumn', nom: 'Autumn' });
+  assert.match(avec.messages[0].id, /^msg_/);
+  assert.ok(avec.messages[0].createdAt);
+
+  const deux = await svc.ajouterMessage(seance.id, { athleteId: 'elliot', texte: 'Présent !' });
+  assert.deepEqual(deux.messages.map((m) => m.athlete.nom), ['Autumn', 'Elliot'], 'dans l’ordre d’arrivée');
+
+  await attendreErreur(() => svc.ajouterMessage(seance.id, { athleteId: 'scarlett', texte: '   ' }), 400);
+  await attendreErreur(() => svc.ajouterMessage(seance.id, { athleteId: 'scarlett', texte: 'x'.repeat(501) }), 400);
+  await attendreErreur(() => svc.ajouterMessage(seance.id, { athleteId: 'quelquun', texte: 'coucou' }), 400);
+  await attendreErreur(() => svc.ajouterMessage(seance.id, null), 400);
+
+  const retire = await svc.supprimerMessage(seance.id, deux.messages[0].id);
+  assert.deepEqual(retire.messages.map((m) => m.athlete.nom), ['Elliot']);
+  await attendreErreur(() => svc.supprimerMessage(seance.id, 'msg_absent'), 404);
+});
+
+test('les inscriptions ne retiennent que des athlètes de l’équipe', async () => {
+  const svc = service();
+  await attendreErreur(() => svc.create({ ...base, participants: ['Léa'] }), 400);
+  await attendreErreur(() => svc.create({ ...base, participants: ['kaila', 'inconnu'] }), 400);
+
+  // Le même athlète cité deux fois ne compte qu'une fois.
+  const seance = await svc.create({ ...base, participants: ['kaila', 'kaila', 'zoe'] });
+  assert.deepEqual(seance.participants, ['kaila', 'zoe']);
+  assert.equal(seance.placesRestantes, 18);
 });
 
 test('les notes vocales sont attachées, listées puis retirées', async () => {

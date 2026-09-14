@@ -12,7 +12,7 @@ const { SessionService } = require('./sessions');
 const { VoiceStore } = require('./voix');
 const { buildCalendar } = require('./calendar');
 const { buildAnnee } = require('./annee');
-const { LOCATIONS, TIMES, STATUTS, TIMEZONE, DAYS_IN_VIEW, MOIS_HORIZON } = require('./reference');
+const { LOCATIONS, TIMES, STATUTS, ATHLETES, TIMEZONE, DAYS_IN_VIEW, MOIS_HORIZON } = require('./reference');
 const { resoudreCle, estCoach, protege, ENTETE } = require('./acces');
 const { ApiError, badRequest, notFound } = require('./errors');
 
@@ -106,6 +106,7 @@ async function handleApi(req, res, url, sessions, voix, coach, stockageDecrit) {
     if (resource === 'locations') return sendJson(res, 200, { locations: LOCATIONS, total: LOCATIONS.length });
     if (resource === 'times') return sendJson(res, 200, { times: TIMES, timezone: TIMEZONE });
     if (resource === 'statuts') return sendJson(res, 200, { statuts: STATUTS });
+    if (resource === 'athletes') return sendJson(res, 200, { athletes: ATHLETES, total: ATHLETES.length });
     if (resource === 'calendar') {
       const grille = buildCalendar(sessions, {
         start: url.searchParams.get('start') ?? undefined,
@@ -179,6 +180,34 @@ async function handleSessions(req, res, url, segments, sessions, voix, coach) {
     return sendJson(res, 200, protege({ session: await sessions.restore(id) }, coach));
   }
 
+  if (sub === 'participants') {
+    // Chacun annonce sa venue lui-même : pas de clé coach ici.
+    if (!subId) {
+      if (method !== 'POST') throw methodNotAllowed(method, ['POST']);
+      const corps = await readJsonBody(req);
+      return sendJson(res, 200, protege({ session: await sessions.inscrire(id, corps.athleteId) }, coach));
+    }
+    if (method !== 'DELETE') throw methodNotAllowed(method, ['DELETE']);
+    return sendJson(res, 200, protege({ session: await sessions.desinscrire(id, subId) }, coach));
+  }
+
+  if (sub === 'messages') {
+    if (!subId) {
+      if (method === 'GET') return sendJson(res, 200, { messages: sessions.get(id).messages });
+      if (method === 'POST') {
+        const session = await sessions.ajouterMessage(id, await readJsonBody(req));
+        const dernier = session.messages[session.messages.length - 1];
+        res.setHeader('Location', `/api/sessions/${id}/messages/${dernier.id}`);
+        return sendJson(res, 201, protege({ message: dernier, session }, coach));
+      }
+      throw methodNotAllowed(method, ['GET', 'POST']);
+    }
+    if (method !== 'DELETE') throw methodNotAllowed(method, ['DELETE']);
+    // Retirer le mot d'un autre relève de la modération : réservé au coach.
+    if (!coach) throw cleCoachRequise('Seul le coach peut retirer un message.');
+    return sendJson(res, 200, protege({ session: await sessions.supprimerMessage(id, subId) }, coach));
+  }
+
   if (sub === 'notes-vocales') {
     // Les notes vocales sont réservées au coach, en lecture comme en écriture.
     if (!coach) throw cleCoachRequise();
@@ -229,11 +258,13 @@ function apiIndex() {
     heuresPossibles: TIMES,
     statuts: STATUTS.map((s) => s.id),
     lieux: LOCATIONS.map((l) => l.id),
+    athletes: ATHLETES.map((a) => a.id),
     endpoints: [
       { method: 'GET', path: '/api/health', description: 'État du service.' },
       { method: 'GET', path: '/api/locations', description: 'Les 5 lieux possibles.' },
       { method: 'GET', path: '/api/times', description: 'Les heures possibles (10:30, 18:00, 18:30).' },
       { method: 'GET', path: '/api/statuts', description: 'Statuts : prévue, effectuée, annulée.' },
+      { method: 'GET', path: '/api/athletes', description: 'L’équipe : les athlètes qui peuvent s’inscrire et écrire.' },
       {
         method: 'GET',
         path: '/api/calendar?start=YYYY-MM-DD&days=7',
@@ -255,6 +286,27 @@ function apiIndex() {
       { method: 'PATCH', path: '/api/sessions/:id', description: 'Modifie une séance (dont son statut).' },
       { method: 'DELETE', path: '/api/sessions/:id', description: 'Archive une séance (rien n’est effacé).' },
       { method: 'POST', path: '/api/sessions/:id/restaurer', description: 'Sort une séance des archives.' },
+      {
+        method: 'POST',
+        path: '/api/sessions/:id/participants',
+        description: 'Un athlète annonce sa venue ({ athleteId }).'
+      },
+      {
+        method: 'DELETE',
+        path: '/api/sessions/:id/participants/:athleteId',
+        description: 'Un athlète se retire.'
+      },
+      { method: 'GET', path: '/api/sessions/:id/messages', description: 'Les mots laissés sur la séance.' },
+      {
+        method: 'POST',
+        path: '/api/sessions/:id/messages',
+        description: 'Un athlète laisse un mot ({ athleteId, texte }).'
+      },
+      {
+        method: 'DELETE',
+        path: '/api/sessions/:id/messages/:messageId',
+        description: 'Retire un message. Coach uniquement.'
+      },
       {
         method: 'POST',
         path: '/api/sessions/:id/notes-vocales',
@@ -325,8 +377,8 @@ function readJsonBody(req, limite = MAX_BODY_BYTES) {
   });
 }
 
-function cleCoachRequise() {
-  return new ApiError(401, 'cle_coach_requise', 'Les notes vocales sont réservées au coach.', {
+function cleCoachRequise(message = 'Les notes vocales sont réservées au coach.') {
+  return new ApiError(401, 'cle_coach_requise', message, {
     entete: ENTETE,
     indice: `Envoyez la clé dans l'en-tête « ${ENTETE} » (ou en paramètre « cle= »).`
   });

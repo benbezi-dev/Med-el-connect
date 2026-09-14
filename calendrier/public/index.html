@@ -108,6 +108,21 @@
         <textarea id="champ-notes" name="notes" maxlength="2000" placeholder="Optionnel"></textarea>
       </label>
 
+      <section class="equipe" id="equipe" aria-labelledby="equipe-titre">
+        <h3 id="equipe-titre">Qui vient ?</h3>
+        <ul class="equipe-liste" id="equipe-liste"></ul>
+
+        <h3 id="mots-titre">Mots de l’équipe</h3>
+        <ul class="mots" id="mots-liste" aria-labelledby="mots-titre"></ul>
+        <div class="mot-saisie">
+          <label class="invisible" for="champ-auteur">Qui écrit</label>
+          <select id="champ-auteur" name="auteur"></select>
+          <label class="invisible" for="champ-mot">Message</label>
+          <input id="champ-mot" name="mot" type="text" maxlength="500" placeholder="Un mot sur la séance…">
+          <button type="button" id="envoyer-mot">Envoyer</button>
+        </div>
+      </section>
+
       <section class="vocal" id="vocal" aria-labelledby="vocal-titre">
         <h3 id="vocal-titre">Notes vocales</h3>
         <div class="vocal-barre">
