@@ -11,6 +11,8 @@ const { buildAnnee } = require('./annee');
 const { LOCATIONS, TIMES, STATUTS, TIMEZONE, DAYS_IN_VIEW, MOIS_HORIZON } = require('./reference');
 const { protege, ENTETE } = require('./acces');
 const { ApiError, badRequest, notFound } = require('./errors');
+// Sert à répondre en une requête à « ma mise en ligne a-t-elle pris ? ».
+const { version } = require('../package.json');
 
 const MAX_BODY_BYTES = 64 * 1024;
 const MAX_AUDIO_BODY_BYTES = 8 * 1024 * 1024; // base64 d'une note vocale de 5 Mo
@@ -39,6 +41,7 @@ async function handleApi(req, res, url, noyau, coach, stockageDecrit) {
     if (resource === 'health') {
       return sendJson(res, 200, {
         status: 'ok',
+        version,
         timezone: TIMEZONE,
         coach,
         // Le chemin exact ne regarde que le coach.
@@ -226,6 +229,7 @@ async function handleAthletes(req, res, url, segments, athletes, coach) {
 function apiIndex() {
   return {
     name: 'API Calendrier — planification sur un an, présentation sur 7 jours',
+    version,
     timezone: TIMEZONE,
     acces: {
       entete: ENTETE,
