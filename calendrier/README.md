@@ -479,24 +479,22 @@ code que le serveur Node, et `src/api.js` ne connaît ni disque ni node:http.
 
 ```bash
 cd calendrier                    # tout part de ce dossier
-npx wrangler login               # ouvre le navigateur
-npm run cloudflare:init          # retrouve (ou crée) l'espace KV et l'inscrit dans wrangler.toml
+npx wrangler login               # ouvre le navigateur (installation neuve seulement)
 npx wrangler secret put CALENDAR_COACH_KEY
 npm run deploy
 ```
 
-`cloudflare:init` évite d'éditer `wrangler.toml` à la main : il y inscrit
-l'identifiant de l'espace KV à la bonne ligne. Il **cherche d'abord l'espace
-déjà créé** (celui que wrangler nomme `<worker>-CALENDRIER`) et n'en crée un
-que s'il n'en trouve aucun — le relancer ne fabrique donc jamais de doublon.
+`wrangler.toml` porte déjà l'identifiant de l'espace KV : une mise à jour du
+dossier le réécrit à l'identique, il n'y a donc rien à refaire entre deux
+déploiements. `cloudflare:init` ne sert plus qu'à une installation neuve, ou
+si la ligne a été vidée ; `npm run deploy` l'appelle au besoin (`predeploy`).
 
-C'est ce qui rend les mises à jour sûres : décompresser une nouvelle version
-du dossier écrase `wrangler.toml`, donc l'identifiant de l'espace. Sans cette
-recherche, le déploiement suivant repartirait sur un espace vide et le
-calendrier paraîtrait effacé. `npm run deploy` lance l'outil tout seul avant
-de publier (script `predeploy`), et s'arrête plutôt que de déployer si la
-liste des espaces est illisible. **Mieux vaut donc `npm run deploy` que
-`npx wrangler deploy`**, qui court-circuite ce garde-fou.
+Cet outil **cherche l'espace existant avant d'en créer un**. Wrangler l'a nommé
+`CALENDRIER` (versions récentes) ou `<worker>-CALENDRIER` (plus anciennes) : les
+deux noms exacts sont reconnus, et rien d'autre. Devant un titre seulement
+ressemblant, plusieurs candidats, ou une réponse illisible, il **s'arrête et
+affiche la liste** au lieu de deviner. Un espace créé par erreur donnerait un
+calendrier vide, sans message : mieux vaut coller un identifiant à la main.
 
 Le déploiement renvoie une adresse en `…workers.dev`, à donner à l'équipe.
 

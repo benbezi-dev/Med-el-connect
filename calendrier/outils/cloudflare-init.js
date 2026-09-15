@@ -2,10 +2,10 @@
 /* Prépare le déploiement Cloudflare : trouve l'espace KV et inscrit son
    identifiant dans wrangler.toml, pour n'avoir aucun fichier à éditer.
 
-   À relancer après chaque mise à jour du dossier : décompresser une nouvelle
-   version écrase wrangler.toml, donc l'identifiant. L'outil commence par
-   chercher l'espace KV existant et ne crée le sien que s'il n'en trouve pas
-   — le relancer ne fabrique jamais de doublon.
+   wrangler.toml porte déjà l'identifiant de l'espace : cet outil ne sert que
+   sur une installation neuve, ou si la ligne a été vidée. Il cherche alors
+   l'espace existant avant d'en créer un, pour ne jamais repartir sur des
+   données vides.
 
    À lancer depuis le dossier du calendrier :  npm run cloudflare:init  */
 
@@ -39,13 +39,8 @@ function main() {
     return;
   }
 
-  // Wrangler nomme l'espace « <worker>-<binding> » : c'est ainsi qu'on
-  // retrouve celui d'un déploiement précédent.
   const nomWorker = (config.match(/^\s*name\s*=\s*"([^"]+)"/m) ?? [])[1] ?? 'calendrier';
-  const titre = `${nomWorker}-${BINDING}`;
-
-  const existant = chercherEspace(titre);
-  const id = existant ?? creerEspace(titre);
+  const { id, existant } = trouverOuCreer(nomWorker);
 
   fs.writeFileSync(CONFIG, config.replace(PLACEHOLDER, id));
   console.log(`✓ Espace KV ${id} inscrit dans wrangler.toml\n`);
@@ -53,9 +48,59 @@ function main() {
   if (!avantDeploiement) suite();
 }
 
-/** Cherche l'espace KV d'un déploiement précédent.
-    @returns {string|undefined} son identifiant, ou rien si le compte n'en a pas. */
-function chercherEspace(titre) {
+/** @returns {{id: string, existant: boolean}} */
+function trouverOuCreer(nomWorker) {
+  const espaces = listerEspaces();
+  const candidats = espaces.filter((espace) => estLeNotre(espace.title, nomWorker));
+
+  // Deux espaces plausibles : on ne devine pas lequel porte les séances.
+  if (candidats.length > 1) {
+    echouer(
+      'Plusieurs espaces KV peuvent être celui du calendrier :',
+      '',
+      ...candidats.map((espace) => `  ${espace.id}  ${espace.title}`),
+      '',
+      `Copiez le bon dans wrangler.toml à la place de ${PLACEHOLDER},`,
+      'puis relancez « npm run deploy ».'
+    );
+  }
+
+  if (candidats.length === 1) return { id: candidats[0].id, existant: true };
+
+  // Rien d'exact, mais quelque chose y ressemble : un œil humain vaut mieux
+  // qu'un espace neuf créé à côté des séances déjà enregistrées.
+  const proches = espaces.filter((espace) => ressemble(espace.title));
+  if (proches.length) {
+    echouer(
+      `Aucun espace ne s’appelle exactement « ${BINDING} », mais ceux-ci s’en approchent :`,
+      '',
+      ...proches.map((espace) => `  ${espace.id}  ${espace.title}`),
+      '',
+      `Si l’un d’eux est celui du calendrier, copiez son identifiant dans wrangler.toml`,
+      `à la place de ${PLACEHOLDER}, puis relancez « npm run deploy ».`
+    );
+  }
+
+  return { id: creerEspace(espaces), existant: false };
+}
+
+/** Wrangler a nommé l'espace tantôt « CALENDRIER » (versions récentes), tantôt
+    « <worker>-CALENDRIER ». On accepte ces deux noms exacts, et rien d'autre :
+    se tromper d'espace, c'est déployer sur des données étrangères. */
+function estLeNotre(titre, nomWorker) {
+  if (typeof titre !== 'string') return false;
+  const majuscules = titre.toUpperCase();
+  return majuscules === BINDING || majuscules === `${nomWorker}-${BINDING}`.toUpperCase();
+}
+
+/** Un titre qui évoque le calendrier sans en porter le nom exact : on préfère
+    le montrer plutôt que créer un espace à côté de données existantes. */
+function ressemble(titre) {
+  return typeof titre === 'string' && titre.toUpperCase().includes(BINDING);
+}
+
+/** @returns {Array<{id: string, title: string}>} les espaces KV du compte. */
+function listerEspaces() {
   console.log('Recherche d’un espace KV existant…');
   let sortie;
   try {
@@ -68,7 +113,6 @@ function chercherEspace(titre) {
     );
   }
 
-  // La réponse peut être précédée d'avertissements : on ne garde que le JSON.
   const espaces = extraireEspaces(sortie);
   // Illisible : on s'arrête plutôt que d'en créer un second, qui donnerait un
   // calendrier vide à côté des données existantes.
@@ -78,13 +122,12 @@ function chercherEspace(titre) {
       '',
       sortie.trim(),
       '',
-      `Repérez la ligne « ${titre} », copiez son identifiant dans wrangler.toml`,
+      `Repérez la ligne du calendrier, copiez son identifiant dans wrangler.toml`,
       `à la place de ${PLACEHOLDER}, puis relancez « npm run deploy ».`
     );
   }
 
-  const trouve = espaces.find((espace) => espace && espace.title === titre);
-  return trouve ? trouve.id : undefined;
+  return espaces.filter((espace) => espace && typeof espace.id === 'string');
 }
 
 /** Isole le tableau JSON dans la sortie de wrangler.
@@ -130,13 +173,22 @@ function crochetFermant(texte, debut) {
   return -1;
 }
 
-function creerEspace(titre) {
-  console.log(`Aucun espace « ${titre} » : création…\n`);
+function creerEspace(espaces) {
+  console.log(`Aucun espace « ${BINDING} » : création…\n`);
   let sortie;
   try {
     sortie = wrangler(['kv', 'namespace', 'create', BINDING]);
   } catch (erreur) {
-    echouer('La création de l’espace KV a échoué.', 'Lancez « npx wrangler login » puis réessayez.');
+    // Cloudflare refuse un titre déjà pris : c'est que le repérage l'a manqué.
+    echouer(
+      'La création de l’espace KV a échoué (voir le message ci-dessus).',
+      '',
+      espaces.length ? 'Les espaces KV de votre compte :' : 'Votre compte ne liste aucun espace KV.',
+      ...espaces.map((espace) => `  ${espace.id}  ${espace.title}`),
+      '',
+      `Copiez l’identifiant du calendrier dans wrangler.toml à la place de`,
+      `${PLACEHOLDER}, puis relancez « npm run deploy ».`
+    );
   }
 
   console.log(sortie);
@@ -172,4 +224,4 @@ function echouer(...lignes) {
 // Lancé à la main : on exécute. Importé par un test : on expose seulement.
 if (require.main === module) main();
 
-module.exports = { extraireEspaces };
+module.exports = { extraireEspaces, estLeNotre };

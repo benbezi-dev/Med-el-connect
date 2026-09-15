@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { extraireEspaces } = require('../outils/cloudflare-init.js');
+const { extraireEspaces, estLeNotre } = require('../outils/cloudflare-init.js');
 
 const ESPACES = [
   { id: 'a1b2c3d4e5f60718293a4b5c6d7e8f90', title: 'calendrier-entrainements-CALENDRIER' },
@@ -44,4 +44,19 @@ test('une sortie sans JSON ne donne rien plutôt qu’une liste vide', () => {
 
 test('un objet JSON seul n’est pas confondu avec une liste', () => {
   assert.equal(extraireEspaces('{"error":"unauthorized"}'), undefined);
+});
+
+// Wrangler a changé de convention : « CALENDRIER » tout court aujourd'hui,
+// « <worker>-CALENDRIER » autrefois. Chercher la mauvaise fait rater l'espace,
+// et repartir sur des données vides.
+test('reconnaît l’espace quel que soit le nom donné par wrangler', () => {
+  for (const titre of ['CALENDRIER', 'calendrier-entrainements-CALENDRIER', 'Calendrier-Entrainements-CALENDRIER']) {
+    assert.equal(estLeNotre(titre, 'calendrier-entrainements'), true, titre);
+  }
+});
+
+test('ne confond pas l’espace du calendrier avec un autre', () => {
+  for (const titre of ['CACHE', 'autre-projet-CACHE', 'CALENDRIER-brouillon', 'mon-calendrier', '', undefined]) {
+    assert.equal(estLeNotre(titre, 'calendrier-entrainements'), false, String(titre));
+  }
 });
