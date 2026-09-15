@@ -480,14 +480,23 @@ code que le serveur Node, et `src/api.js` ne connaît ni disque ni node:http.
 ```bash
 cd calendrier                    # tout part de ce dossier
 npx wrangler login               # ouvre le navigateur
-npm run cloudflare:init          # crée l'espace KV et l'inscrit dans wrangler.toml
+npm run cloudflare:init          # retrouve (ou crée) l'espace KV et l'inscrit dans wrangler.toml
 npx wrangler secret put CALENDAR_COACH_KEY
 npm run deploy
 ```
 
-`cloudflare:init` évite d'éditer `wrangler.toml` à la main : il crée l'espace
-KV, lit l'identifiant dans la réponse de wrangler et l'inscrit à la bonne
-ligne. Relancé une seconde fois, il constate que c'est déjà fait.
+`cloudflare:init` évite d'éditer `wrangler.toml` à la main : il y inscrit
+l'identifiant de l'espace KV à la bonne ligne. Il **cherche d'abord l'espace
+déjà créé** (celui que wrangler nomme `<worker>-CALENDRIER`) et n'en crée un
+que s'il n'en trouve aucun — le relancer ne fabrique donc jamais de doublon.
+
+C'est ce qui rend les mises à jour sûres : décompresser une nouvelle version
+du dossier écrase `wrangler.toml`, donc l'identifiant de l'espace. Sans cette
+recherche, le déploiement suivant repartirait sur un espace vide et le
+calendrier paraîtrait effacé. `npm run deploy` lance l'outil tout seul avant
+de publier (script `predeploy`), et s'arrête plutôt que de déployer si la
+liste des espaces est illisible. **Mieux vaut donc `npm run deploy` que
+`npx wrangler deploy`**, qui court-circuite ce garde-fou.
 
 Le déploiement renvoie une adresse en `…workers.dev`, à donner à l'équipe.
 

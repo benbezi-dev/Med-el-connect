@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node src/server.js",
     "test": "node --test",
+    "predeploy": "node outils/cloudflare-init.js --avant-deploiement",
     "deploy": "npx --yes wrangler@4 deploy",
     "dev:cloudflare": "npx --yes wrangler@4 dev",
     "cloudflare:init": "node outils/cloudflare-init.js"
