@@ -6,10 +6,8 @@
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
-const { Store } = require('./store');
 const { creerDepot } = require('./stockage');
-const { SessionService } = require('./sessions');
-const { VoiceStore } = require('./voix');
+const { creerNoyau } = require('./noyau');
 const { estCoach } = require('./acces');
 const { resoudreCleLocale } = require('./cle-fichier');
 const { handleApi, sendError, setCorsHeaders, methodNotAllowed } = require('./api');
@@ -38,10 +36,12 @@ const MIME_TYPES = {
 async function createApp({ dataFile = DEFAULT_DATA_FILE, depot, cleCoach, env = process.env } = {}) {
   const racine = dataFile ? path.dirname(dataFile) : null;
   const stockage = creerDepot({ racine, env, depot });
-  const store = await new Store(stockage, dataFile ? path.basename(dataFile) : undefined).charger();
-  const sessions = new SessionService(store);
-  const voix = new VoiceStore(stockage);
   const acces = resoudreCleLocale({ cleCoach, dataFile });
+  const { store, athletes, sessions, voix } = await creerNoyau({
+    depot: stockage,
+    cleCoach: acces.cle,
+    nomDocument: dataFile ? path.basename(dataFile) : undefined
+  });
 
   const handler = async (req, res) => {
     setCorsHeaders(res);
@@ -53,7 +53,7 @@ async function createApp({ dataFile = DEFAULT_DATA_FILE, depot, cleCoach, env = 
     const url = new URL(req.url, `http://${req.headers.host ?? 'localhost'}`);
     try {
       if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
-        await handleApi(req, res, url, sessions, voix, estCoach(req, url, acces.cle), stockage.decrire());
+        await handleApi(req, res, url, { sessions, voix, athletes }, estCoach(req, url, acces.cle), stockage.decrire());
       } else {
         serveStatic(req, res, url);
       }
@@ -63,6 +63,7 @@ async function createApp({ dataFile = DEFAULT_DATA_FILE, depot, cleCoach, env = 
   };
 
   handler.sessions = sessions;
+  handler.athletes = athletes;
   handler.voix = voix;
   handler.store = store;
   handler.depot = stockage;

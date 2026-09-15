@@ -98,9 +98,9 @@
     });
   }
 
-  function chargerEquipe() {
-    if (etat.athletes.length) return Promise.resolve();
-    return appeler('/athletes')
+  function chargerEquipe(forcer) {
+    if (etat.athletes.length && !forcer) return Promise.resolve();
+    return appeler('/athletes' + (etat.cle ? '?inactifs=true' : ''))
       .then(function (reponse) { etat.athletes = reponse.athletes; })
       .catch(function () { etat.athletes = []; });
   }
@@ -394,6 +394,8 @@
     });
     contenu.appendChild(grille);
 
+    if (etat.coach) contenu.appendChild(dessinerGestionEquipe());
+
     var archivees = toutes.filter(function (s) { return s.archivee; });
     var bloc = creer('div', { className: 'archives' });
     bloc.appendChild(creer('h3', { textContent: 'Archives (' + archivees.length + ')' }));
@@ -430,6 +432,112 @@
       bloc.appendChild(liste);
     }
     contenu.appendChild(bloc);
+  }
+
+  /** Ajouter, renommer, retirer un athlète — le coach seul voit ce bloc. */
+  function dessinerGestionEquipe() {
+    var bloc = creer('div', { className: 'equipe-gestion' });
+    bloc.appendChild(creer('h3', { textContent: 'L’équipe (' + etat.athletes.length + ')' }));
+    bloc.appendChild(creer('p', {
+      className: 'archives-aide',
+      textContent: 'Un athlète retiré ne peut plus s’inscrire, mais son nom reste sur ses séances passées.'
+    }));
+
+    var liste = creer('ul', { className: 'equipe-gestion-liste' });
+    etat.athletes.forEach(function (athlete) {
+      liste.appendChild(dessinerLigneAthlete(athlete));
+    });
+    bloc.appendChild(liste);
+
+    var ajout = creer('div', { className: 'equipe-ajout' });
+    var champ = creer('input', { type: 'text', maxLength: 60, placeholder: 'Prénom du nouvel athlète' });
+    champ.id = 'champ-nouvel-athlete';
+    var bouton = creer('button', { type: 'button', className: 'principal', textContent: 'Ajouter' });
+
+    var envoyer = function () {
+      var nom = champ.value.trim();
+      if (!nom) return;
+      bouton.disabled = true;
+      appeler('/athletes', { method: 'POST', body: { nom: nom } })
+        .then(function () {
+          champ.value = '';
+          return rafraichirEquipe();
+        })
+        .catch(function (erreur) { afficherAlerte(erreur.message); })
+        .then(function () { bouton.disabled = false; });
+    };
+    bouton.addEventListener('click', envoyer);
+    champ.addEventListener('keydown', function (evenement) {
+      if (evenement.key === 'Enter') {
+        evenement.preventDefault();
+        envoyer();
+      }
+    });
+
+    ajout.appendChild(champ);
+    ajout.appendChild(bouton);
+    bloc.appendChild(ajout);
+    return bloc;
+  }
+
+  function dessinerLigneAthlete(athlete) {
+    var item = creer('li', { className: athlete.actif === false ? 'retire' : '' });
+
+    var nom = creer('input', { type: 'text', maxLength: 60 });
+    nom.value = athlete.nom;
+    nom.setAttribute('aria-label', 'Nom de ' + athlete.nom);
+    var renommer = function () {
+      var nouveau = nom.value.trim();
+      if (!nouveau || nouveau === athlete.nom) {
+        nom.value = athlete.nom;
+        return;
+      }
+      appeler('/athletes/' + athlete.id, { method: 'PATCH', body: { nom: nouveau } })
+        .then(rafraichirEquipe)
+        .catch(function (erreur) {
+          afficherAlerte(erreur.message);
+          nom.value = athlete.nom;
+        });
+    };
+    nom.addEventListener('blur', renommer);
+    nom.addEventListener('keydown', function (evenement) {
+      if (evenement.key === 'Enter') {
+        evenement.preventDefault();
+        nom.blur();
+      }
+    });
+    item.appendChild(nom);
+
+    var retire = athlete.actif === false;
+    var bascule = creer('button', {
+      type: 'button',
+      className: retire ? '' : 'danger',
+      textContent: retire ? 'Réintégrer' : 'Retirer'
+    });
+    bascule.addEventListener('click', function () {
+      if (!retire && !confirm('Retirer ' + athlete.nom + ' de l’équipe ? Ses séances passées gardent son nom.')) return;
+      bascule.disabled = true;
+      var requete = retire
+        ? appeler('/athletes/' + athlete.id, { method: 'PATCH', body: { actif: true } })
+        : appeler('/athletes/' + athlete.id, { method: 'DELETE' });
+      requete
+        .then(rafraichirEquipe)
+        .catch(function (erreur) {
+          afficherAlerte(erreur.message);
+          bascule.disabled = false;
+        });
+    });
+    item.appendChild(bascule);
+    return item;
+  }
+
+  /** Recharge l'équipe puis redessine ce qui en dépend. */
+  function rafraichirEquipe() {
+    return appeler('/athletes?inactifs=true')
+      .then(function (reponse) {
+        etat.athletes = reponse.athletes;
+        return charger();
+      });
   }
 
   /* ---------- Boîte de dialogue ---------- */
@@ -585,7 +693,7 @@
     var inscrits = seance.inscrits.map(function (a) { return a.id; });
     var complet = seance.placesRestantes === 0;
 
-    etat.athletes.forEach(function (athlete) {
+    etat.athletes.filter(function (a) { return a.actif !== false; }).forEach(function (athlete) {
       var present = inscrits.indexOf(athlete.id) !== -1;
       var item = creer('li');
       var bouton = creer('button', {
@@ -667,7 +775,7 @@
   function remplirAuteurs() {
     vider(els['champ-auteur']);
     els['champ-auteur'].appendChild(creer('option', { value: '', textContent: 'Qui écrit ?' }));
-    etat.athletes.forEach(function (athlete) {
+    etat.athletes.filter(function (a) { return a.actif !== false; }).forEach(function (athlete) {
       var option = creer('option', { value: athlete.id, textContent: athlete.nom });
       if (athlete.id === etat.auteur) option.selected = true;
       els['champ-auteur'].appendChild(option);

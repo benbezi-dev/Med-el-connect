@@ -2,9 +2,12 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { Store } = require('../src/store');
 const { SessionService } = require('../src/sessions');
+const { AthleteService } = require('../src/athletes');
+const { DepotMemoire } = require('../src/depot-base');
 
 function service() {
-  return new SessionService(new Store(null));
+  const depot = new DepotMemoire();
+  return new SessionService(new Store(depot), new AthleteService(depot));
 }
 
 const base = { date: '2026-09-14', time: '18:00', locationId: 'valbonne-stadium' };

@@ -21,8 +21,9 @@ const STATUTS = [
 ];
 const STATUT_PAR_DEFAUT = 'prevue';
 
-/** L'équipe. Un athlète s'identifie en choisissant son nom, pas en le tapant. */
-const ATHLETES = [
+/** L'équipe de départ. Le coach peut ensuite l'étoffer : la liste vivante est
+    tenue par AthleteService, qui la range dans le dépôt. */
+const ATHLETES_INITIAUX = [
   { id: 'yvon', nom: 'Yvon' },
   { id: 'kaila', nom: 'Kaila' },
   { id: 'autumn', nom: 'Autumn' },
@@ -43,7 +44,7 @@ const MOIS_HORIZON = 12;
 
 const LOCATIONS_BY_ID = new Map(LOCATIONS.map((l) => [l.id, l]));
 const STATUTS_BY_ID = new Map(STATUTS.map((s) => [s.id, s]));
-const ATHLETES_BY_ID = new Map(ATHLETES.map((a) => [a.id, a]));
+
 
 /** @returns {{id: string, name: string, city: string}|undefined} */
 function findLocation(id) {
@@ -55,11 +56,6 @@ function findStatut(id) {
   return STATUTS_BY_ID.get(String(id ?? '').trim());
 }
 
-/** @returns {{id: string, nom: string}|undefined} */
-function findAthlete(id) {
-  return ATHLETES_BY_ID.get(String(id ?? '').trim());
-}
-
 function isValidTime(time) {
   return TIMES.includes(String(time ?? '').trim());
 }
@@ -68,13 +64,12 @@ module.exports = {
   LOCATIONS,
   TIMES,
   STATUTS,
-  ATHLETES,
+  ATHLETES_INITIAUX,
   STATUT_PAR_DEFAUT,
   TIMEZONE,
   DAYS_IN_VIEW,
   MOIS_HORIZON,
   findLocation,
   findStatut,
-  findAthlete,
   isValidTime
 };

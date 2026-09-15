@@ -18,12 +18,10 @@ const { isValidDateISO } = require('./dates');
 const {
   findLocation,
   findStatut,
-  findAthlete,
   isValidTime,
   TIMES,
   LOCATIONS,
   STATUTS,
-  ATHLETES,
   STATUT_PAR_DEFAUT
 } = require('./reference');
 const { badRequest, notFound, conflict } = require('./errors');
@@ -32,7 +30,7 @@ const MAX_TITLE = 120;
 const MAX_COACH = 80;
 const MAX_NOTES = 2000;
 const MAX_CAPACITY = 200;
-const MAX_PARTICIPANTS = ATHLETES.length;
+const MAX_PARTICIPANTS = 200;
 const MAX_MESSAGE = 500;
 const MAX_MESSAGES = 200;
 const DEFAULT_TITLE = 'Entraînement';
@@ -44,8 +42,10 @@ function occupeLeCreneau(session) {
 }
 
 class SessionService {
-  constructor(store) {
+  /** @param {object} athletes l'équipe vivante, seule à savoir qui en fait partie. */
+  constructor(store, athletes) {
     this.store = store;
+    this.athletes = athletes;
   }
 
   /** Liste filtrée et triée (date, heure, lieu). Les archives sont exclues par défaut. */
@@ -81,7 +81,7 @@ class SessionService {
         if (statut && session.statut !== statut) return false;
         return true;
       })
-      .map(decorate)
+      .map((session) => decorate(session, this.athletes))
       .sort(compareSessions);
   }
 
@@ -89,11 +89,11 @@ class SessionService {
   get(id) {
     const session = this.store.find(id);
     if (!session) throw notFound(`Aucune séance avec l'identifiant « ${id} ».`);
-    return decorate(session);
+    return decorate(session, this.athletes);
   }
 
   async create(payload) {
-    const input = validate(payload, { partial: false });
+    const input = validate(payload, { partial: false, athletes: this.athletes });
     this.verifierCreneauLibre(input, null);
 
     const now = new Date().toISOString();
@@ -109,12 +109,12 @@ class SessionService {
       updatedAt: now
     };
     await this.store.remplacer([...this.store.all(), session]);
-    return decorate(session);
+    return decorate(session, this.athletes);
   }
 
   async update(id, payload) {
     const existing = this.mustFind(id);
-    const changes = validate(payload, { partial: true });
+    const changes = validate(payload, { partial: true, athletes: this.athletes });
     const now = new Date().toISOString();
     const updated = { ...existing, ...changes, updatedAt: now };
 
@@ -126,31 +126,31 @@ class SessionService {
     }
 
     await this.store.remplacer(this.store.all().map((s) => (s.id === id ? updated : s)));
-    return decorate(updated);
+    return decorate(updated, this.athletes);
   }
 
   /** Retire la séance de la grille sans rien perdre. */
   async archive(id) {
     const existing = this.mustFind(id);
-    if (existing.archivee) return decorate(existing);
+    if (existing.archivee) return decorate(existing, this.athletes);
 
     const now = new Date().toISOString();
     const archivee = { ...existing, archivee: true, archiveeLe: now, updatedAt: now };
     await this.store.remplacer(this.store.all().map((s) => (s.id === id ? archivee : s)));
-    return decorate(archivee);
+    return decorate(archivee, this.athletes);
   }
 
   /** Remet une séance archivée dans la grille, si son créneau est resté libre. */
   async restore(id) {
     const existing = this.mustFind(id);
-    if (!existing.archivee) return decorate(existing);
+    if (!existing.archivee) return decorate(existing, this.athletes);
 
     const now = new Date().toISOString();
     const restauree = { ...existing, archivee: false, archiveeLe: null, updatedAt: now };
     this.verifierCreneauLibre(restauree, id);
 
     await this.store.remplacer(this.store.all().map((s) => (s.id === id ? restauree : s)));
-    return decorate(restauree);
+    return decorate(restauree, this.athletes);
   }
 
   /* ---------- ce que disent les athlètes ---------- */
@@ -158,11 +158,11 @@ class SessionService {
   /** L'athlète annonce sa venue. Deux fois de suite ne change rien. */
   async inscrire(id, athleteId) {
     const existing = this.mustFind(id);
-    const athlete = athleteConnu(athleteId);
+    const athlete = athleteConnu(this.athletes, athleteId);
 
     if (existing.statut === 'annulee') throw conflict('Cette séance est annulée.');
     const participants = existing.participants ?? [];
-    if (participants.includes(athlete.id)) return decorate(existing);
+    if (participants.includes(athlete.id)) return decorate(existing, this.athletes);
     if (participants.length >= existing.capacity) {
       throw conflict('Cette séance est complète.', { capacity: existing.capacity });
     }
@@ -177,9 +177,9 @@ class SessionService {
   /** L'athlète se retire. Absent de la liste, la demande passe quand même. */
   async desinscrire(id, athleteId) {
     const existing = this.mustFind(id);
-    const athlete = athleteConnu(athleteId);
+    const athlete = athleteConnu(this.athletes, athleteId);
     const participants = (existing.participants ?? []).filter((inscrit) => inscrit !== athlete.id);
-    if (participants.length === (existing.participants ?? []).length) return decorate(existing);
+    if (participants.length === (existing.participants ?? []).length) return decorate(existing, this.athletes);
 
     return this.remplacerSeance(id, { ...existing, participants, updatedAt: new Date().toISOString() });
   }
@@ -190,7 +190,7 @@ class SessionService {
     if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) {
       throw badRequest('Le corps de la requête doit être un objet JSON.');
     }
-    const athlete = athleteConnu(payload.athleteId);
+    const athlete = athleteConnu(this.athletes, payload.athleteId);
     const texte = text(payload.texte, 'texte', MAX_MESSAGE);
 
     const messages = existing.messages ?? [];
@@ -227,7 +227,7 @@ class SessionService {
   /** Persiste une séance modifiée à la place de l'ancienne. */
   async remplacerSeance(id, seance) {
     await this.store.remplacer(this.store.all().map((s) => (s.id === id ? seance : s)));
-    return decorate(seance);
+    return decorate(seance, this.athletes);
   }
 
   /** Attache les métadonnées d'une note vocale (le son est stocké par VoiceStore). */
@@ -239,7 +239,7 @@ class SessionService {
       updatedAt: new Date().toISOString()
     };
     await this.store.remplacer(this.store.all().map((s) => (s.id === id ? updated : s)));
-    return decorate(updated);
+    return decorate(updated, this.athletes);
   }
 
   trouverNoteVocale(id, noteId) {
@@ -258,7 +258,7 @@ class SessionService {
       updatedAt: new Date().toISOString()
     };
     await this.store.remplacer(this.store.all().map((s) => (s.id === id ? updated : s)));
-    return decorate(updated);
+    return decorate(updated, this.athletes);
   }
 
   mustFind(id) {
@@ -285,16 +285,16 @@ class SessionService {
 }
 
 /** Ajoute les champs dérivés — jamais stockés, toujours recalculés. */
-function decorate(session) {
+function decorate(session, athletes) {
   const participants = session.participants ?? [];
   const statut = session.statut ?? STATUT_PAR_DEFAUT;
   return {
     ...session,
     participants,
-    inscrits: participants.map((id) => findAthlete(id) ?? { id, nom: id }),
+    inscrits: participants.map((id) => nommer(athletes, id)),
     messages: (session.messages ?? []).map((message) => ({
       ...message,
-      athlete: findAthlete(message.athleteId) ?? { id: message.athleteId, nom: message.athleteId }
+      athlete: nommer(athletes, message.athleteId)
     })),
     statut,
     statutLabel: findStatut(statut)?.label ?? statut,
@@ -306,6 +306,13 @@ function decorate(session) {
   };
 }
 
+/** Un athlète vu d'une séance : son identité, sans l'état de son appartenance
+    à l'équipe — qui ne regarde que la gestion de l'équipe elle-même. */
+function nommer(athletes, id) {
+  const athlete = athletes.trouver(id);
+  return athlete ? { id: athlete.id, nom: athlete.nom } : { id, nom: id };
+}
+
 function compareSessions(a, b) {
   return (
     a.date.localeCompare(b.date) ||
@@ -315,7 +322,7 @@ function compareSessions(a, b) {
 }
 
 /** Valide et normalise un payload. En mode `partial`, seuls les champs présents sont traités. */
-function validate(payload, { partial }) {
+function validate(payload, { partial, athletes }) {
   if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) {
     throw badRequest('Le corps de la requête doit être un objet JSON.');
   }
@@ -392,10 +399,10 @@ function validate(payload, { partial }) {
     // Des identifiants d'athlètes, pas des noms libres : deux orthographes du
     // même prénom compteraient pour deux inscrits.
     result.participants = [...new Set(list.map((valeur, index) => {
-      const athlete = findAthlete(valeur);
+      const athlete = athletes.trouverActif(valeur);
       if (!athlete) {
         throw badRequest(`« participants[${index}] » ne correspond à aucun athlète de l'équipe.`, {
-          athletes: ATHLETES.map((a) => a.id)
+          athletes: athletes.liste().map((a) => a.id)
         });
       }
       return athlete.id;
@@ -418,12 +425,12 @@ function text(value, label, max, { allowEmpty = false } = {}) {
   return trimmed;
 }
 
-/** @returns {{id: string, nom: string}} l'athlète, ou une 400 s'il est inconnu. */
-function athleteConnu(athleteId) {
-  const athlete = findAthlete(athleteId);
+/** @returns {{id: string, nom: string}} l'athlète actif, ou une 400 sinon. */
+function athleteConnu(athletes, athleteId) {
+  const athlete = athletes.trouverActif(athleteId);
   if (!athlete) {
     throw badRequest('Le champ « athleteId » ne correspond à aucun athlète de l’équipe.', {
-      athletes: ATHLETES.map((a) => ({ id: a.id, nom: a.nom }))
+      athletes: athletes.liste().map((a) => ({ id: a.id, nom: a.nom }))
     });
   }
   return athlete;

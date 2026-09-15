@@ -51,7 +51,7 @@ export default {
         }
         try {
           const coach = estCoach(req, url, noyau.acces.cle);
-          await handleApi(req, res, url, noyau.sessions, noyau.voix, coach, noyau.depot.decrire());
+          await handleApi(req, res, url, noyau, coach, noyau.depot.decrire());
         } catch (erreur) {
           sendError(res, erreur, req);
         }

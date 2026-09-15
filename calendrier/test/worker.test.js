@@ -70,7 +70,7 @@ test('le Worker sert la page et répond à l’API', async () => {
   const index = await appeler('/api');
   assert.equal(index.status, 200);
   assert.deepEqual(index.body.heuresPossibles, ['10:30', '18:00', '18:30']);
-  assert.equal(index.body.athletes.length, 9);
+  assert.equal((await appeler('/api/athletes')).body.total, 9);
 
   const sante = await appeler('/api/health', { coach: true });
   assert.equal(sante.body.stockage.type, 'kv');

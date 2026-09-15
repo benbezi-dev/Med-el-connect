@@ -25,6 +25,16 @@
   --ombre: 0 12px 32px rgba(0, 0, 0, 0.5);
 }
 
+/* Une couleur par lieu d'entraînement, partagée par les séances et la
+   légende. Des teintes sourdes : elles doivent distinguer les lieux d'un
+   coup d'œil sans venir concurrencer le rouge de l'interface ni le vert des
+   séances faites. */
+[data-lieu="antibes-fort-carre-stade"] { --couloir: #C97B63; }
+[data-lieu="valbonne-stadium"]         { --couloir: #5B93C4; }
+[data-lieu="grasse-stadium"]           { --couloir: #B07AAE; }
+[data-lieu="valbonne-hill"]            { --couloir: #4FA8A0; }
+[data-lieu="valbonne-city-workout"]    { --couloir: #D0A44C; }
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 /* Un `display` posé par une classe l'emporterait sur la feuille du navigateur :
@@ -106,16 +116,16 @@ td.creneau.passe { background: rgba(0, 0, 0, 0.22); }
 .seance {
   background: var(--surface-haute);
   border: 1px solid var(--bordure-forte);
-  border-left: 3px solid var(--bordure-forte);
+  border-left: 3px solid var(--couloir, var(--bordure-forte));
   border-radius: 8px; margin-bottom: 6px; overflow: hidden;
 }
-.seance:hover { border-color: var(--bordure-forte); background: var(--surface-vive); }
+.seance:hover { background: var(--surface-vive); }
 .seance-ouvrir {
   display: block; width: 100%; text-align: left; font-weight: 500;
   background: none; border: 0; border-radius: 0; padding: 8px 10px;
 }
 .seance-ouvrir:hover { background: var(--surface-vive); border-color: transparent; }
-.seance .lieu { display: block; font-weight: 800; font-size: 13px; color: var(--encre); }
+.seance .lieu { display: block; font-weight: 800; font-size: 13px; color: var(--couloir, var(--encre)); }
 .seance .titre { display: block; font-size: 13px; color: var(--encre-douce); }
 .seance .places { display: block; font-size: 12px; color: var(--encre-douce); font-weight: 600; margin-top: 2px; }
 .seance .places.complet { color: var(--alerte); }
@@ -129,9 +139,9 @@ td.creneau.passe { background: rgba(0, 0, 0, 0.22); }
 }
 .statut-select:focus { outline-offset: -2px; }
 
-.seance[data-statut="effectuee"] { background: rgba(95, 158, 107, 0.10); border-left-color: var(--valide); }
+.seance[data-statut="effectuee"] { background: rgba(95, 158, 107, 0.10); }
 .seance[data-statut="effectuee"] .statut-select { color: var(--valide); }
-.seance[data-statut="annulee"] { opacity: 0.5; border-left-color: var(--bordure); }
+.seance[data-statut="annulee"] { opacity: 0.5; }
 .seance[data-statut="annulee"] .titre { text-decoration: line-through; }
 .seance[data-statut="annulee"] .statut-select { color: var(--alerte); }
 
@@ -166,7 +176,7 @@ td.creneau.passe { background: rgba(0, 0, 0, 0.22); }
 /* ---------- Légende ---------- */
 .legende { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .puce { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--bordure); border-radius: 999px; padding: 5px 14px 5px 10px; font-size: 13px; color: var(--encre-douce); }
-.puce::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--bordure-forte); flex: none; }
+.puce::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--couloir, var(--bordure-forte)); flex: none; }
 .puce b { font-weight: 700; color: var(--encre); }
 
 /* ---------- Vue année (repliée par défaut) ---------- */
@@ -188,7 +198,19 @@ td.creneau.passe { background: rgba(0, 0, 0, 0.22); }
 .archives h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--encre-douce); }
 .archives-aide { font-size: 13px; color: var(--encre-douce); margin-top: 4px; }
 .archives-liste { list-style: none; display: grid; gap: 8px; margin-top: 10px; }
-.archives-liste li { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; background: var(--surface-haute); border: 1px solid var(--bordure); border-left: 3px solid var(--bordure-forte); border-radius: 8px; padding: 8px 12px; font-size: 13px; }
+.archives-liste li { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; background: var(--surface-haute); border: 1px solid var(--bordure); border-left: 3px solid var(--couloir, var(--bordure-forte)); border-radius: 8px; padding: 8px 12px; font-size: 13px; }
+
+/* ---------- Gestion de l'équipe (coach) ---------- */
+.equipe-gestion { margin-bottom: 22px; }
+.equipe-gestion h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--encre-douce); }
+.equipe-gestion-liste { list-style: none; display: grid; gap: 6px; margin: 10px 0; }
+.equipe-gestion-liste li { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; background: var(--surface-haute); border: 1px solid var(--bordure); border-radius: 8px; padding: 6px 8px; }
+.equipe-gestion-liste li.retire { opacity: 0.55; }
+.equipe-gestion-liste input { flex: 1 1 140px; min-width: 0; padding: 6px 9px; font-size: 14px; }
+.equipe-gestion-liste button { flex: none; padding: 5px 10px; font-size: 12px; }
+.equipe-ajout { display: flex; flex-wrap: wrap; gap: 6px; }
+.equipe-ajout input { flex: 1 1 180px; }
+.equipe-ajout button { flex: none; }
 
 /* ---------- L'équipe ---------- */
 .equipe { border: 1px solid var(--bordure-forte); border-radius: 10px; padding: 12px; display: grid; gap: 10px; }

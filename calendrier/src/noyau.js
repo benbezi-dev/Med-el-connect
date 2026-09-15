@@ -3,6 +3,7 @@
    et un Worker Cloudflare construisent le même objet, chacun avec son dépôt. */
 
 const { Store } = require('./store');
+const { AthleteService } = require('./athletes');
 const { SessionService } = require('./sessions');
 const { VoiceStore } = require('./voix');
 const { resoudreCle } = require('./acces');
@@ -13,10 +14,12 @@ const { resoudreCle } = require('./acces');
  */
 async function creerNoyau({ depot, cleCoach, dataFile = null, nomDocument }) {
   const store = await new Store(depot, nomDocument).charger();
+  const athletes = await new AthleteService(depot).charger();
   return {
     depot,
     store,
-    sessions: new SessionService(store),
+    athletes,
+    sessions: new SessionService(store, athletes),
     voix: new VoiceStore(depot),
     acces: resoudreCle({ cleCoach, dataFile })
   };

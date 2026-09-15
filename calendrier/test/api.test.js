@@ -416,6 +416,46 @@ test('retirer le mot d’un athlète est réservé au coach', async (t) => {
   assert.deepEqual(retrait.body.session.messages, []);
 });
 
+test('le coach étoffe l’équipe, les athlètes la consultent', async (t) => {
+  const { appeler, fermer } = await demarrer();
+  t.after(fermer);
+
+  assert.equal((await appeler('/api/athletes')).body.total, 9);
+
+  // Ajouter est réservé au coach.
+  const refus = await appeler('/api/athletes', { method: 'POST', body: { nom: 'Nadia' } });
+  assert.equal(refus.status, 401);
+  assert.equal(refus.body.error.code, 'cle_coach_requise');
+
+  const ajout = await appeler('/api/athletes', { coach: true, method: 'POST', body: { nom: 'Nadia Belkacem' } });
+  assert.equal(ajout.status, 201);
+  assert.deepEqual(ajout.body.athlete, { id: 'nadia-belkacem', nom: 'Nadia Belkacem', actif: true });
+  assert.equal(ajout.headers.get('location'), '/api/athletes/nadia-belkacem');
+  assert.equal((await appeler('/api/athletes')).body.total, 10);
+
+  // La nouvelle venue peut aussitôt s'inscrire.
+  const id = (await appeler('/api/sessions', { coach: true, method: 'POST', body: base })).body.session.id;
+  const venue = await appeler(`/api/sessions/${id}/participants`, { method: 'POST', body: { athleteId: 'nadia-belkacem' } });
+  assert.equal(venue.status, 200);
+  assert.deepEqual(venue.body.session.inscrits, [{ id: 'nadia-belkacem', nom: 'Nadia Belkacem' }]);
+
+  // Renommer, puis retirer.
+  assert.equal((await appeler('/api/athletes/nadia-belkacem', { coach: true, method: 'PATCH', body: { nom: 'Nadia B' } })).body.athlete.nom, 'Nadia B');
+  assert.equal((await appeler(`/api/sessions/${id}`)).body.session.inscrits[0].nom, 'Nadia B', 'son inscription suit le nouveau nom');
+
+  const retrait = await appeler('/api/athletes/nadia-belkacem', { coach: true, method: 'DELETE' });
+  assert.equal(retrait.status, 200);
+  assert.equal(retrait.body.athlete.actif, false);
+  assert.equal((await appeler('/api/athletes')).body.total, 9, 'plus proposée à l’inscription');
+  assert.equal((await appeler('/api/athletes?inactifs=true')).body.total, 10);
+  assert.equal((await appeler(`/api/sessions/${id}`)).body.session.inscrits[0].nom, 'Nadia B', 'mais son passé reste lisible');
+
+  // Les refus sont clairs.
+  assert.equal((await appeler('/api/athletes', { coach: true, method: 'POST', body: { nom: 'Kaila' } })).status, 409);
+  assert.equal((await appeler('/api/athletes/inconnu')).status, 404);
+  assert.equal((await appeler('/api/athletes/kaila', { method: 'DELETE' })).status, 401);
+});
+
 test('route inconnue et méthode interdite', async (t) => {
   const { appeler, fermer } = await demarrer();
   t.after(fermer);

@@ -21,7 +21,7 @@ calendrier/
 ├── cloudflare/   Le même code en Worker (adaptateur + point d'entrée)
 ├── public/       Présentation 7 jours (HTML/CSS/JS, sans framework)
 ├── outils/       jeton-google.js : obtenir un jeton de rafraîchissement Drive
-├── test/         100 tests (node:test)
+├── test/         107 tests (node:test)
 └── data/         Séances (JSON) et notes vocales (audio) en stockage local
 ```
 
@@ -70,10 +70,15 @@ Les seules valeurs acceptées par l'API — toute autre valeur est refusée en 4
 | | `valbonne-hill` | Valbonne Hill | |
 | | `valbonne-city-workout` | Valbonne City Workout | |
 
-L'équipe (`athleteId`) : `yvon`, `kaila`, `autumn`, `scarlett`, `elliot`,
-`alex-l`, `ludo`, `zoe`, `melina`. Un athlète s'identifie en choisissant son
-nom dans cette liste — jamais en le tapant, pour que deux orthographes ne
-fassent pas deux personnes.
+L'équipe de départ (`athleteId`) : `yvon`, `kaila`, `autumn`, `scarlett`,
+`elliot`, `alex-l`, `ludo`, `zoe`, `melina`. Un athlète s'identifie en
+choisissant son nom dans cette liste — jamais en le tapant, pour que deux
+orthographes ne fassent pas deux personnes.
+
+Cette liste n'est pas figée : le coach l'étoffe depuis la page (panneau
+**Vue année**) ou par l'API. Elle est rangée dans le dépôt comme les séances,
+sous `athletes.json` ; tant que personne n'y touche, la liste de départ tient
+lieu de contenu et rien n'est écrit.
 
 Les dates sont des chaînes `YYYY-MM-DD` sans fuseau ; le jour courant est
 calculé sur `Europe/Paris`.
@@ -87,7 +92,11 @@ calculé sur `Europe/Paris`.
 | `GET` | `/api/locations` | Les 5 lieux |
 | `GET` | `/api/times` | Les heures possibles (10:30, 18:00, 18:30) |
 | `GET` | `/api/statuts` | Prévue, effectuée, annulée |
-| `GET` | `/api/athletes` | L'équipe (9 athlètes) |
+| `GET` | `/api/athletes?inactifs=` | L'équipe |
+| `POST` | `/api/athletes` | Ajoute un athlète — **coach** |
+| `GET` | `/api/athletes/:id` | Un athlète, actif ou retiré |
+| `PATCH` | `/api/athletes/:id` | Renomme ou réintègre — **coach** |
+| `DELETE` | `/api/athletes/:id` | Retire de l'équipe — **coach** |
 | `GET` | `/api/calendar?start=&days=` | **Grille prête à afficher** (7 jours par défaut, 366 au plus) |
 | `GET` | `/api/annee?start=&mois=` | **Suivi sur 12 mois** : totaux par mois et jours occupés |
 | `GET` | `/api/export` | Toutes les séances, archives comprises |
@@ -300,6 +309,29 @@ La séance renvoie `inscrits` (les athlètes, avec leur nom) et `messages`
 (chacun avec son auteur résolu), en plus de `placesRestantes`. Seul le coach
 peut **retirer** un message : c'est de la modération, pas de l'expression.
 
+### L'équipe, que le coach fait vivre
+
+```bash
+curl -X POST http://localhost:3000/api/athletes \
+  -H 'Content-Type: application/json' -H "X-Cle-Coach: $(cat data/cle-coach.txt)" \
+  -d '{"nom":"Nadia Belkacem"}'
+# → { "athlete": { "id": "nadia-belkacem", "nom": "Nadia Belkacem", "actif": true } }
+```
+
+L'identifiant se déduit du nom — accents retirés, espaces en tirets — et reste
+unique : un second « Jean-Luc » devient `jean-luc-2`. Renommer ne le change
+pas, si bien que les inscriptions et les messages passés suivent le nouveau
+nom sans rien perdre.
+
+`DELETE` **retire** sans effacer : l'athlète disparaît des listes où l'on
+s'inscrit (`actif: false`), mais son nom reste attaché à ses séances passées.
+`PATCH {"actif": true}` le réintègre. `?inactifs=true` liste tout le monde.
+
+| Champ | Règle |
+|---|---|
+| `nom` | non vide, ≤ 60 caractères, unique dans l'équipe |
+| `actif` | booléen, sur `PATCH` uniquement |
+
 ### Notes vocales
 
 Le son part en base64 dans du JSON — rien à installer côté serveur :
@@ -476,7 +508,7 @@ vérifier que tout se construit (96 Ko, 21 Ko compressés).
 
 ### Vérification
 
-Les 100 tests couvrent les quatre dépôts. Six d'entre eux font tourner le
+Les 107 tests couvrent les quatre dépôts. Six d'entre eux font tourner le
 **Worker entier** dans Node contre un faux KV — page servie, séance créée puis
 relue depuis KV, inscription et message d'un athlète, écriture refusée sans
 clé, note vocale rendue octet pour octet, préflight CORS. Le dépôt Drive est
