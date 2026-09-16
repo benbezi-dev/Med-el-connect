@@ -154,3 +154,43 @@ test('sans clé coach configurée, le Worker le dit au lieu d’en inventer une'
   assert.equal(reponse.body.error.code, 'configuration_incomplete');
   assert.match(reponse.body.error.message, /wrangler secret put/);
 });
+
+test('le Worker sert la page de partage sans passer par les fichiers statiques', async () => {
+  const { appeler } = await monterWorker();
+
+  await appeler('/api/sessions', {
+    method: 'POST',
+    coach: true,
+    body: { date: '2026-09-14', time: '18:00', locationId: 'grasse-stadium', title: 'Côtes' }
+  });
+
+  const reponse = await appeler('/semaine?start=2026-09-14');
+  assert.equal(reponse.status, 200);
+  assert.match(reponse.headers.get('content-type'), /text\/html/);
+  // Le binding ASSETS renvoie « la page » : c'est bien le Worker qui a répondu.
+  assert.ok(!reponse.body.includes('la page'), 'la requête n’est pas partie dans les fichiers statiques');
+  assert.ok(reponse.body.includes('Grasse Stadium'), 'la semaine est déjà dans le HTML');
+  assert.ok(reponse.body.includes('og:description'), 'les balises d’aperçu sont là');
+});
+
+test('le Worker accepte une photo et la garde cachée jusqu’à l’ordre du coach', async () => {
+  const { appeler } = await monterWorker();
+  const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+  const { body: creee } = await appeler('/api/sessions', {
+    method: 'POST',
+    coach: true,
+    body: { date: '2026-09-14', time: '18:00', locationId: 'valbonne-hill' }
+  });
+  const chemin = `/api/sessions/${creee.session.id}/photos`;
+
+  const ajout = await appeler(chemin, { method: 'POST', coach: true, body: { image: png, mimeType: 'image/png' } });
+  assert.equal(ajout.status, 201);
+  assert.equal(ajout.body.photo.visible, false);
+
+  assert.deepEqual((await appeler(chemin)).body.photos, [], 'cachée pour l’équipe');
+  assert.equal((await appeler(`${chemin}/${ajout.body.photo.id}`)).status, 404);
+
+  await appeler(`${chemin}/${ajout.body.photo.id}`, { method: 'PATCH', coach: true, body: { visible: true } });
+  assert.equal((await appeler(chemin)).body.photos.length, 1, 'visible une fois publiée');
+});

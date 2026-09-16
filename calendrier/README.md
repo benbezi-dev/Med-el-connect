@@ -99,6 +99,7 @@ calculé sur `Europe/Paris`.
 | `DELETE` | `/api/athletes/:id` | Retire de l'équipe — **coach** |
 | `GET` | `/api/calendar?start=&days=` | **Grille prête à afficher** (7 jours par défaut, 366 au plus) |
 | `GET` | `/api/annee?start=&mois=` | **Suivi sur 12 mois** : totaux par mois et jours occupés |
+| `GET` | `/api/semaine?start=&adresse=` | **La semaine résumée**, avec son texte prêt à coller |
 | `GET` | `/api/export` | Toutes les séances, archives comprises |
 | `GET` | `/api/sessions?from=&to=&location=&time=&statut=&archivees=` | Liste filtrable |
 | `POST` | `/api/sessions` | Crée une séance |
@@ -115,6 +116,14 @@ calculé sur `Europe/Paris`.
 | `POST` | `/api/sessions/:id/notes-vocales` | Ajoute une note vocale — **coach** |
 | `GET` | `/api/sessions/:id/notes-vocales/:noteId` | Renvoie le son — **coach** |
 | `DELETE` | `/api/sessions/:id/notes-vocales/:noteId` | Supprime une note vocale — **coach** |
+| `GET` | `/api/sessions/:id/photos` | Les photos — l'équipe ne voit que les publiées |
+| `POST` | `/api/sessions/:id/photos` | Ajoute une photo, **cachée à l'arrivée** — **coach** |
+| `GET` | `/api/sessions/:id/photos/:photoId` | L'image — 404 tant qu'elle n'est pas publiée |
+| `PATCH` | `/api/sessions/:id/photos/:photoId` | Montre, cache, ou corrige la légende — **coach** |
+| `DELETE` | `/api/sessions/:id/photos/:photoId` | Supprime une photo — **coach** |
+
+Hors `/api`, une seule route : `GET /semaine?start=` — la page publique à
+envoyer à l'équipe (voir [Envoyer la semaine](#envoyer-la-semaine)).
 
 CORS est ouvert (`*`) sur toutes les routes `/api`.
 
@@ -365,6 +374,69 @@ disponible — navigateur ancien, ou page servie en HTTP sur autre chose que
 `localhost` — le bouton est désactivé et l'explication affichée. Une note
 enregistrée avant que la séance n'existe est mise de côté et envoyée juste
 après sa création.
+
+### Photos
+
+Le coach photographie la séance ; l'équipe ne voit que ce qu'il décide de
+montrer.
+
+Une photo arrive **cachée**. `visible` vaut `false` à l'écriture, et rien ne
+le change sinon un `PATCH` du coach. Tant qu'elle est cachée, elle n'apparaît
+ni dans la liste des photos, ni dans la séance, ni dans la grille, ni dans
+l'export — et son adresse propre répond `404`, même devinée. C'est le même
+filtre (`masquerPourAthlete`) qui vide les notes vocales et écarte les photos
+non publiées, appliqué récursivement à tout ce qui sort de l'API.
+
+```bash
+# Ajouter une photo (elle reste cachée)
+curl -X POST http://localhost:3000/api/sessions/$ID/photos \
+  -H "X-Cle-Coach: $CLE" -H 'Content-Type: application/json' \
+  -d "{\"image\": \"$(base64 -i photo.jpg)\", \"mimeType\": \"image/jpeg\", \"legende\": \"Série de 400 m\"}"
+
+# La montrer à l'équipe
+curl -X PATCH http://localhost:3000/api/sessions/$ID/photos/$PHOTO \
+  -H "X-Cle-Coach: $CLE" -H 'Content-Type: application/json' -d '{"visible": true}'
+```
+
+La page réduit chaque photo à 1600 px de côté et la réencode en JPEG **avant**
+l'envoi : une photo de téléphone de 4 Mo part à une trentaine de kilo-octets.
+Les athlètes la chargent souvent en 4G, au bord de la piste. Si le navigateur
+ne sait pas décoder le fichier, il est envoyé tel quel quand son format est
+accepté (JPEG, PNG, WebP, GIF), dans la limite de 4 Mo.
+
+Une photo publiée est mise en cache par le navigateur (`public, max-age=86400`) ;
+une photo cachée ne l'est que pour le coach (`private`).
+
+### Envoyer la semaine
+
+Un lien n'est qu'un lien : personne ne sait ce qu'il y a derrière avant de
+l'ouvrir. Deux réponses, selon qu'on veut éviter le lien ou l'améliorer.
+
+**Le texte.** `GET /api/semaine` rend la semaine prête à coller dans une
+conversation. Là, il n'y a plus de lien du tout : le calendrier *est* le
+message.
+
+```
+Entraînements — du 16 septembre au 22 septembre
+
+Mer 16 · 18h00 · Antibes Fort Carré Stade
+Jeu 17 · 10h30 · Valbonne Stadium
+Ven 18 · 18h30 · Grasse Stadium — ANNULÉE
+```
+
+**La page.** `GET /semaine` rend une page autonome : aucun script, aucun appel,
+tout est déjà dans le HTML (elle s'affiche en une vingtaine de millisecondes).
+Elle porte les balises Open Graph, que les messageries lisent pour composer
+leur aperçu — le titre de la semaine et ses séances s'affichent donc dans la
+conversation, sans que personne ait à ouvrir quoi que ce soit.
+
+Cette page est **publique** : elle ne montre que ce qu'un athlète voit déjà.
+Ni note vocale, ni photo cachée, ni légende de photo cachée n'y figurent, et
+les intitulés sont échappés.
+
+Ce qu'aucune messagerie ne permet, en revanche : afficher un calendrier
+*interactif* dans la conversation. Un message affiche du texte et une image,
+pas une application. L'aperçu en est l'approche la plus fidèle.
 
 ### Erreurs
 

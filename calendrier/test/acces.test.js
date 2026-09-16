@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { resoudreCle, estCoach, masquerNotesVocales, FICHIER_CLE } = require('../src/acces');
+const { resoudreCle, estCoach, masquerPourAthlete, FICHIER_CLE } = require('../src/acces');
 const { resoudreCleLocale } = require('../src/cle-fichier');
 
 function requete(entetes) {
@@ -61,13 +61,13 @@ test('estCoach n’accepte que la bonne clé', () => {
   assert.equal(estCoach(requete({ 'x-cle-coach': 'faux' }), lien('cle=' + cle), cle), false);
 });
 
-test('masquerNotesVocales vide les notes partout et ne touche à rien d’autre', () => {
+test('masquerPourAthlete vide les notes partout et ne touche à rien d’autre', () => {
   const grille = {
     total: 1,
     rows: [{ time: '18:00', cells: [{ sessions: [{ id: 'a', title: 'Piste', notesVocales: [{ id: 'v1' }] }] }] }],
     session: { id: 'b', notesVocales: [{ id: 'v2', transcription: 'secret' }], notes: 'texte visible' }
   };
-  const masquee = masquerNotesVocales(grille);
+  const masquee = masquerPourAthlete(grille);
 
   assert.deepEqual(masquee.rows[0].cells[0].sessions[0].notesVocales, []);
   assert.deepEqual(masquee.session.notesVocales, []);

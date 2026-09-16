@@ -10,7 +10,7 @@ const { creerDepot } = require('./stockage');
 const { creerNoyau } = require('./noyau');
 const { estCoach } = require('./acces');
 const { resoudreCleLocale } = require('./cle-fichier');
-const { handleApi, sendError, setCorsHeaders, methodNotAllowed } = require('./api');
+const { handleApi, reponsePartage, sendError, setCorsHeaders, methodNotAllowed } = require('./api');
 const { notFound } = require('./errors');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -37,7 +37,7 @@ async function createApp({ dataFile = DEFAULT_DATA_FILE, depot, cleCoach, env = 
   const racine = dataFile ? path.dirname(dataFile) : null;
   const stockage = creerDepot({ racine, env, depot });
   const acces = resoudreCleLocale({ cleCoach, dataFile });
-  const { store, athletes, sessions, voix } = await creerNoyau({
+  const { store, athletes, sessions, voix, photos } = await creerNoyau({
     depot: stockage,
     cleCoach: acces.cle,
     nomDocument: dataFile ? path.basename(dataFile) : undefined
@@ -53,7 +53,11 @@ async function createApp({ dataFile = DEFAULT_DATA_FILE, depot, cleCoach, env = 
     const url = new URL(req.url, `http://${req.headers.host ?? 'localhost'}`);
     try {
       if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
-        await handleApi(req, res, url, { sessions, voix, athletes }, estCoach(req, url, acces.cle), stockage.decrire());
+        await handleApi(req, res, url, { sessions, voix, photos, athletes }, estCoach(req, url, acces.cle), stockage.decrire());
+      } else if (url.pathname === '/semaine') {
+        const { status, headers, body } = reponsePartage(sessions, url, new URL('/', url).href);
+        res.writeHead(status, headers);
+        res.end(req.method === 'HEAD' ? undefined : body);
       } else {
         serveStatic(req, res, url);
       }
@@ -65,6 +69,7 @@ async function createApp({ dataFile = DEFAULT_DATA_FILE, depot, cleCoach, env = 
   handler.sessions = sessions;
   handler.athletes = athletes;
   handler.voix = voix;
+  handler.photos = photos;
   handler.store = store;
   handler.depot = stockage;
   handler.acces = acces;
@@ -117,8 +122,6 @@ function annoncerCle(acces) {
     console.log('Clé coach : CALENDAR_COACH_KEY.');
   }
 }
-
-module.exports = { createApp, start, DEFAULT_DATA_FILE, PUBLIC_DIR };
 
 module.exports = { createApp, start, DEFAULT_DATA_FILE, PUBLIC_DIR };
 

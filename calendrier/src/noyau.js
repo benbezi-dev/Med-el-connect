@@ -6,11 +6,12 @@ const { Store } = require('./store');
 const { AthleteService } = require('./athletes');
 const { SessionService } = require('./sessions');
 const { VoiceStore } = require('./voix');
+const { PhotoStore } = require('./photos');
 const { resoudreCle } = require('./acces');
 
 /**
  * @param {{depot: object, cleCoach?: string, dataFile?: string|null, nomDocument?: string}} options
- * @returns {Promise<{store, sessions, voix, acces, depot}>}
+ * @returns {Promise<{store, sessions, voix, photos, acces, depot}>}
  */
 async function creerNoyau({ depot, cleCoach, dataFile = null, nomDocument }) {
   const store = await new Store(depot, nomDocument).charger();
@@ -21,6 +22,7 @@ async function creerNoyau({ depot, cleCoach, dataFile = null, nomDocument }) {
     athletes,
     sessions: new SessionService(store, athletes),
     voix: new VoiceStore(depot),
+    photos: new PhotoStore(depot),
     acces: resoudreCle({ cleCoach, dataFile })
   };
 }

@@ -13,7 +13,7 @@ import depotModule from '../src/depot-kv.js';
 
 const { adapter } = adaptateurModule;
 const { creerNoyau } = noyauModule;
-const { handleApi, sendError, setCorsHeaders } = apiModule;
+const { handleApi, reponsePartage, sendError, setCorsHeaders } = apiModule;
 const { estCoach } = accesModule;
 const { DepotKV } = depotModule;
 
@@ -21,8 +21,8 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    // Tout ce qui n'est pas l'API est un fichier de la page.
-    if (url.pathname !== '/api' && !url.pathname.startsWith('/api/')) {
+    // Tout ce qui n'est pas l'API ni la page de partage est un fichier statique.
+    if (url.pathname !== '/api' && !url.pathname.startsWith('/api/') && url.pathname !== '/semaine') {
       if (env.ASSETS) return env.ASSETS.fetch(request);
       return new Response('Page introuvable.', { status: 404 });
     }
@@ -42,6 +42,13 @@ export default {
         depot: new DepotKV(env.CALENDRIER, 'Cloudflare KV'),
         cleCoach: env.CALENDAR_COACH_KEY
       });
+
+      // La page de partage n'a ni clé ni corps à lire : pas besoin de
+      // déguiser la requête en couple (req, res).
+      if (url.pathname === '/semaine') {
+        const { status, headers, body } = reponsePartage(noyau.sessions, url, new URL('/', url).href);
+        return new Response(body, { status, headers });
+      }
 
       return await adapter(request, async (req, res) => {
         setCorsHeaders(res);

@@ -8,17 +8,19 @@
 
 const { buildCalendar } = require('./calendar');
 const { buildAnnee } = require('./annee');
+const { resumeSemaine, texteSemaine, descriptionSemaine, pageSemaine } = require('./partage');
 const { LOCATIONS, TIMES, STATUTS, TIMEZONE, DAYS_IN_VIEW, MOIS_HORIZON } = require('./reference');
-const { protege, ENTETE } = require('./acces');
+const { protege, estVisible, ENTETE } = require('./acces');
 const { ApiError, badRequest, notFound } = require('./errors');
 // Sert à répondre en une requête à « ma mise en ligne a-t-elle pris ? ».
 const { version } = require('../package.json');
 
 const MAX_BODY_BYTES = 64 * 1024;
 const MAX_AUDIO_BODY_BYTES = 8 * 1024 * 1024; // base64 d'une note vocale de 5 Mo
+const MAX_IMAGE_BODY_BYTES = 6 * 1024 * 1024; // base64 d'une photo de 4 Mo
 
 async function handleApi(req, res, url, noyau, coach, stockageDecrit) {
-  const { sessions, voix, athletes } = noyau;
+  const { sessions, voix, photos, athletes } = noyau;
   const route = url.pathname.replace(/^\/api\/?/, '').replace(/\/$/, '');
   const segments = route ? route.split('/') : [];
   const { method } = req;
@@ -32,7 +34,7 @@ async function handleApi(req, res, url, noyau, coach, stockageDecrit) {
 
   // Les séances ont leur propre routeur : POST /api/sessions ne doit pas
   // tomber dans le garde « lecture seule » des ressources ci-dessous.
-  if (resource === 'sessions') return handleSessions(req, res, url, segments, sessions, voix, coach);
+  if (resource === 'sessions') return handleSessions(req, res, url, segments, sessions, voix, photos, coach);
   if (resource === 'athletes') return handleAthletes(req, res, url, segments, athletes, coach);
 
   if (segments.length === 1) {
@@ -70,6 +72,15 @@ async function handleApi(req, res, url, noyau, coach, stockageDecrit) {
         })
       );
     }
+    if (resource === 'semaine') {
+      const resume = resumeSemaine(sessions, { start: url.searchParams.get('start') ?? undefined });
+      const adresse = url.searchParams.get('adresse') ?? undefined;
+      return sendJson(res, 200, {
+        ...resume,
+        description: descriptionSemaine(resume),
+        texte: texteSemaine(resume, adresse)
+      });
+    }
     if (resource === 'export') {
       // Tout, archives comprises : rien de ce qui a été saisi n'est perdu.
       const toutes = sessions.list({ archivees: true });
@@ -84,7 +95,7 @@ async function handleApi(req, res, url, noyau, coach, stockageDecrit) {
   throw notFound(`Route inconnue : ${url.pathname}`);
 }
 
-async function handleSessions(req, res, url, segments, sessions, voix, coach) {
+async function handleSessions(req, res, url, segments, sessions, voix, photos, coach) {
   const { method } = req;
   const [, id, sub, subId] = segments;
 
@@ -155,6 +166,52 @@ async function handleSessions(req, res, url, segments, sessions, voix, coach) {
     // Retirer le mot d'un autre relève de la modération : réservé au coach.
     if (!coach) throw cleCoachRequise('Seul le coach peut retirer un message.');
     return sendJson(res, 200, protege({ session: await sessions.supprimerMessage(id, subId) }, coach));
+  }
+
+  if (sub === 'photos') {
+    if (!subId) {
+      if (method === 'GET') {
+        // La liste passe par le même filtre que le reste : un athlète ne voit
+        // que les photos rendues visibles.
+        return sendJson(res, 200, protege({ photos: sessions.get(id).photos }, coach));
+      }
+      if (method === 'POST') {
+        if (!coach) throw cleCoachRequise('Seul le coach peut ajouter une photo.');
+        sessions.get(id); // 404 avant d'écrire quoi que ce soit
+        const photo = await photos.enregistrer(id, await readJsonBody(req, MAX_IMAGE_BODY_BYTES));
+        const session = await sessions.ajouterPhoto(id, photo).catch(async (erreur) => {
+          // L'image est arrivée mais la séance n'a pas pu être mise à jour :
+          // on retire l'image plutôt que de laisser un orphelin dans le dépôt.
+          await photos.supprimer(id, photo).catch(() => {});
+          throw erreur;
+        });
+        res.setHeader('Location', `/api/sessions/${id}/photos/${photo.id}`);
+        return sendJson(res, 201, { photo, session });
+      }
+      throw methodNotAllowed(method, ['GET', 'POST']);
+    }
+
+    const photo = sessions.trouverPhoto(id, subId);
+    if (method === 'GET') {
+      // L'adresse d'une photo cachée ne doit rien révéler, même devinée.
+      if (!coach && !estVisible(photo)) {
+        throw notFound(`Aucune photo « ${subId} » sur cette séance.`);
+      }
+      return sendImage(res, await photos.lire(id, photo), photo, coach);
+    }
+    if (method === 'PATCH' || method === 'PUT') {
+      if (!coach) throw cleCoachRequise('Seul le coach peut montrer ou cacher une photo.');
+      return sendJson(res, 200, {
+        session: await sessions.modifierPhoto(id, subId, await readJsonBody(req))
+      });
+    }
+    if (method === 'DELETE') {
+      if (!coach) throw cleCoachRequise('Seul le coach peut supprimer une photo.');
+      const session = await sessions.supprimerPhoto(id, subId);
+      await photos.supprimer(id, photo);
+      return sendJson(res, 200, { session, deleted: true });
+    }
+    throw methodNotAllowed(method, ['GET', 'PATCH', 'DELETE']);
   }
 
   if (sub === 'notes-vocales') {
@@ -233,8 +290,8 @@ function apiIndex() {
     timezone: TIMEZONE,
     acces: {
       entete: ENTETE,
-      coach: 'Créer, modifier, archiver et restaurer une séance ; les notes vocales ; retirer un message.',
-      equipe: 'Consulter le calendrier, s’inscrire à une séance, s’en retirer, laisser un mot.'
+      coach: 'Créer, modifier, archiver et restaurer une séance ; les notes vocales ; les photos et leur visibilité ; retirer un message.',
+      equipe: 'Consulter le calendrier, s’inscrire à une séance, s’en retirer, laisser un mot, voir les photos publiées.'
     },
     joursVisibles: DAYS_IN_VIEW,
     moisHorizon: MOIS_HORIZON,
@@ -260,6 +317,11 @@ function apiIndex() {
         method: 'GET',
         path: '/api/annee?start=YYYY-MM-DD&mois=12',
         description: 'Suivi sur 12 mois : totaux par mois et jours occupés.'
+      },
+      {
+        method: 'GET',
+        path: '/api/semaine?start=YYYY-MM-DD&adresse=',
+        description: 'La semaine résumée, avec son texte prêt à coller dans un message.'
       },
       { method: 'GET', path: '/api/export', description: 'Toutes les séances, archives comprises.' },
       {
@@ -294,6 +356,31 @@ function apiIndex() {
         description: 'Retire un message. Coach uniquement.'
       },
       {
+        method: 'GET',
+        path: '/api/sessions/:id/photos',
+        description: 'Les photos de la séance. L’équipe ne voit que celles rendues visibles.'
+      },
+      {
+        method: 'POST',
+        path: '/api/sessions/:id/photos',
+        description: 'Ajoute une photo ({ image: base64, mimeType, legende }). Cachée à l’arrivée. Coach uniquement.'
+      },
+      {
+        method: 'GET',
+        path: '/api/sessions/:id/photos/:photoId',
+        description: 'Renvoie l’image. 404 pour l’équipe tant qu’elle n’est pas visible.'
+      },
+      {
+        method: 'PATCH',
+        path: '/api/sessions/:id/photos/:photoId',
+        description: 'Montre ou cache la photo ({ visible }), corrige sa légende. Coach uniquement.'
+      },
+      {
+        method: 'DELETE',
+        path: '/api/sessions/:id/photos/:photoId',
+        description: 'Supprime une photo. Coach uniquement.'
+      },
+      {
         method: 'POST',
         path: '/api/sessions/:id/notes-vocales',
         description: 'Ajoute une note vocale ({ audio: base64, mimeType, duree, transcription }). Coach uniquement.'
@@ -309,6 +396,28 @@ function apiIndex() {
         description: 'Supprime une note vocale. Coach uniquement.'
       }
     ]
+  };
+}
+
+/**
+ * La page publique de la semaine, hors /api : c'est elle qu'on envoie à
+ * l'équipe. Elle ne demande aucune clé et ne montre que du public.
+ * @returns {{status: number, headers: object, body: string}}
+ */
+function reponsePartage(sessions, url, application) {
+  const resume = resumeSemaine(sessions, { start: url.searchParams.get('start') ?? undefined });
+  const corps = pageSemaine(resume, { url: url.href, application });
+  return {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Length': Buffer.byteLength(corps),
+      // Cinq minutes : assez pour qu'une messagerie lise l'aperçu sans
+      // rappeler le serveur à chaque partage, assez court pour qu'une séance
+      // ajoutée apparaisse vite.
+      'Cache-Control': 'public, max-age=300'
+    },
+    body: corps
   };
 }
 
@@ -378,6 +487,19 @@ function sendAudio(res, bytes, note) {
   res.end(bytes);
 }
 
+/** Une photo visible peut être mise en cache par le navigateur ; une photo
+    encore privée ne doit l'être que par celui du coach. */
+function sendImage(res, bytes, photo, coach) {
+  res.writeHead(200, {
+    'Content-Type': photo.mimeType,
+    'Content-Length': bytes.length,
+    'Content-Disposition': `inline; filename="${photo.fichier}"`,
+    'Cache-Control': estVisible(photo) ? 'public, max-age=86400' : 'private, max-age=3600',
+    ...(coach && !estVisible(photo) ? { 'X-Photo-Visible': 'false' } : {})
+  });
+  res.end(bytes);
+}
+
 function sendError(res, error, req) {
   if (error instanceof ApiError) {
     if (error.status === 413 && req) {
@@ -393,13 +515,16 @@ function sendError(res, error, req) {
 module.exports = {
   handleApi,
   handleAthletes,
+  reponsePartage,
   readJsonBody,
   sendJson,
   sendAudio,
+  sendImage,
   sendError,
   setCorsHeaders,
   methodNotAllowed,
   cleCoachRequise,
   MAX_BODY_BYTES,
-  MAX_AUDIO_BODY_BYTES
+  MAX_AUDIO_BODY_BYTES,
+  MAX_IMAGE_BODY_BYTES
 };

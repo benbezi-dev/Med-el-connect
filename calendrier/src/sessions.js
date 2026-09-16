@@ -25,6 +25,7 @@ const {
   STATUT_PAR_DEFAUT
 } = require('./reference');
 const { badRequest, notFound, conflict } = require('./errors');
+const { legende: legendePhoto } = require('./photos');
 
 const MAX_TITLE = 120;
 const MAX_COACH = 80;
@@ -33,6 +34,7 @@ const MAX_CAPACITY = 200;
 const MAX_PARTICIPANTS = 200;
 const MAX_MESSAGE = 500;
 const MAX_MESSAGES = 200;
+const MAX_PHOTOS = 30;
 const DEFAULT_TITLE = 'Entraînement';
 const DEFAULT_CAPACITY = 20;
 
@@ -101,6 +103,7 @@ class SessionService {
       id: `ses_${crypto.randomUUID()}`,
       ...input,
       notesVocales: [],
+      photos: [],
       messages: [],
       historique: [{ statut: input.statut, at: now }],
       archivee: false,
@@ -261,6 +264,64 @@ class SessionService {
     return decorate(updated, this.athletes);
   }
 
+  /* ---------- photos ---------- */
+
+  /** Attache les métadonnées d'une photo (l'image est stockée par PhotoStore). */
+  async ajouterPhoto(id, photo) {
+    const existing = this.mustFind(id);
+    const photos = existing.photos ?? [];
+    if (photos.length >= MAX_PHOTOS) {
+      throw conflict(`Cette séance porte déjà ${MAX_PHOTOS} photos.`);
+    }
+    return this.remplacerSeance(id, {
+      ...existing,
+      photos: [...photos, photo],
+      updatedAt: new Date().toISOString()
+    });
+  }
+
+  trouverPhoto(id, photoId) {
+    const session = this.mustFind(id);
+    const photo = (session.photos ?? []).find((p) => p.id === photoId);
+    if (!photo) throw notFound(`Aucune photo « ${photoId} » sur cette séance.`);
+    return photo;
+  }
+
+  /** Montre ou retire une photo à l'équipe, et corrige sa légende. */
+  async modifierPhoto(id, photoId, payload) {
+    const existing = this.mustFind(id);
+    this.trouverPhoto(id, photoId);
+    if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) {
+      throw badRequest('Le corps de la requête doit être un objet JSON.');
+    }
+
+    const changes = {};
+    if (payload.visible !== undefined) {
+      if (typeof payload.visible !== 'boolean') {
+        throw badRequest('Le champ « visible » doit valoir true ou false.');
+      }
+      changes.visible = payload.visible;
+    }
+    if (payload.legende !== undefined) changes.legende = legendePhoto(payload.legende);
+    if (Object.keys(changes).length === 0) throw badRequest('Aucun champ modifiable fourni.');
+
+    return this.remplacerSeance(id, {
+      ...existing,
+      photos: (existing.photos ?? []).map((p) => (p.id === photoId ? { ...p, ...changes } : p)),
+      updatedAt: new Date().toISOString()
+    });
+  }
+
+  async supprimerPhoto(id, photoId) {
+    const existing = this.mustFind(id);
+    this.trouverPhoto(id, photoId);
+    return this.remplacerSeance(id, {
+      ...existing,
+      photos: (existing.photos ?? []).filter((p) => p.id !== photoId),
+      updatedAt: new Date().toISOString()
+    });
+  }
+
   mustFind(id) {
     const session = this.store.find(id);
     if (!session) throw notFound(`Aucune séance avec l'identifiant « ${id} ».`);
@@ -299,6 +360,7 @@ function decorate(session, athletes) {
     statut,
     statutLabel: findStatut(statut)?.label ?? statut,
     notesVocales: session.notesVocales ?? [],
+    photos: session.photos ?? [],
     historique: session.historique ?? [],
     archivee: Boolean(session.archivee),
     location: findLocation(session.locationId) ?? null,
@@ -436,4 +498,4 @@ function athleteConnu(athletes, athleteId) {
   return athlete;
 }
 
-module.exports = { SessionService, occupeLeCreneau, MAX_NOTES, MAX_MESSAGE };
+module.exports = { SessionService, occupeLeCreneau, MAX_NOTES, MAX_MESSAGE, MAX_PHOTOS };

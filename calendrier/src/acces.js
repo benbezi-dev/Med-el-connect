@@ -53,24 +53,45 @@ function comparer(fournie, attendue) {
 }
 
 /**
- * Retire les notes vocales d'un payload destiné à un athlète. La copie est
- * profonde : rien de ce qui est renvoyé ne partage d'objet avec le stockage.
+ * Prépare un payload pour un athlète : les notes vocales disparaissent, et
+ * les photos se réduisent à celles que le coach a rendues visibles.
+ *
+ * La copie est profonde : rien de ce qui est renvoyé ne partage d'objet avec
+ * le stockage. Le filtre est récursif parce qu'une séance apparaît aussi bien
+ * à la racine (`{session}`) qu'au fond d'une grille (`{jours: [{cellules: …}]}`).
  */
-function masquerNotesVocales(valeur) {
-  if (Array.isArray(valeur)) return valeur.map(masquerNotesVocales);
+function masquerPourAthlete(valeur) {
+  if (Array.isArray(valeur)) return valeur.map(masquerPourAthlete);
   if (valeur && typeof valeur === 'object') {
     const copie = {};
     for (const cle of Object.keys(valeur)) {
-      copie[cle] = cle === 'notesVocales' && Array.isArray(valeur[cle]) ? [] : masquerNotesVocales(valeur[cle]);
+      if (cle === 'notesVocales' && Array.isArray(valeur[cle])) copie[cle] = [];
+      else if (cle === 'photos' && Array.isArray(valeur[cle])) copie[cle] = valeur[cle].filter(estVisible).map(masquerPourAthlete);
+      else copie[cle] = masquerPourAthlete(valeur[cle]);
     }
     return copie;
   }
   return valeur;
 }
 
-/** Laisse passer le payload pour le coach, le masque pour les athlètes. */
-function protege(payload, coach) {
-  return coach ? payload : masquerNotesVocales(payload);
+/** Une photo n'est montrée que si le coach l'a explicitement basculée. */
+function estVisible(photo) {
+  return Boolean(photo) && photo.visible === true;
 }
 
-module.exports = { resoudreCle, tirerCle, estCoach, masquerNotesVocales, protege, ENTETE, PARAMETRE, FICHIER_CLE };
+/** Laisse passer le payload pour le coach, le masque pour les athlètes. */
+function protege(payload, coach) {
+  return coach ? payload : masquerPourAthlete(payload);
+}
+
+module.exports = {
+  resoudreCle,
+  tirerCle,
+  estCoach,
+  masquerPourAthlete,
+  estVisible,
+  protege,
+  ENTETE,
+  PARAMETRE,
+  FICHIER_CLE
+};

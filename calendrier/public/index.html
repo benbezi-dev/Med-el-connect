@@ -24,6 +24,7 @@
           <button type="button" id="aujourdhui">Aujourd’hui</button>
           <button type="button" id="suivant" aria-label="7 jours suivants">Suivant ›</button>
         </nav>
+        <button type="button" id="partager" class="partage-bouton">Envoyer la semaine</button>
         <button type="button" id="bouton-coach" class="coach-bascule">Mode athlète</button>
       </div>
     </header>
@@ -51,11 +52,38 @@
     </details>
   </main>
 
+  <dialog id="dialogue-partage">
+    <form method="dialog" id="formulaire-partage">
+      <div>
+        <h2>Envoyer la semaine</h2>
+        <p class="contexte">Deux façons de faire : coller le texte directement dans la conversation, ou envoyer le lien — qui s’affiche déjà sous forme de calendrier dans l’aperçu.</p>
+      </div>
+
+      <label>À coller dans WhatsApp, SMS, mail…
+        <textarea id="partage-texte" rows="9" readonly></textarea>
+      </label>
+      <div class="actions partage-actions">
+        <button type="button" class="principal" id="copier-texte">Copier le texte</button>
+        <span class="partage-etat" id="partage-etat"></span>
+      </div>
+
+      <label>Lien de la semaine
+        <input id="partage-lien" type="text" readonly>
+      </label>
+      <p class="coach-aide">Ce lien s’ouvre directement sur la semaine, sans rien à charger, et les messageries en affichent l’aperçu.</p>
+
+      <div class="actions">
+        <button type="button" id="copier-lien">Copier le lien</button>
+        <button type="button" class="principal" id="partage-fermer">Fermer</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="dialogue-coach">
     <form method="dialog" id="formulaire-coach">
       <div>
         <h2>Mode coach</h2>
-        <p class="contexte">Les notes vocales ne sont visibles qu’avec la clé coach. Vos athlètes voient la grille, les statuts et les séances — jamais les notes.</p>
+        <p class="contexte">Les notes vocales ne sont visibles qu’avec la clé coach. Vos athlètes voient la grille, les statuts, les séances et les photos que vous publiez — jamais les notes vocales, ni les photos restées cachées.</p>
       </div>
 
       <p class="message erreur" id="coach-alerte" role="alert" hidden></p>
@@ -123,6 +151,17 @@
           <input id="champ-mot" name="mot" type="text" maxlength="500" placeholder="Un mot sur la séance…">
           <button type="button" id="envoyer-mot">Envoyer</button>
         </div>
+      </section>
+
+      <section class="photos" id="photos" aria-labelledby="photos-titre">
+        <h3 id="photos-titre">Photos</h3>
+        <p class="photos-aide" id="photos-aide" hidden></p>
+        <div class="photos-barre" id="photos-barre" hidden>
+          <label class="bouton-fichier" for="champ-photo">Ajouter une photo</label>
+          <input id="champ-photo" type="file" accept="image/*" multiple hidden>
+          <span class="photos-etat" id="photos-etat"></span>
+        </div>
+        <ul class="photos-liste" id="photos-liste"></ul>
       </section>
 
       <section class="vocal" id="vocal" aria-labelledby="vocal-titre">

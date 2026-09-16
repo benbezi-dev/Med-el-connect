@@ -17,12 +17,14 @@
     calendrier: null,
     edition: null,
     noteEnAttente: null,   // note vocale enregistrée avant que la séance n'existe
+    photosEnAttente: [],   // photos choisies avant que la séance n'existe
     anneeChargee: false,
     cle: lireCle(),        // clé coach : les notes vocales n'existent qu'avec elle
     coach: false,
     athletes: [],          // l'équipe, chargée une fois
     auteur: lireAuteur(),  // le dernier athlète à avoir écrit, sur cet appareil
-    sons: []               // URLs blob des sons chargés, à révoquer
+    sons: [],              // URLs blob des sons chargés, à révoquer
+    apercus: []            // URLs blob des photos cachées, à révoquer
   };
 
   /** localStorage peut être bloqué (navigation privée) : on n'en dépend jamais. */
@@ -65,9 +67,12 @@
     'dialogue', 'formulaire', 'dialogue-titre', 'dialogue-contexte', 'dialogue-alerte',
     'champ-statut', 'champ-lieu', 'champ-heure', 'champ-titre', 'champ-coach', 'champ-capacite', 'champ-notes',
     'enregistrer-voix', 'vocal-etat', 'vocal-aide', 'vocal-liste',
+    'photos', 'photos-aide', 'photos-barre', 'photos-etat', 'photos-liste', 'champ-photo',
     'archiver', 'enregistrer', 'annuler', 'precedent', 'suivant', 'aujourdhui',
     'vocal', 'bouton-coach', 'dialogue-coach', 'formulaire-coach', 'coach-alerte', 'champ-cle',
     'oublier-cle', 'coach-annuler',
+    'partager', 'dialogue-partage', 'formulaire-partage', 'partage-texte', 'partage-lien',
+    'copier-texte', 'copier-lien', 'partage-etat', 'partage-fermer',
     'equipe', 'equipe-liste', 'mots-liste', 'champ-auteur', 'champ-mot', 'envoyer-mot'
   ].forEach(function (id) {
     els[id] = document.getElementById(id);
@@ -305,6 +310,16 @@
       ouvrir.appendChild(creer('span', {
         className: 'vocal-indicateur',
         textContent: '♪ ' + pluriel(seance.notesVocales.length, 'note vocale', 'notes vocales')
+      }));
+    }
+    // L'équipe ne reçoit déjà que les photos publiées : compter ce qu'on a suffit.
+    if (seance.photos && seance.photos.length) {
+      var publiees = seance.photos.filter(function (photo) { return photo.visible; }).length;
+      ouvrir.appendChild(creer('span', {
+        className: 'photo-indicateur' + (etat.coach && !publiees ? ' cachee' : ''),
+        textContent: '▣ ' + (etat.coach && publiees !== seance.photos.length
+          ? publiees + '/' + seance.photos.length + ' photo' + (seance.photos.length > 1 ? 's' : '')
+          : pluriel(seance.photos.length, 'photo'))
       }));
     }
     ouvrir.addEventListener('click', function () { ouvrirEdition(seance); });
@@ -628,11 +643,13 @@
   function ouvrirDialogue() {
     afficherAlerte(null, els['dialogue-alerte']);
     etat.noteEnAttente = null;
+    etat.photosEnAttente = [];
     els.vocal.hidden = !etat.coach;   // réservées au coach
     verrouillerFormulaire();
     els['champ-mot'].value = '';
     dessinerEquipe();
     dessinerNotesVocales();
+    dessinerPhotos();
     reinitialiserEnregistreur();
     els.dialogue.showModal();
     els['champ-statut'].focus();
@@ -657,7 +674,10 @@
 
     basculerChargement(true);
     requete
-      .then(function (reponse) { return televerserNoteEnAttente(reponse.session.id); })
+      .then(function (reponse) {
+        return televerserNoteEnAttente(reponse.session.id)
+          .then(function () { return televerserPhotosEnAttente(reponse.session.id); });
+      })
       .then(function () { els.dialogue.close(); return charger(); })
       .catch(function (erreur) { afficherAlerte(erreur.message, els['dialogue-alerte']); })
       .then(function () { basculerChargement(false); });
@@ -831,6 +851,311 @@
     ecrireCle('');
     els['dialogue-coach'].close();
     charger();
+  }
+
+  /* ---------- Envoyer la semaine ---------- */
+
+  /** L'adresse publique de la semaine affichée, telle qu'on la partagera. */
+  function lienSemaine() {
+    var lien = new URL('semaine', location.href.replace(/[^/]*$/, ''));
+    if (etat.start) lien.searchParams.set('start', etat.start);
+    return lien.href;
+  }
+
+  function ouvrirPartage() {
+    var lien = lienSemaine();
+    els['partage-lien'].value = lien;
+    els['partage-texte'].value = 'Préparation…';
+    etatPartage('');
+    els['dialogue-partage'].showModal();
+
+    appeler('/semaine?adresse=' + encodeURIComponent(lien) + (etat.start ? '&start=' + encodeURIComponent(etat.start) : ''))
+      .then(function (reponse) { els['partage-texte'].value = reponse.texte; })
+      .catch(function (erreur) { els['partage-texte'].value = 'Résumé indisponible : ' + erreur.message; });
+  }
+
+  function etatPartage(message) {
+    els['partage-etat'].textContent = message || '';
+  }
+
+  /**
+   * Le presse-papiers moderne exige une page sécurisée ; sur http:// il
+   * n'existe pas. On retombe alors sur la sélection du champ, que l'on copie
+   * à la main.
+   */
+  function copier(champ, quoi) {
+    var texte = champ.value;
+    var fini = function () { etatPartage(quoi + ' copié.'); };
+    var echoue = function () {
+      champ.focus();
+      champ.select();
+      etatPartage('Sélectionné : faites Cmd+C (ou Ctrl+C).');
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(texte).then(fini).catch(echoue);
+    } else {
+      echoue();
+    }
+  }
+
+  /* ---------- Photos ---------- */
+
+  // Une photo de téléphone pèse plusieurs méga-octets pour rien : on la réduit
+  // avant l'envoi. Les athlètes la chargent souvent en 4G, au bord de la piste.
+  var COTE_MAX = 1600;
+  var QUALITE = 0.82;
+  var TYPES_IMAGE = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+  function dessinerPhotos() {
+    var liste = els['photos-liste'];
+    libererApercus();
+    while (liste.firstChild) liste.removeChild(liste.firstChild);
+
+    var enCreation = !etat.edition || etat.edition.mode === 'creation';
+    var seance = etat.edition && etat.edition.seance;
+    var photos = (seance && seance.photos) || [];
+
+    // Tout le monde voit la section : l'équipe pour regarder, le coach pour publier.
+    els['photos-barre'].hidden = !etat.coach;
+    els['champ-photo'].value = '';
+
+    if (etat.coach && enCreation) {
+      aidePhotos(etat.photosEnAttente.length
+        ? pluriel(etat.photosEnAttente.length, 'photo part', 'photos partent') + ' avec la séance.'
+        : 'Les photos partiront avec la séance dès son enregistrement.');
+    } else if (etat.coach) {
+      aidePhotos('Une photo ajoutée reste cachée. Basculez-la sur « Visible » pour la montrer à l’équipe.');
+    } else {
+      aidePhotos('');
+    }
+
+    etat.photosEnAttente.forEach(function (attente, index) {
+      liste.appendChild(elementPhotoEnAttente(attente, index));
+    });
+
+    if (!photos.length && !etat.photosEnAttente.length) {
+      liste.appendChild(creer('li', {
+        className: 'photos-vide',
+        textContent: etat.coach ? 'Aucune photo pour l’instant.' : 'Aucune photo publiée pour cette séance.'
+      }));
+      return;
+    }
+    photos.forEach(function (photo) { liste.appendChild(elementPhoto(photo, seance.id)); });
+  }
+
+  function aidePhotos(message) {
+    els['photos-aide'].textContent = message || '';
+    els['photos-aide'].hidden = !message;
+  }
+
+  function etatPhotos(message) {
+    els['photos-etat'].textContent = message || '';
+  }
+
+  /** Une photo déjà stockée : vignette, légende, et pour le coach ses commandes. */
+  function elementPhoto(photo, sessionId) {
+    var item = creer('li', { className: 'photo' + (photo.visible ? ' publiee' : '') });
+    var vignette = creer('img', { className: 'photo-vignette', alt: photo.legende || 'Photo de la séance' });
+
+    // Une photo visible est publique : le navigateur la charge et la met en
+    // cache tout seul. Une photo cachée n'existe qu'avec la clé coach.
+    if (photo.visible) {
+      vignette.src = API + '/sessions/' + sessionId + '/photos/' + photo.id;
+    } else {
+      chargerApercu('/sessions/' + sessionId + '/photos/' + photo.id)
+        .then(function (lien) { vignette.src = lien; })
+        .catch(function () { vignette.alt = 'Photo illisible'; item.classList.add('illisible'); });
+    }
+    item.appendChild(vignette);
+
+    if (photo.legende) item.appendChild(creer('p', { className: 'photo-legende', textContent: photo.legende }));
+
+    // L'étiquette ne dit quelque chose qu'au coach : l'équipe, elle, ne reçoit
+    // que des photos visibles — le préciser sur chacune ne serait que du bruit.
+    if (!etat.coach) return item;
+
+    item.appendChild(creer('span', {
+      className: 'photo-etat' + (photo.visible ? ' visible' : ''),
+      textContent: photo.visible ? 'Visible par l’équipe' : 'Cachée'
+    }));
+
+    var commandes = creer('div', { className: 'photo-commandes' });
+    var bascule = creer('button', {
+      type: 'button',
+      className: 'photo-bascule',
+      textContent: photo.visible ? 'Cacher' : 'Montrer à l’équipe'
+    });
+    bascule.addEventListener('click', function () {
+      commandes.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+      modifierPhoto(sessionId, photo.id, { visible: !photo.visible });
+    });
+    commandes.appendChild(bascule);
+
+    var supprimer = creer('button', { type: 'button', className: 'danger', textContent: 'Supprimer' });
+    supprimer.addEventListener('click', function () {
+      if (!confirm('Supprimer cette photo ?')) return;
+      commandes.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+      appeler('/sessions/' + sessionId + '/photos/' + photo.id, { method: 'DELETE' })
+        .then(function (reponse) {
+          etat.edition.seance = reponse.session;
+          dessinerPhotos();
+          return charger();
+        })
+        .catch(function (erreur) {
+          afficherAlerte(erreur.message, els['dialogue-alerte']);
+          dessinerPhotos();
+        });
+    });
+    commandes.appendChild(supprimer);
+    item.appendChild(commandes);
+    return item;
+  }
+
+  /** Une photo choisie avant que la séance n'existe : elle n'a pas encore d'adresse. */
+  function elementPhotoEnAttente(attente, index) {
+    var item = creer('li', { className: 'photo en-attente' });
+    item.appendChild(creer('img', {
+      className: 'photo-vignette',
+      src: 'data:' + attente.mimeType + ';base64,' + attente.image,
+      alt: 'Photo à envoyer'
+    }));
+    item.appendChild(creer('span', { className: 'photo-etat', textContent: 'Part avec la séance' }));
+
+    var retirer = creer('button', { type: 'button', className: 'danger', textContent: 'Retirer' });
+    retirer.addEventListener('click', function () {
+      etat.photosEnAttente.splice(index, 1);
+      dessinerPhotos();
+    });
+    item.appendChild(retirer);
+    return item;
+  }
+
+  function modifierPhoto(sessionId, photoId, changements) {
+    return appeler('/sessions/' + sessionId + '/photos/' + photoId, { method: 'PATCH', body: changements })
+      .then(function (reponse) {
+        etat.edition.seance = reponse.session;
+        dessinerPhotos();
+        return charger();
+      })
+      .catch(function (erreur) {
+        afficherAlerte(erreur.message, els['dialogue-alerte']);
+        dessinerPhotos();
+      });
+  }
+
+  /** Le coach a choisi un ou plusieurs fichiers. */
+  function choisirPhotos(evenement) {
+    var fichiers = Array.prototype.slice.call(evenement.target.files || []);
+    if (!fichiers.length) return;
+    etatPhotos('Préparation…');
+
+    Promise.all(fichiers.map(preparerImage))
+      .then(function (preparees) {
+        var enCreation = etat.edition.mode === 'creation';
+        if (enCreation) {
+          // Pas encore de séance : on les garde et elles partiront avec.
+          etat.photosEnAttente = etat.photosEnAttente.concat(preparees);
+          etatPhotos('');
+          dessinerPhotos();
+          return null;
+        }
+        etatPhotos('Envoi…');
+        return preparees
+          .reduce(function (chaine, preparee) {
+            return chaine.then(function () { return televerserPhoto(etat.edition.seance.id, preparee); });
+          }, Promise.resolve())
+          .then(function () {
+            etatPhotos('');
+            dessinerPhotos();
+            return charger();
+          });
+      })
+      .catch(function (erreur) {
+        etatPhotos('');
+        afficherAlerte(erreur.message, els['dialogue-alerte']);
+      });
+    evenement.target.value = '';
+  }
+
+  function televerserPhoto(sessionId, preparee) {
+    return appeler('/sessions/' + sessionId + '/photos', { method: 'POST', body: preparee })
+      .then(function (reponse) { etat.edition.seance = reponse.session; });
+  }
+
+  /** Envoie les photos retenues pendant la création, une fois la séance née. */
+  function televerserPhotosEnAttente(sessionId) {
+    if (!etat.photosEnAttente.length) return Promise.resolve();
+    var aEnvoyer = etat.photosEnAttente;
+    etat.photosEnAttente = [];
+    return aEnvoyer.reduce(function (chaine, preparee) {
+      return chaine.then(function () {
+        return appeler('/sessions/' + sessionId + '/photos', { method: 'POST', body: preparee });
+      });
+    }, Promise.resolve());
+  }
+
+  /**
+   * Réduit l'image et la réencode en JPEG. Si le navigateur ne sait pas la
+   * décoder (un HEIC exotique, par exemple), on envoie le fichier tel quel
+   * quand son format est accepté — mieux vaut une photo lourde que rien.
+   */
+  function preparerImage(fichier) {
+    return lireFichier(fichier).then(function (dataUrl) {
+      return reduire(dataUrl).catch(function (erreur) {
+        if (TYPES_IMAGE.indexOf(fichier.type) === -1) throw erreur;
+        return { image: dataUrl.split(',')[1], mimeType: fichier.type };
+      });
+    });
+  }
+
+  function lireFichier(fichier) {
+    return new Promise(function (resoudre, rejeter) {
+      var lecteur = new FileReader();
+      lecteur.onload = function () { resoudre(String(lecteur.result)); };
+      lecteur.onerror = function () { rejeter(new Error('Lecture de « ' + fichier.name + ' » impossible.')); };
+      lecteur.readAsDataURL(fichier);
+    });
+  }
+
+  function reduire(dataUrl) {
+    return new Promise(function (resoudre, rejeter) {
+      var image = new Image();
+      image.onerror = function () { rejeter(new Error('Cette image est illisible par le navigateur.')); };
+      image.onload = function () {
+        var cote = Math.max(image.width, image.height);
+        if (!cote) return rejeter(new Error('Cette image est vide.'));
+        var echelle = Math.min(1, COTE_MAX / cote);
+        var toile = document.createElement('canvas');
+        toile.width = Math.max(1, Math.round(image.width * echelle));
+        toile.height = Math.max(1, Math.round(image.height * echelle));
+        toile.getContext('2d').drawImage(image, 0, 0, toile.width, toile.height);
+        try {
+          resoudre({ image: toile.toDataURL('image/jpeg', QUALITE).split(',')[1], mimeType: 'image/jpeg' });
+        } catch (erreur) {
+          rejeter(new Error('Réduction de la photo impossible.'));
+        }
+      };
+      image.src = dataUrl;
+    });
+  }
+
+  /** Récupère une photo cachée avec la clé coach, pour l'afficher. */
+  function chargerApercu(chemin) {
+    return fetch(API + chemin, { headers: entetes(false) })
+      .then(function (reponse) {
+        if (!reponse.ok) throw new Error('Photo illisible.');
+        return reponse.blob();
+      })
+      .then(function (blob) {
+        var lien = URL.createObjectURL(blob);
+        etat.apercus.push(lien);
+        return lien;
+      });
+  }
+
+  function libererApercus() {
+    etat.apercus.forEach(function (lien) { URL.revokeObjectURL(lien); });
+    etat.apercus = [];
   }
 
   /* ---------- Notes vocales ---------- */
@@ -1161,6 +1486,7 @@
   els.archiver.addEventListener('click', archiver);
   els.formulaire.addEventListener('submit', enregistrer);
   els['enregistrer-voix'].addEventListener('click', basculerEnregistrement);
+  els['champ-photo'].addEventListener('change', choisirPhotos);
   els['champ-heure'].addEventListener('change', majLieuxSelonHeure);
   els['envoyer-mot'].addEventListener('click', envoyerMot);
   els['champ-mot'].addEventListener('keydown', function (evenement) {
@@ -1173,9 +1499,15 @@
   els.dialogue.addEventListener('close', function () {
     arreterFlux();
     libererSons();
+    libererApercus();
     if (etat.noteEnAttente && etat.noteEnAttente.apercu) URL.revokeObjectURL(etat.noteEnAttente.apercu);
     etat.noteEnAttente = null;
+    etat.photosEnAttente = [];
   });
+  els.partager.addEventListener('click', ouvrirPartage);
+  els['partage-fermer'].addEventListener('click', function () { els['dialogue-partage'].close(); });
+  els['copier-texte'].addEventListener('click', function () { copier(els['partage-texte'], 'Texte'); });
+  els['copier-lien'].addEventListener('click', function () { copier(els['partage-lien'], 'Lien'); });
   els['bouton-coach'].addEventListener('click', ouvrirCoach);
   els['formulaire-coach'].addEventListener('submit', validerCle);
   els['oublier-cle'].addEventListener('click', oublierCle);

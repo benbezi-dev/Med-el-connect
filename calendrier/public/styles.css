@@ -292,3 +292,143 @@ textarea { resize: vertical; min-height: 64px; }
   dialog { width: 100%; max-width: none; max-height: 100%; border-radius: 0; border: 0; }
   dialog form { padding: 16px 14px 24px; }
 }
+
+/* ---------- Photos ---------- */
+
+.photos {
+  display: grid;
+  gap: 0.6rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--bordure);
+}
+
+.photos-barre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* Le vrai <input type=file> est caché : ce label en est le bouton. */
+.bouton-fichier {
+  display: inline-block;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--bordure-forte);
+  border-radius: 8px;
+  background: var(--surface-haute);
+  color: var(--encre);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bouton-fichier:hover { border-color: var(--accent); color: var(--accent); }
+
+.photos-etat,
+.photos-aide { font-size: 0.82rem; color: var(--encre-douce); }
+
+.photos-liste {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.photos-vide {
+  grid-column: 1 / -1;
+  font-size: 0.85rem;
+  color: var(--encre-douce);
+}
+
+.photo {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.45rem;
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  background: var(--surface-haute);
+}
+
+/* Une photo publiée se distingue d'un coup d'œil de celle qui dort encore. */
+.photo.publiee { border-color: var(--valide); }
+
+.photo-vignette {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--bordure);
+}
+
+.photo-legende {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.3;
+}
+
+.photo-etat {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--encre-douce);
+}
+
+.photo-etat.visible { color: var(--valide); }
+
+.photo-commandes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.photo-commandes button {
+  flex: 1 1 auto;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.78rem;
+}
+
+.photo.illisible .photo-vignette { opacity: 0.4; }
+
+.photo-indicateur {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--valide);
+}
+
+/* Rien de publié : le repère ne doit pas se lire comme une bonne nouvelle. */
+.photo-indicateur.cachee { color: var(--encre-douce); }
+
+@media (max-width: 700px) {
+  .photos-liste { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+}
+
+/* ---------- Envoyer la semaine ---------- */
+
+.partage-bouton {
+  padding: 7px 12px;
+  border: 1px solid var(--bordure-forte);
+  border-radius: 8px;
+  background: var(--surface-haute);
+  color: var(--encre);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.partage-bouton:hover { border-color: var(--accent); color: var(--accent); }
+
+#partage-texte {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.partage-actions { align-items: center; gap: 10px; }
+.partage-etat { font-size: 0.82rem; color: var(--valide); font-weight: 600; }
