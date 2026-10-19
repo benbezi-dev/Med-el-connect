@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/diagnostic/"
+title = "Diagnostic MED-EL"
+version = "1.0.0"
+id = "artifacts/medel-diagnostic"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/diagnostic/" ]
+localPort = 8082
+
+[services.development]
+run = "pnpm --filter @workspace/medel-diagnostic run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/medel-diagnostic", "run", "build" ]
+publicDir = "artifacts/medel-diagnostic/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "8082"
+BASE_PATH = "/diagnostic/"
