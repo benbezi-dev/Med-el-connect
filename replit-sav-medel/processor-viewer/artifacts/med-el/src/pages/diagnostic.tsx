@@ -80,8 +80,21 @@ function DevicePlaceholder() {
   );
 }
 
+// Point de départ transmis par le parcours d'accueil (?depart=…&profil=…).
+function etatDepuisUrl(): AppState {
+  const q = new URLSearchParams(window.location.search);
+  const depart = q.get("depart");
+  if (!depart || !TREE[depart]) return INITIAL_STATE;
+  return {
+    currentNodeId: depart,
+    history: [],
+    profile: q.get("profil") === "professionnel" ? "pro" : "patient",
+    device: TREE[depart].device ?? null,
+  };
+}
+
 export default function DiagnosticPage() {
-  const [state, setState] = useState<AppState>(INITIAL_STATE);
+  const [state, setState] = useState<AppState>(etatDepuisUrl);
 
   const node = TREE[state.currentNodeId];
   const device = node ? deriveDevice(node) : state.device;

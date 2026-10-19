@@ -18,3 +18,9 @@ Aucun Repl ne s'appelle « SAV MED-EL » ; le travail est dans deux Repls.
 - Il n'y a pas encore de réception des demandes d'aide : pas de formulaire, pas de tables, pas d'API.
 - Fichiers non copiés : voir `_SKIPPED.txt` dans chaque dossier (pnpm-lock.yaml, images, un HTML de plus de 100 Ko).
 - Le dossier partagé modifie les `favicon.svg` (bloc C2PA ajouté) ; l'original est un carré orange de 3 lignes.
+
+## Nouveau parcours d'accueil (app `artifacts/med-el`)
+- `/` : profil (Utilisateur / Professionnel) → processeur (Sonnet 1, 2, 3 · Rondo 2, 3) → type d'aide (connectivité / auto-diagnostic), avec une vue 3D manipulable sur tous les axes.
+- `/diagnostic` : l'arbre de diagnostic d'origine, inchangé ; l'auto-diagnostic y renvoie au bon nœud de départ (`?depart=…&profil=…`).
+- Fichiers ajoutés : `src/data/parcours.ts`, `src/pages/parcours.tsx`, `src/components/processeur-3d.tsx`, `src/lib/vue3d.ts`. Les modèles 3D sont approximatifs et se remplacent dans `construireModele()` par les glTF officiels.
+- Captures : `captures/`.

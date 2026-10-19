@@ -3,11 +3,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import DiagnosticPage from "@/pages/diagnostic";
+import ParcoursPage from "@/pages/parcours";
+import { MotionConfig } from "framer-motion";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={DiagnosticPage} />
+      <Route path="/" component={ParcoursPage} />
+      <Route path="/diagnostic" component={DiagnosticPage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -15,12 +18,14 @@ function Router() {
 
 function App() {
   return (
-    <TooltipProvider>
-      <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-        <Router />
-      </WouterRouter>
-      <Toaster />
-    </TooltipProvider>
+    <MotionConfig reducedMotion="user">
+      <TooltipProvider>
+        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <Router />
+        </WouterRouter>
+        <Toaster />
+      </TooltipProvider>
+    </MotionConfig>
   );
 }
 
