@@ -341,94 +341,194 @@ function kit() {
   return { groupe, ajouter, coque, metal, mat, tube, extrusion, tour, voyant };
 }
 
+// Échelle : 1 unité = 10 mm. Cotes reprises des fiches MED-EL (Sonnet 2 : 56,7 mm de haut
+// avec coude, antenne 32,8 × 5,8 mm ; Rondo 3 : 44,9 × 35,8 × 11,9 mm ; Rondo 2 : 46,8 × 35,8 × 12,1 mm).
+
+// Contour 2D d'un corps courbé le long d'une colonne, avec bout arrondi en haut et/ou en bas.
+function silhouette(colonne: THREE.CatmullRomCurve3, t0: number, t1: number, demi: (t: number) => number, rondBas: boolean, rondHaut: boolean) {
+  const n = 40;
+  const gauche: THREE.Vector2[] = [];
+  const droite: THREE.Vector2[] = [];
+  for (let i = 0; i <= n; i++) {
+    const t = t0 + ((t1 - t0) * i) / n;
+    const c = colonne.getPointAt(t);
+    const d = colonne.getTangentAt(t);
+    const w = demi(t);
+    gauche.push(new THREE.Vector2(c.x - d.y * w, c.y + d.x * w));
+    droite.push(new THREE.Vector2(c.x + d.y * w, c.y - d.x * w));
+  }
+  const bout = (t: number, signe: number) => {
+    const c = colonne.getPointAt(t);
+    const d = colonne.getTangentAt(t);
+    const w = demi(t);
+    const a0 = Math.atan2(-d.x, d.y); // direction "droite"
+    const pts: THREE.Vector2[] = [];
+    for (let k = 1; k < 16; k++) {
+      const a = a0 + signe * (Math.PI * k) / 16;
+      pts.push(new THREE.Vector2(c.x + Math.cos(a) * w, c.y + Math.sin(a) * w));
+    }
+    return pts;
+  };
+  const pts = [...droite];
+  if (rondHaut) pts.push(...bout(t1, 1));
+  pts.push(...gauche.reverse());
+  if (rondBas) pts.push(...bout(t0, 1));
+  return new THREE.Shape(pts);
+}
+
 function sonnet(p: Processeur) {
-  const { groupe, ajouter, coque, metal, mat, tube, extrusion, tour, voyant } = kit();
-  // unité de contrôle : silhouette en haricot du contour d'oreille
-  const u = new THREE.Shape();
-  u.moveTo(-0.48, 0);
-  u.bezierCurveTo(-0.58, 0.9, -0.62, 1.7, -0.32, 2.2);
-  u.bezierCurveTo(-0.1, 2.55, 0.42, 2.55, 0.56, 2.1);
-  u.bezierCurveTo(0.66, 1.5, 0.58, 0.7, 0.5, 0);
-  u.lineTo(-0.48, 0);
-  ajouter("unite", extrusion(u, 0.78, coque(p.couleur)));
-  // pack d'alimentation
-  const b = new THREE.Shape();
-  b.moveTo(-0.5, -0.06);
-  b.lineTo(0.5, -0.06);
-  b.lineTo(0.5, -1.9);
-  b.bezierCurveTo(0.5, -2.55, -0.5, -2.55, -0.5, -1.9);
-  b.lineTo(-0.5, -0.06);
-  ajouter("pack", extrusion(b, 0.8, coque(p.couleur, { roughness: 0.45 })));
-  ajouter("pack", new THREE.Mesh(new THREE.BoxGeometry(1.24, 0.05, 1.08), mat("#2A2526")));
-  // contour d'oreille translucide
+  const { groupe, ajouter, coque, metal, mat, tube, tour, voyant } = kit();
+  const s3 = p.id === "sonnet3";
+  // colonne du contour d'oreille : légère courbe en banane, plus courte sur le Sonnet 3
+  const bas = s3 ? -2.25 : -2.85;
+  const colonne = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0.18, bas, 0),
+    new THREE.Vector3(0.42, bas * 0.5, 0),
+    new THREE.Vector3(0.44, 0, 0),
+    new THREE.Vector3(0.3, 0.85, 0),
+    new THREE.Vector3(0.0, 1.5, 0),
+  ]);
+  const biseau = 0.22;
+  const ep = 0.93; // épaisseur 9,3 mm
+  const corps = (forme: THREE.Shape, m: THREE.Material) => {
+    const g = new THREE.ExtrudeGeometry(forme, { depth: ep - 2 * biseau, bevelEnabled: true, bevelThickness: biseau, bevelSize: biseau * 0.9, bevelSegments: 10, curveSegments: 24 });
+    g.translate(0, 0, -(ep - 2 * biseau) / 2);
+    return new THREE.Mesh(g, m);
+  };
+  const demi = (t: number) => (0.5 - biseau * 0.9) * (t > 0.9 ? 0.92 + 0.08 * Math.cos(((t - 0.9) / 0.1) * Math.PI * 0.5) : 1);
+  const coupe = s3 ? 0.5 : 0.56; // jonction unité de contrôle / pack d'alimentation
+  ajouter("unite", corps(silhouette(colonne, coupe + 0.006, 1, demi, false, true), coque(p.couleur)));
+  ajouter("pack", corps(silhouette(colonne, 0, coupe - 0.006, demi, true, false), coque(p.secondaire, { roughness: 0.42 })));
+  // liseré de jonction
+  const cj = colonne.getPointAt(coupe);
+  const joint = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.03, ep * 0.98), mat("#1F1B1C"));
+  joint.position.set(cj.x, cj.y, 0);
+  joint.rotation.z = Math.atan2(colonne.getTangentAt(coupe).y, colonne.getTangentAt(coupe).x) - Math.PI / 2;
+  ajouter("pack", joint);
+
+  // coude : part du haut de l'unité, passe au-dessus de l'oreille et redescend devant
+  const haut = colonne.getPointAt(1);
   ajouter(
     "contour",
     tube(
-      [[-0.2, 2.3, 0], [-0.55, 2.95, 0], [-1.25, 3.15, 0], [-1.85, 2.8, 0], [-2.08, 2.15, 0], [-1.98, 1.55, 0]],
-      0.13,
-      new THREE.MeshPhysicalMaterial({ color: "#E9E2E2", roughness: 0.15, transparent: true, opacity: 0.7, clearcoat: 1 }),
+      [[haut.x - 0.12, haut.y + 0.25, 0], [haut.x - 0.35, haut.y + 0.85, 0], [haut.x - 0.95, haut.y + 1.15, 0], [haut.x - 1.6, haut.y + 1.0, 0], [haut.x - 2.0, haut.y + 0.55, 0], [haut.x - 2.12, haut.y + 0.05, 0]],
+      s3 ? 0.15 : 0.12,
+      s3
+        ? new THREE.MeshPhysicalMaterial({ color: "#D9D5D2", roughness: 0.55, transparent: true, opacity: 0.85 })
+        : new THREE.MeshPhysicalMaterial({ color: "#EDE7E3", roughness: 0.12, transparent: true, opacity: 0.72, clearcoat: 1 }),
     ),
   );
-  // microphones
-  for (const [x, y] of [[-0.12, 2.48], [0.3, 2.46]]) {
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.95, 20), mat("#1E1A1B"));
+  // embout du coude sur l'unité
+  const embout = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.26, 0.4, 24), coque(p.couleur));
+  embout.position.set(haut.x - 0.06, haut.y + 0.12, 0);
+  embout.rotation.z = 0.25;
+  ajouter("unite", embout);
+
+  // deux micros sur le dessus de l'unité (caches micro)
+  for (const t of [0.93, 0.83]) {
+    const c = colonne.getPointAt(t);
+    const d = colonne.getTangentAt(t);
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.06, 20), mat("#141112"));
     m.rotation.x = Math.PI / 2;
-    m.position.set(x, y, 0);
+    m.position.set(c.x + d.y * 0.12, c.y - d.x * 0.12, ep / 2 + 0.005);
     ajouter("micros", m);
   }
-  const v = voyant();
-  v.position.set(0.18, 1.72, 0.53);
-  ajouter("voyant", v);
-  // câble et antenne
-  ajouter("cable", tube([[0.48, 2.0, -0.1], [1.0, 2.45, -0.3], [1.85, 2.3, -0.45], [2.45, 1.7, -0.45], [2.62, 1.2, -0.35]], 0.05, mat("#3B3537")));
-  const a = tour([[0, 0.17], [0.75, 0.17], [0.98, 0.12], [1.06, 0], [0.98, -0.12], [0.75, -0.17], [0, -0.17]], coque(p.secondaire));
-  a.rotation.x = Math.PI / 2;
-  a.position.set(2.62, 0.25, -0.35);
-  ajouter("antenne", a);
-  const anneau = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.035, 12, 64), new THREE.MeshStandardMaterial({ color: ROUGE, roughness: 0.4 }));
-  anneau.position.set(2.62, 0.25, -0.17);
-  ajouter("antenne", anneau);
-  const aimant = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.12, 40), metal("#B8BCC2"));
+  if (s3) {
+    // touche tactile au dos de l'unité
+    const c = colonne.getPointAt(0.74);
+    const touche = new THREE.Mesh(new THREE.CapsuleGeometry(0.13, 0.32, 6, 16), coque("#56575C", { roughness: 0.3 }));
+    touche.position.set(c.x + 0.29, c.y, 0);
+    touche.rotation.z = -0.2;
+    touche.scale.z = 0.5;
+    ajouter("touche", touche);
+  }
+
+  // câble : sort du haut de l'unité, côté arrière, vers l'antenne posée sur la tête
+  const A = new THREE.Vector3(3.55, 2.35, -0.35);
+  const depart = colonne.getPointAt(0.95);
+  ajouter("cable", tube([[depart.x + 0.3, depart.y + 0.05, -0.2], [depart.x + 0.8, depart.y + 0.2, -0.3], [1.45, 1.75, -0.4], [A.x - 1.75, A.y - 0.3, -0.4], [A.x - 1.62, A.y - 0.05, -0.35]], 0.045, mat(p.id === "sonnet1" ? "#6E6A66" : "#38393C")));
+  // antenne DL-Coil : disque de 32,8 mm × 5,8 mm
+  const R = 1.64;
+  const antenne = tour([[0, -0.29], [R * 0.8, -0.29], [R * 0.95, -0.22], [R, -0.06], [R, 0.06], [R * 0.93, 0.22], [R * 0.75, 0.28], [0, 0.29]], coque(p.secondaire, { roughness: 0.4 }));
+  antenne.rotation.x = Math.PI / 2;
+  antenne.position.copy(A);
+  ajouter("antenne", antenne);
+  // aimant au centre, côté peau
+  const aimant = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.12, 40), metal("#B8BCC2"));
   aimant.rotation.x = Math.PI / 2;
-  aimant.position.set(2.62, 0.25, -0.55);
+  aimant.position.set(A.x, A.y, A.z - 0.32);
   ajouter("aimant", aimant);
+  // voyant de contrôle de liaison, sur l'antenne
+  const v = voyant();
+  v.position.set(A.x - 0.95, A.y - 0.95, A.z + 0.22);
+  ajouter("voyant", v);
   return groupe;
 }
 
+// Galet du Rondo : tour de profil, puis plan déformé en super-ellipse (45 × 36 mm).
+function galet(profil: [number, number][], rx: number, ry: number, m: THREE.Material) {
+  const g = new THREE.LatheGeometry(profil.map(([r, h]) => new THREE.Vector2(r, h)), 96);
+  const pos = g.attributes.position;
+  const n = 2.3;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const z = pos.getZ(i);
+    const r = Math.hypot(x, z);
+    if (r < 1e-6) continue;
+    const a = Math.atan2(z, x);
+    const c = Math.cos(a);
+    const sn = Math.sin(a);
+    const k = Math.pow(Math.pow(Math.abs(c), n) + Math.pow(Math.abs(sn), n), -1 / n);
+    pos.setXYZ(i, c * k * r * rx, pos.getY(i), sn * k * r * ry);
+  }
+  g.computeVertexNormals();
+  const mesh = new THREE.Mesh(g, m);
+  mesh.rotation.x = Math.PI / 2; // dessus vers la caméra
+  return mesh;
+}
+
 function rondo(p: Processeur) {
-  const { groupe, ajouter, coque, metal, mat, tour, voyant } = kit();
-  const R = 1.95;
-  const boitier = tour(
-    [[0, -0.42], [R - 0.2, -0.42], [R - 0.05, -0.34], [R, -0.12], [R - 0.02, 0.12], [R - 0.12, 0.3], [R - 0.3, 0.38], [0, 0.4]],
-    coque(p.couleur),
-  );
-  boitier.rotation.x = Math.PI / 2;
-  ajouter("boitier", boitier);
-  const couvercle = tour([[0, 0.36], [R - 0.42, 0.36], [R - 0.36, 0.4], [R - 0.48, 0.5], [1.0, 0.56], [0, 0.6]], coque(p.secondaire, { clearcoat: 1 }));
-  couvercle.rotation.x = Math.PI / 2;
-  ajouter("couvercle", couvercle);
-  const centre = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.04, 48), coque(ROUGE, { roughness: 0.3 }));
-  centre.rotation.x = Math.PI / 2;
-  centre.position.z = 0.6;
-  ajouter(p.id === "rondo3" ? "bouton" : "couvercle", centre);
-  for (const [x, y] of [[-0.62, 1.08], [0.62, 1.08]]) {
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.08, 20), mat("#1E1A1B"));
+  const { groupe, ajouter, coque, metal, mat, voyant } = kit();
+  const r3 = p.id === "rondo3";
+  const rx = (r3 ? 4.49 : 4.68) / 2;
+  const ry = 3.58 / 2;
+  const h = r3 ? 1.19 : 1.21;
+  const b = -h / 2;
+  // boîtier : fond plat contre la tête, flancs arrondis
+  ajouter("boitier", galet([[0, b], [0.82, b], [0.93, b + 0.06], [0.985, b + 0.2], [1, b + 0.42], [0.99, b + 0.6], [0.965, b + 0.66], [0, b + 0.66]], rx, ry, coque(p.couleur, { roughness: 0.5, clearcoat: 0.3 })));
+  // couvercle bombé (design cover interchangeable), séparé par une fine rainure
+  ajouter("couvercle", galet([[0, b + 0.68], [0.955, b + 0.68], [0.965, b + 0.74], [0.94, b + 0.88], [0.86, b + 1.02], [0.66, b + 1.13], [0.35, h / 2 - 0.005], [0, h / 2]], rx, ry, coque(p.secondaire, { roughness: r3 ? 0.55 : 0.3, clearcoat: r3 ? 0.2 : 0.8 })));
+  // micros : deux sur le Rondo 3, un seul sur le Rondo 2, vers l'avant
+  const micros = r3 ? [[rx * 0.62, ry * 0.42], [rx * 0.62, -ry * 0.42]] : [[rx * 0.66, 0]];
+  for (const [x, y] of micros) {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.06, 20), mat("#141112"));
     m.rotation.x = Math.PI / 2;
-    m.position.set(x, y, 0.53);
+    const z = b + 1.115; // à fleur du couvercle
+    m.position.set(x, y, z);
+    m.lookAt(x * 1.6, y * 1.6, z + 1.2);
+    m.rotateX(Math.PI / 2);
     ajouter("micros", m);
   }
-  const v = voyant();
-  v.position.set(R - 0.04, 0.35, 0.05);
-  ajouter("voyant", v);
-  const batterie = new THREE.Mesh(
-    new THREE.CylinderGeometry(1.15, 1.15, 0.38, 48),
-    new THREE.MeshStandardMaterial({ color: "#E0A43A", roughness: 0.5, metalness: 0.2 }),
-  );
-  batterie.rotation.x = Math.PI / 2;
+  // voyants : deux sur le Rondo 3 (batterie et liaison), un sur le Rondo 2, sur la tranche arrière
+  for (const y of r3 ? [0.22, -0.22] : [0]) {
+    const v = voyant();
+    v.position.set(-rx * 0.995, y, b + 0.45);
+    ajouter("voyant", v);
+  }
+  if (!r3) {
+    // bouton marche/arrêt du Rondo 2, sur la tranche
+    const bt = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.3, 6, 16), coque("#3A3B3F", { roughness: 0.4 }));
+    bt.position.set(0, ry * 0.99, b + 0.42);
+    bt.rotation.z = Math.PI / 2;
+    bt.scale.set(1, 1, 0.8);
+    ajouter("bouton", bt);
+  }
+  // batterie intégrée et aimant central côté peau
+  const batterie = galet([[0, b + 0.12], [0.72, b + 0.12], [0.72, b + 0.55], [0, b + 0.55]], rx, ry, new THREE.MeshStandardMaterial({ color: "#E0A43A", roughness: 0.5, metalness: 0.2 }));
   ajouter("batterie", batterie);
-  const aimant = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.12, 48), metal("#B8BCC2"));
+  const aimant = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.1, 48), metal("#B8BCC2"));
   aimant.rotation.x = Math.PI / 2;
-  aimant.position.z = -0.46;
+  aimant.position.z = b - 0.03;
   ajouter("aimant", aimant);
   return groupe;
 }

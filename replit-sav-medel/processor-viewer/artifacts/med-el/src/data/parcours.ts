@@ -44,11 +44,11 @@ export type Processeur = {
 };
 
 export const PROCESSEURS: Record<ProcesseurId, Processeur> = {
-  sonnet1: { id: "sonnet1", nom: "Sonnet 1", gamme: "Sonnet", modele: "sonnet", sous: "Contour d'oreille, antenne séparée", couleur: "#CDBFA8", secondaire: "#D7CBB7" },
-  sonnet2: { id: "sonnet2", nom: "Sonnet 2", gamme: "Sonnet", modele: "sonnet", sous: "Contour d'oreille, antenne séparée", couleur: "#8E9196", secondaire: "#9A9DA2" },
-  sonnet3: { id: "sonnet3", nom: "Sonnet 3", gamme: "Sonnet", modele: "sonnet", sous: "Contour d'oreille, Bluetooth intégré", couleur: "#3A3B3F", secondaire: "#45464B" },
-  rondo2: { id: "rondo2", nom: "Rondo 2", gamme: "Rondo", modele: "rondo", sous: "Tout-en-un sur la tête, rechargeable", couleur: "#5B5D62", secondaire: "#F3F1EE" },
-  rondo3: { id: "rondo3", nom: "Rondo 3", gamme: "Rondo", modele: "rondo", sous: "Tout-en-un sur la tête, rechargeable", couleur: "#2F3034", secondaire: "#ECE9E4" },
+  sonnet1: { id: "sonnet1", nom: "Sonnet 1", gamme: "Sonnet", modele: "sonnet", sous: "Contour d'oreille, antenne séparée", couleur: "#C8B79E", secondaire: "#C2B198" },
+  sonnet2: { id: "sonnet2", nom: "Sonnet 2", gamme: "Sonnet", modele: "sonnet", sous: "Contour d'oreille, antenne séparée", couleur: "#8D9095", secondaire: "#86898E" },
+  sonnet3: { id: "sonnet3", nom: "Sonnet 3", gamme: "Sonnet", modele: "sonnet", sous: "Contour d'oreille, Bluetooth intégré", couleur: "#2F3034", secondaire: "#35363A" },
+  rondo2: { id: "rondo2", nom: "Rondo 2", gamme: "Rondo", modele: "rondo", sous: "Tout-en-un sur la tête, rechargeable", couleur: "#4E4F53", secondaire: "#6A6C70" },
+  rondo3: { id: "rondo3", nom: "Rondo 3", gamme: "Rondo", modele: "rondo", sous: "Tout-en-un sur la tête, rechargeable", couleur: "#2A2B2E", secondaire: "#3A3B3F" },
 };
 
 export const GAMMES: { titre: string; processeurs: ProcesseurId[] }[] = [
@@ -75,8 +75,9 @@ export const COMPOSANTS: Record<Modele3D, Record<string, string>> = {
     unite: "Unité de contrôle",
     pack: "Pack d'alimentation",
     micros: "Microphones",
-    voyant: "Voyant lumineux",
-    contour: "Contour d'oreille",
+    voyant: "Voyant de liaison",
+    contour: "Coude",
+    touche: "Touche tactile",
     cable: "Câble d'antenne",
     antenne: "Antenne",
     aimant: "Aimant",
@@ -84,9 +85,9 @@ export const COMPOSANTS: Record<Modele3D, Record<string, string>> = {
   rondo: {
     boitier: "Boîtier",
     couvercle: "Couvercle",
-    bouton: "Zone marche/arrêt",
+    bouton: "Bouton marche/arrêt",
     micros: "Microphones",
-    voyant: "Voyant lumineux",
+    voyant: "Voyants",
     batterie: "Batterie intégrée",
     aimant: "Aimant",
   },
