@@ -1,0 +1,7 @@
+Files not copied (unreadable via read_app_file):
+
+pnpm-lock.yaml - too large for read_app_file (over 100KB)
+attached_assets/diagnostic-medel_1777448852350.html - too large for read_app_file (over 100KB)
+lib/api-client-react/tsconfig.tsbuildinfo - generated build artifact (gitignored TypeScript build info), not source
+lib/api-zod/tsconfig.tsbuildinfo - generated build artifact (gitignored TypeScript build info), not source
+lib/db/tsconfig.tsbuildinfo - generated build artifact (gitignored TypeScript build info), not source

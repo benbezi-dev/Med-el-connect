@@ -1,0 +1,840 @@
+export type NodeId = string;
+
+export type IconName =
+  | "Cpu" | "Headphones" | "Battery" | "Magnet" | "AlertTriangle"
+  | "Volume2" | "Radio" | "Bluetooth" | "Power" | "Clock"
+  | "Mic" | "Stethoscope" | "User" | "Sparkles" | "Wrench"
+  | "Phone" | "FileText" | "Send" | "CheckCircle2";
+
+export type ChoiceOption = {
+  label: string;
+  hint?: string;
+  next: NodeId;
+  icon?: IconName;
+  device?: "rondo3" | "sonnet";
+};
+
+export type TreeNode = {
+  id: NodeId;
+  type: "choice" | "diagnosis";
+  eyebrow?: string;
+  question?: string;
+  sub?: string;
+  options?: ChoiceOption[];
+  device?: "rondo3" | "sonnet";
+  highlights?: string[];
+  severity?: "info" | "warning" | "critical" | "success";
+  title?: string;
+  summary?: string;
+  actions?: string[];
+};
+
+export const TREE: Record<NodeId, TreeNode> = {
+  start: {
+    id: "start", type: "choice", eyebrow: "Bienvenue",
+    question: "Qui réalise le diagnostic aujourd'hui ?",
+    sub: "L'arbre s'adapte à votre profil et à votre niveau d'accès au matériel.",
+    options: [
+      { label: "Patient ou aidant", hint: "Diagnostic à domicile, gestes simples", next: "device_patient", icon: "User" },
+      { label: "Professionnel de santé", hint: "Audioprothésiste, centre implant — accès Maestro", next: "device_pro", icon: "Stethoscope" },
+    ],
+  },
+  device_patient: {
+    id: "device_patient", type: "choice", eyebrow: "Sélection de l'appareil",
+    question: "Quel processeur souhaitez-vous diagnostiquer ?",
+    sub: "Chaque appareil dispose d'un parcours dédié et d'une vue 3D interactive.",
+    options: [
+      { label: "Rondo 3", hint: "Processeur tout-en-un sur la tête", next: "patient_rondo3_root", icon: "Cpu", device: "rondo3" },
+      { label: "Sonnet (1, 2, 3)", hint: "Processeur contour d'oreille", next: "patient_sonnet_root", icon: "Headphones", device: "sonnet" },
+    ],
+  },
+  device_pro: {
+    id: "device_pro", type: "choice", eyebrow: "Sélection de l'appareil",
+    question: "Quel processeur souhaitez-vous diagnostiquer ?",
+    sub: "Le mode professionnel inclut le diagnostic Maestro.",
+    options: [
+      { label: "Rondo 3", hint: "Processeur tout-en-un sur la tête", next: "pro_rondo3_root", icon: "Cpu", device: "rondo3" },
+      { label: "Sonnet (1, 2, 3)", hint: "Processeur contour d'oreille", next: "pro_sonnet_root", icon: "Headphones", device: "sonnet" },
+    ],
+  },
+  patient_rondo3_root: {
+    id: "patient_rondo3_root", type: "choice", eyebrow: "Rondo 3 — Symptôme principal", device: "rondo3",
+    question: "Quel problème observez-vous sur le Rondo 3 ?",
+    options: [
+      { label: "Le processeur ne charge plus", next: "q_charge_1", icon: "Battery" },
+      { label: "L'aimant ne tient pas", next: "q_magnet_1", icon: "Magnet" },
+      { label: "Fissure venant de l'aimant", next: "diag_crack_magnet", icon: "AlertTriangle" },
+      { label: "Fissure ailleurs sur le boîtier", next: "q_crack_other_1", icon: "AlertTriangle" },
+      { label: "Aucun son", next: "q_sound_1", icon: "Volume2" },
+      { label: "Grésillements ou sifflements", next: "q_noise_1", icon: "Radio" },
+      { label: "AudioStream ne fonctionne pas", next: "q_as_1", icon: "Headphones" },
+      { label: "AudioKey ne détecte pas le processeur", next: "q_ak_1", icon: "Bluetooth" },
+    ],
+  },
+  pro_rondo3_root: {
+    id: "pro_rondo3_root", type: "choice", eyebrow: "Rondo 3 — Symptôme · Pro", device: "rondo3",
+    question: "Quel problème souhaitez-vous diagnostiquer ?",
+    options: [
+      { label: "Maestro ne reconnaît pas le processeur", next: "q_maestro_1", icon: "Cpu" },
+      { label: "Le processeur ne charge plus", next: "q_charge_1", icon: "Battery" },
+      { label: "L'aimant ne tient pas", next: "q_magnet_1", icon: "Magnet" },
+      { label: "Fissure venant de l'aimant", next: "diag_crack_magnet", icon: "AlertTriangle" },
+      { label: "Fissure ailleurs sur le boîtier", next: "q_crack_other_1", icon: "AlertTriangle" },
+      { label: "Aucun son", next: "q_sound_1", icon: "Volume2" },
+      { label: "Grésillements ou sifflements", next: "q_noise_1", icon: "Radio" },
+      { label: "AudioStream", next: "q_as_1", icon: "Headphones" },
+      { label: "AudioKey", next: "q_ak_1", icon: "Bluetooth" },
+    ],
+  },
+  q_charge_1: {
+    id: "q_charge_1", type: "choice", eyebrow: "Charge par induction", device: "rondo3",
+    question: "Que se passe-t-il quand vous posez le Rondo 3 sur le chargeur ?",
+    highlights: ["charging_coil"],
+    options: [
+      { label: "Aucune LED, rien ne se passe", next: "q_charge_2" },
+      { label: "La LED clignote anormalement", next: "diag_charge_led_error" },
+      { label: "La charge démarre mais s'arrête vite", next: "diag_charge_battery" },
+      { label: "Charge normale mais autonomie très courte", next: "diag_charge_battery" },
+    ],
+  },
+  q_charge_2: {
+    id: "q_charge_2", type: "choice", eyebrow: "Charge par induction", device: "rondo3",
+    question: "Le chargeur est-il alimenté ? (témoin lumineux visible)",
+    highlights: ["charging_coil"],
+    options: [
+      { label: "Non, aucun témoin sur le chargeur", next: "diag_charger_power" },
+      { label: "Oui, le chargeur est bien alimenté", next: "q_charge_3" },
+    ],
+  },
+  q_charge_3: {
+    id: "q_charge_3", type: "choice", eyebrow: "Charge par induction", device: "rondo3",
+    question: "Avez-vous essayé de repositionner le Rondo 3 bien centré sur le chargeur ?",
+    sub: "L'induction nécessite un alignement précis de la bobine.",
+    highlights: ["charging_coil"],
+    options: [
+      { label: "Oui, repositionné — toujours rien", next: "diag_charge_coil" },
+      { label: "Non, pas encore essayé", next: "diag_charge_reposition" },
+    ],
+  },
+  q_magnet_1: {
+    id: "q_magnet_1", type: "choice", eyebrow: "Maintien de l'aimant", device: "rondo3",
+    question: "Quand vous retirez l'aimant et observez son logement, que voyez-vous ?",
+    highlights: ["magnet", "magnet_thread"],
+    options: [
+      { label: "Un morceau de plastique coincé dans le pas de vis", next: "diag_magnet_debris" },
+      { label: "L'ergot de maintien semble cassé ou tordu", next: "diag_magnet_ergot" },
+      { label: "Tout semble intact mais l'aimant tombe quand même", next: "q_magnet_2" },
+      { label: "L'aimant lui-même est abîmé", next: "diag_magnet_replace" },
+    ],
+  },
+  q_magnet_2: {
+    id: "q_magnet_2", type: "choice", eyebrow: "Maintien de l'aimant", device: "rondo3",
+    question: "Avez-vous récemment changé d'aimant, de coiffure, ou eu une variation de poids ?",
+    sub: "La force d'aimant dépend de l'épaisseur des tissus au-dessus de l'implant.",
+    highlights: ["magnet"],
+    options: [
+      { label: "Oui, ces conditions ont changé", next: "diag_magnet_strength" },
+      { label: "Non, tout est habituel", next: "diag_magnet_strength_check" },
+    ],
+  },
+  q_crack_other_1: {
+    id: "q_crack_other_1", type: "choice", eyebrow: "Fissure du boîtier", device: "rondo3",
+    question: "Le processeur a-t-il subi un choc récent (chute, pression) ?",
+    highlights: ["casing_side"],
+    options: [
+      { label: "Oui, une chute identifiée", next: "diag_crack_impact" },
+      { label: "Non, apparue progressivement", next: "diag_crack_progressive" },
+    ],
+  },
+  q_sound_1: {
+    id: "q_sound_1", type: "choice", eyebrow: "Son absent", device: "rondo3",
+    question: "Le processeur s'allume-t-il (LED visible au démarrage) ?",
+    highlights: ["led"],
+    options: [
+      { label: "Oui, il s'allume normalement", next: "q_sound_2" },
+      { label: "Non, aucune LED", next: "diag_sound_off" },
+    ],
+  },
+  q_sound_2: {
+    id: "q_sound_2", type: "choice", eyebrow: "Son absent", device: "rondo3",
+    question: "L'aimant tient-il bien en place sur la tête, contre l'implant ?",
+    sub: "Sans contact magnétique correct, aucun signal n'est transmis.",
+    highlights: ["magnet"],
+    options: [
+      { label: "Oui, parfaitement positionné", next: "q_sound_3" },
+      { label: "Non, il glisse ou ne tient pas", next: "q_magnet_1" },
+    ],
+  },
+  q_sound_3: {
+    id: "q_sound_3", type: "choice", eyebrow: "Son absent", device: "rondo3",
+    question: "Avez-vous changé les protections de microphones récemment ?",
+    sub: "Les Microphone Cover s'encrassent et bloquent le son. Remplacement tous les 1 à 3 mois recommandé.",
+    highlights: ["microphones"],
+    options: [
+      { label: "Non, plus de 3 mois", next: "diag_sound_mic_covers" },
+      { label: "Oui, récemment", next: "q_sound_4" },
+    ],
+  },
+  q_sound_4: {
+    id: "q_sound_4", type: "choice", eyebrow: "Son absent", device: "rondo3",
+    question: "Avez-vous essayé de changer de programme (P1, P2, P3…) ?",
+    options: [
+      { label: "Oui, aucun programme ne donne de son", next: "diag_sound_center" },
+      { label: "Non, je vais essayer", next: "diag_sound_program" },
+    ],
+  },
+  q_noise_1: {
+    id: "q_noise_1", type: "choice", eyebrow: "Bruits parasites", device: "rondo3",
+    question: "Quelle est la nature du bruit ?",
+    highlights: ["microphones"],
+    options: [
+      { label: "Sifflement aigu continu (type Larsen)", next: "q_noise_feedback" },
+      { label: "Grésillements intermittents", next: "q_noise_crackle" },
+      { label: "Bruit dans le vent uniquement", next: "diag_noise_wind" },
+    ],
+  },
+  q_noise_feedback: {
+    id: "q_noise_feedback", type: "choice", eyebrow: "Bruits parasites", device: "rondo3",
+    question: "Le sifflement apparaît-il quand vous portez un chapeau, casque ou appuyez près de l'aimant ?",
+    highlights: ["magnet"],
+    options: [
+      { label: "Oui, lié à un contact", next: "diag_noise_feedback_contact" },
+      { label: "Non, sans cause apparente", next: "diag_noise_feedback_internal" },
+    ],
+  },
+  q_noise_crackle: {
+    id: "q_noise_crackle", type: "choice", eyebrow: "Bruits parasites", device: "rondo3",
+    question: "Les protections de microphones sont-elles propres et sèches ?",
+    sub: "Humidité, sueur ou poussière dans les Mic Covers = grésillements typiques.",
+    highlights: ["microphones"],
+    options: [
+      { label: "Non, ou pas sûr", next: "diag_noise_mic_covers" },
+      { label: "Oui, propres et neuves", next: "diag_noise_electrode" },
+    ],
+  },
+  q_as_1: {
+    id: "q_as_1", type: "choice", eyebrow: "AudioStream", device: "rondo3",
+    question: "L'AudioStream est-il appairé au processeur (procédure d'appairage faite) ?",
+    highlights: ["antenna_zone"],
+    options: [
+      { label: "Oui, déjà appairé auparavant", next: "q_as_2" },
+      { label: "Non / je ne sais pas", next: "diag_as_pairing" },
+    ],
+  },
+  q_as_2: {
+    id: "q_as_2", type: "choice", eyebrow: "AudioStream", device: "rondo3",
+    question: "L'AudioStream est-il chargé et allumé ?",
+    options: [
+      { label: "Oui", next: "q_as_3" },
+      { label: "Non / batterie faible", next: "diag_as_battery" },
+    ],
+  },
+  q_as_3: {
+    id: "q_as_3", type: "choice", eyebrow: "AudioStream", device: "rondo3",
+    question: "À quelle distance se trouve la source audio (TV, téléphone) de l'AudioStream ?",
+    options: [
+      { label: "Plus de 5 mètres ou avec obstacles", next: "diag_as_distance" },
+      { label: "Moins de 5 mètres, en vue directe", next: "diag_as_reset" },
+    ],
+  },
+  q_ak_1: {
+    id: "q_ak_1", type: "choice", eyebrow: "AudioKey 2", device: "rondo3",
+    question: "Le Bluetooth de votre smartphone est-il activé ?",
+    options: [
+      { label: "Oui", next: "q_ak_2" },
+      { label: "Non / pas sûr", next: "diag_ak_bluetooth" },
+    ],
+  },
+  q_ak_2: {
+    id: "q_ak_2", type: "choice", eyebrow: "AudioKey 2", device: "rondo3",
+    question: "L'application AudioKey 2 est-elle à jour ?",
+    options: [
+      { label: "Oui, dernière version", next: "q_ak_3" },
+      { label: "Non / je ne sais pas", next: "diag_ak_update" },
+    ],
+  },
+  q_ak_3: {
+    id: "q_ak_3", type: "choice", eyebrow: "AudioKey 2", device: "rondo3",
+    question: "Avez-vous redémarré le processeur ET le téléphone ?",
+    options: [
+      { label: "Oui, les deux", next: "diag_ak_repair" },
+      { label: "Non, pas les deux", next: "diag_ak_restart" },
+    ],
+  },
+  q_maestro_1: {
+    id: "q_maestro_1", type: "choice", eyebrow: "Maestro — accès professionnel", device: "rondo3",
+    question: "L'interface MAX est-elle correctement détectée par Maestro ?",
+    highlights: ["antenna_zone"],
+    options: [
+      { label: "Oui, MAX détectée", next: "q_maestro_2" },
+      { label: "Non, MAX absente du logiciel", next: "diag_maestro_max" },
+    ],
+  },
+  q_maestro_2: {
+    id: "q_maestro_2", type: "choice", eyebrow: "Maestro", device: "rondo3",
+    question: "La coil de programmation est-elle reliée à la MAX et posée sur le Rondo 3 ?",
+    options: [
+      { label: "Oui", next: "q_maestro_3" },
+      { label: "Non / mal positionnée", next: "diag_maestro_coil_position" },
+    ],
+  },
+  q_maestro_3: {
+    id: "q_maestro_3", type: "choice", eyebrow: "Maestro", device: "rondo3",
+    question: "Avez-vous testé une autre coil ou un autre câble de programmation ?",
+    options: [
+      { label: "Oui, problème persiste", next: "diag_maestro_processor" },
+      { label: "Non, pas encore testé", next: "diag_maestro_swap" },
+    ],
+  },
+  patient_sonnet_root: {
+    id: "patient_sonnet_root", type: "choice", eyebrow: "Sonnet — Symptôme principal", device: "sonnet",
+    question: "Quel problème observez-vous sur le Sonnet ?",
+    sub: "Compatible Sonnet 1, 2 et 3.",
+    options: [
+      { label: "Le processeur ne s'allume plus", next: "q_son_power_1", icon: "Power" },
+      { label: "L'aimant ne tient pas", next: "q_son_magnet_1", icon: "Magnet" },
+      { label: "Couvre-microphone désolidarisé", next: "diag_son_mic_cover_loose", icon: "Mic" },
+      { label: "S'allume mais s'éteint après 5 minutes", next: "q_son_shutoff_1", icon: "Clock" },
+      { label: "Le son grésille", next: "q_son_crackle_age_1", icon: "Volume2" },
+      { label: "Grésillements ou sifflements", next: "q_son_noise_1", icon: "Radio" },
+      { label: "AudioStream ne fonctionne pas", next: "q_as_1", icon: "Headphones" },
+      { label: "AudioKey ne détecte pas le processeur", next: "q_ak_1", icon: "Bluetooth" },
+    ],
+  },
+  pro_sonnet_root: {
+    id: "pro_sonnet_root", type: "choice", eyebrow: "Sonnet — Symptôme · Pro", device: "sonnet",
+    question: "Quel problème souhaitez-vous diagnostiquer ?",
+    options: [
+      { label: "Maestro ne reconnaît pas le processeur", next: "q_son_maestro_1", icon: "Cpu" },
+      { label: "Le processeur ne s'allume plus", next: "q_son_power_1", icon: "Power" },
+      { label: "L'aimant ne tient pas", next: "q_son_magnet_1", icon: "Magnet" },
+      { label: "Couvre-microphone désolidarisé", next: "diag_son_mic_cover_loose", icon: "Mic" },
+      { label: "S'allume mais s'éteint après 5 minutes", next: "q_son_shutoff_1", icon: "Clock" },
+      { label: "Le son grésille", next: "q_son_crackle_age_1", icon: "Volume2" },
+      { label: "Grésillements ou sifflements", next: "q_son_noise_1", icon: "Radio" },
+      { label: "AudioStream", next: "q_as_1", icon: "Headphones" },
+      { label: "AudioKey", next: "q_ak_1", icon: "Bluetooth" },
+    ],
+  },
+  q_son_power_1: {
+    id: "q_son_power_1", type: "choice", eyebrow: "Le processeur ne s'allume pas", device: "sonnet",
+    question: "Avec quel type d'alimentation testez-vous le Sonnet ?",
+    sub: "Le Sonnet fonctionne avec piles zinc-air PR675 ou une batterie rechargeable dédiée.",
+    highlights: ["battery"],
+    options: [
+      { label: "Piles zinc-air (PR675)", next: "q_son_power_zinc" },
+      { label: "Batterie rechargeable", next: "q_son_power_rech" },
+    ],
+  },
+  q_son_power_zinc: {
+    id: "q_son_power_zinc", type: "choice", eyebrow: "Piles zinc-air", device: "sonnet",
+    question: "Les piles ont-elles été activées (languette retirée, attente de 1-2 minutes) ?",
+    sub: "Les piles zinc-air ont besoin d'air pour s'activer après retrait de la languette.",
+    highlights: ["battery"],
+    options: [
+      { label: "Oui, languette retirée et patientée", next: "q_son_power_zinc_2" },
+      { label: "Non, j'ai testé immédiatement", next: "diag_son_zinc_wait" },
+    ],
+  },
+  q_son_power_zinc_2: {
+    id: "q_son_power_zinc_2", type: "choice", eyebrow: "Piles zinc-air", device: "sonnet",
+    question: "Avez-vous essayé un autre paquet de piles neuves ?",
+    sub: "Les piles zinc-air ont une durée de vie limitée même neuves (humidité, péremption).",
+    highlights: ["battery"],
+    options: [
+      { label: "Oui, autre paquet — toujours rien", next: "q_son_power_contacts" },
+      { label: "Non, même paquet uniquement", next: "diag_son_zinc_swap" },
+    ],
+  },
+  q_son_power_rech: {
+    id: "q_son_power_rech", type: "choice", eyebrow: "Batterie rechargeable", device: "sonnet",
+    question: "La batterie a-t-elle été chargée à 100 % et le témoin du chargeur fonctionne-t-il ?",
+    highlights: ["battery"],
+    options: [
+      { label: "Oui, pleinement chargée", next: "q_son_power_contacts" },
+      { label: "Non / chargeur sans témoin", next: "diag_son_rech_charge" },
+    ],
+  },
+  q_son_power_contacts: {
+    id: "q_son_power_contacts", type: "choice", eyebrow: "Contacts batterie", device: "sonnet",
+    question: "Les contacts dorés du compartiment batterie sont-ils propres et brillants ?",
+    sub: "Cérumen, oxydation ou dépôts blanchâtres bloquent le contact électrique.",
+    highlights: ["battery"],
+    options: [
+      { label: "Oui, parfaitement propres", next: "diag_son_power_internal" },
+      { label: "Non, traces visibles", next: "diag_son_power_contacts" },
+    ],
+  },
+  q_son_magnet_1: {
+    id: "q_son_magnet_1", type: "choice", eyebrow: "Maintien de l'aimant", device: "sonnet",
+    question: "Avez-vous récemment changé d'aimant, de coiffure, ou eu une variation de poids ?",
+    sub: "La force de l'aimant Sonnet (échelle 0 à 5) doit être adaptée à l'épaisseur de la peau.",
+    highlights: ["coil_magnet"],
+    options: [
+      { label: "Oui, ces conditions ont changé", next: "diag_son_magnet_strength" },
+      { label: "Non, tout est habituel", next: "q_son_magnet_2" },
+    ],
+  },
+  q_son_magnet_2: {
+    id: "q_son_magnet_2", type: "choice", eyebrow: "Maintien de l'aimant", device: "sonnet",
+    question: "L'aimant a-t-il été exposé à un IRM, un portique ou un choc magnétique ?",
+    highlights: ["coil_magnet"],
+    options: [
+      { label: "Oui", next: "diag_son_magnet_demag" },
+      { label: "Non", next: "diag_son_magnet_strength_check" },
+    ],
+  },
+  q_son_shutoff_1: {
+    id: "q_son_shutoff_1", type: "choice", eyebrow: "Extinction prématurée", device: "sonnet",
+    question: "Avez-vous remplacé récemment les couvre-microphones (Mic Covers) ?",
+    sub: "L'extinction après 3-5 min est presque toujours liée à des couvre-microphones encrassés ou humides.",
+    highlights: ["mic_cover"],
+    options: [
+      { label: "Non, plus de 2 mois", next: "diag_son_shutoff_mic_cover" },
+      { label: "Oui, récemment changés", next: "q_son_shutoff_2" },
+    ],
+  },
+  q_son_shutoff_2: {
+    id: "q_son_shutoff_2", type: "choice", eyebrow: "Extinction prématurée", device: "sonnet",
+    question: "Avez-vous séché le processeur dans un kit déshumidificateur sur une nuit ?",
+    highlights: ["mic_cover"],
+    options: [
+      { label: "Oui, sans amélioration", next: "diag_son_shutoff_internal" },
+      { label: "Non, pas encore", next: "diag_son_shutoff_dry" },
+    ],
+  },
+  q_son_crackle_age_1: {
+    id: "q_son_crackle_age_1", type: "choice", eyebrow: "Son grésille", device: "sonnet",
+    question: "Avez-vous d'abord changé les couvre-microphones et séché le processeur ?",
+    sub: "Étape obligatoire avant tout envoi : 90 % des grésillements disparaissent avec ces gestes.",
+    highlights: ["mic_cover"],
+    options: [
+      { label: "Oui, problème persiste après ces gestes", next: "q_son_crackle_age_2" },
+      { label: "Non, pas encore", next: "diag_son_crackle_first_steps" },
+    ],
+  },
+  q_son_crackle_age_2: {
+    id: "q_son_crackle_age_2", type: "choice", eyebrow: "Son grésille — âge du processeur", device: "sonnet",
+    question: "Quel est l'âge de ce processeur Sonnet ?",
+    sub: "L'âge détermine la prise en charge MED-EL : garantie ou devis.",
+    highlights: ["body"],
+    options: [
+      { label: "Moins de 5 ans", next: "diag_son_crackle_repair" },
+      { label: "Plus de 5 ans", next: "diag_son_crackle_quote" },
+      { label: "Je ne sais pas — n° de série requis", next: "diag_son_crackle_check_age" },
+    ],
+  },
+  q_son_noise_1: {
+    id: "q_son_noise_1", type: "choice", eyebrow: "Bruits parasites", device: "sonnet",
+    question: "Quelle est la nature du bruit ?",
+    highlights: ["mic_cover"],
+    options: [
+      { label: "Sifflement aigu continu (type Larsen)", next: "q_son_noise_feedback" },
+      { label: "Grésillements intermittents", next: "q_son_crackle_age_1" },
+      { label: "Bruit dans le vent uniquement", next: "diag_son_noise_wind" },
+    ],
+  },
+  q_son_noise_feedback: {
+    id: "q_son_noise_feedback", type: "choice", eyebrow: "Bruits parasites", device: "sonnet",
+    question: "Le sifflement apparaît-il quand vous portez un chapeau, casque ou appuyez sur l'antenne ?",
+    highlights: ["coil"],
+    options: [
+      { label: "Oui, lié à un contact", next: "diag_son_feedback_contact" },
+      { label: "Non, sans cause apparente", next: "diag_son_feedback_internal" },
+    ],
+  },
+  q_son_maestro_1: {
+    id: "q_son_maestro_1", type: "choice", eyebrow: "Maestro — accès professionnel", device: "sonnet",
+    question: "L'interface MAX est-elle correctement détectée par Maestro ?",
+    highlights: ["body"],
+    options: [
+      { label: "Oui, MAX détectée", next: "q_son_maestro_2" },
+      { label: "Non, MAX absente du logiciel", next: "diag_maestro_max" },
+    ],
+  },
+  q_son_maestro_2: {
+    id: "q_son_maestro_2", type: "choice", eyebrow: "Maestro", device: "sonnet",
+    question: "La coil de programmation est-elle reliée à la MAX et posée sur l'antenne du Sonnet ?",
+    highlights: ["coil"],
+    options: [
+      { label: "Oui", next: "q_son_maestro_3" },
+      { label: "Non / mal positionnée", next: "diag_maestro_coil_position" },
+    ],
+  },
+  q_son_maestro_3: {
+    id: "q_son_maestro_3", type: "choice", eyebrow: "Maestro", device: "sonnet",
+    question: "Avez-vous testé une autre coil ou un autre câble de programmation ?",
+    options: [
+      { label: "Oui, problème persiste", next: "diag_son_maestro_processor" },
+      { label: "Non, pas encore testé", next: "diag_maestro_swap" },
+    ],
+  },
+
+  // ============================================================
+  // DIAGNOSIS NODES — RONDO 3
+  // ============================================================
+  diag_charge_battery: {
+    id: "diag_charge_battery", type: "diagnosis", severity: "warning", device: "rondo3",
+    title: "Batterie en fin de cycle de vie",
+    summary: "Une charge qui s'interrompt ou une autonomie très réduite indique généralement une batterie lithium-ion en fin de cycle (typiquement après 2 à 3 ans d'usage quotidien).",
+    highlights: ["charging_coil"],
+    actions: ["Contacter votre centre d'implantation pour planifier un remplacement de batterie", "Conserver la fonction d'urgence avec le boîtier piles si disponible", "MED-EL prend en charge le remplacement dans le cadre du suivi"],
+  },
+  diag_charge_led_error: {
+    id: "diag_charge_led_error", type: "diagnosis", severity: "warning", device: "rondo3",
+    title: "Erreur de charge signalée par la LED",
+    summary: "Un clignotement anormal lors de la mise en charge correspond à un code d'erreur du chargeur ou du processeur.",
+    highlights: ["led"],
+    actions: ["Notez la séquence de clignotements (couleur, nombre, rythme)", "Référez-vous au manuel utilisateur Rondo 3, section codes lumineux", "Contactez le support MED-EL avec ce code pour orientation précise"],
+  },
+  diag_charger_power: {
+    id: "diag_charger_power", type: "diagnosis", severity: "info", device: "rondo3",
+    title: "Le chargeur n'est pas alimenté",
+    summary: "Le problème vient probablement de la source d'alimentation, pas du Rondo 3.",
+    actions: ["Vérifiez la prise murale avec un autre appareil", "Testez un autre câble USB-C / adaptateur secteur", "Si l'alimentation fonctionne ailleurs : le chargeur peut être défectueux, contactez MED-EL"],
+  },
+  diag_charge_reposition: {
+    id: "diag_charge_reposition", type: "diagnosis", severity: "info", device: "rondo3",
+    title: "Repositionnement à essayer",
+    summary: "La charge par induction nécessite un alignement précis entre la bobine du Rondo 3 et celle du chargeur.",
+    highlights: ["charging_coil"],
+    actions: ["Retirez le Rondo 3, attendez 5 secondes", "Replacez-le bien à plat, centré sur le pad de charge", "Vérifiez qu'aucun objet métallique ne se trouve entre les deux", "Si le problème persiste, revenez en arrière pour continuer le diagnostic"],
+  },
+  diag_charge_coil: {
+    id: "diag_charge_coil", type: "diagnosis", severity: "critical", device: "rondo3",
+    title: "Bobine de charge probablement défectueuse",
+    summary: "Si le chargeur fonctionne et que le repositionnement n'a rien donné, la bobine d'induction interne du Rondo 3 ou son électronique de charge est en cause. Réparation en atelier nécessaire.",
+    highlights: ["charging_coil"],
+    actions: ["Contactez immédiatement votre centre d'implantation", "Demandez un processeur de prêt en attendant la réparation", "MED-EL France : 01 41 06 81 06 (support technique)"],
+  },
+  diag_magnet_debris: {
+    id: "diag_magnet_debris", type: "diagnosis", severity: "warning", device: "rondo3",
+    title: "Débris dans le pas de vis de l'aimant",
+    summary: "Un fragment de plastique est coincé dans le filetage. L'aimant ne peut plus être vissé correctement.",
+    highlights: ["magnet_thread"],
+    actions: ["NE PAS forcer pour visser un aimant par-dessus — risque d'aggraver", "Le retrait du débris doit être fait par le fabricant ou en atelier MED-EL", "Contactez votre centre pour expédition en SAV", "Utilisez un Rondo de prêt en attendant"],
+  },
+  diag_magnet_ergot: {
+    id: "diag_magnet_ergot", type: "diagnosis", severity: "warning", device: "rondo3",
+    title: "Ergot de maintien endommagé",
+    summary: "L'ergot qui maintient l'aimant en position est cassé ou tordu. La pièce ne peut plus assurer son rôle, l'aimant se dévisse spontanément.",
+    highlights: ["magnet"],
+    actions: ["Réparation en atelier MED-EL nécessaire (pièce non remplaçable par l'utilisateur)", "Contactez votre centre d'implantation", "Conservez la pièce cassée si elle s'est détachée — utile au SAV"],
+  },
+  diag_magnet_replace: {
+    id: "diag_magnet_replace", type: "diagnosis", severity: "info", device: "rondo3",
+    title: "Aimant à remplacer",
+    summary: "Les aimants Rondo 3 sont des pièces consommables disponibles en plusieurs forces. Un aimant abîmé peut être remplacé sans renvoyer le processeur.",
+    highlights: ["magnet"],
+    actions: ["Demandez un nouvel aimant à votre centre d'implantation", "Précisez la force actuelle utilisée (gravée sur l'aimant)", "Vérifiez aussi l'état de l'ergot avant remontage"],
+  },
+  diag_magnet_strength: {
+    id: "diag_magnet_strength", type: "diagnosis", severity: "info", device: "rondo3",
+    title: "Force d'aimant probablement insuffisante",
+    summary: "Une variation de poids, un changement de coiffure ou un nouvel aimant de force différente peuvent expliquer un maintien insuffisant.",
+    highlights: ["magnet"],
+    actions: ["Consultez votre centre pour essayer un aimant de force supérieure", "Attention : un aimant trop fort peut provoquer rougeurs ou douleurs cutanées", "Le bon réglage = maintien sûr SANS marque rouge après 1h de port"],
+  },
+  diag_magnet_strength_check: {
+    id: "diag_magnet_strength_check", type: "diagnosis", severity: "info", device: "rondo3",
+    title: "Vérification de la force et de la peau",
+    summary: "Sans cause évidente, plusieurs facteurs sont à investiguer : démagnétisation lente, modification cutanée, ou usure des pièces.",
+    highlights: ["magnet"],
+    actions: ["Rendez-vous au centre pour un test de force d'aimant et inspection cutanée", "Photographiez le logement aimant et le pas de vis avant la consultation", "Notez si le problème est progressif ou subit"],
+  },
+  diag_crack_magnet: {
+    id: "diag_crack_magnet", type: "diagnosis", severity: "critical", device: "rondo3",
+    title: "Fissure provenant de l'aimant — boîtier compromis",
+    summary: "Une fissure rayonnant depuis l'aimant indique généralement un sur-serrage ou une fragilité du boîtier. L'étanchéité IP54 du Rondo 3 n'est plus garantie.",
+    highlights: ["magnet", "casing_top"],
+    actions: ["ARRÊTEZ d'utiliser le processeur en environnement humide (sueur, douche, pluie)", "Contactez votre centre d'implantation en urgence", "Demandez un processeur de prêt immédiatement", "Le boîtier complet devra être remplacé en atelier MED-EL"],
+  },
+  diag_crack_impact: {
+    id: "diag_crack_impact", type: "diagnosis", severity: "warning", device: "rondo3",
+    title: "Fissure suite à un choc",
+    summary: "Une chute ou un impact localisé peut fissurer le boîtier sans endommager les circuits internes — mais l'étanchéité n'est plus garantie.",
+    highlights: ["casing_side"],
+    actions: ["Évaluez l'étendue de la fissure (photo sous bonne lumière)", "Évitez tout contact avec l'eau jusqu'à l'inspection", "Contactez le centre d'implantation pour évaluation SAV"],
+  },
+  diag_crack_progressive: {
+    id: "diag_crack_progressive", type: "diagnosis", severity: "warning", device: "rondo3",
+    title: "Fissure progressive — contrainte mécanique",
+    summary: "Une fissure apparaissant sans choc identifié peut être due à une contrainte répétée ou à un défaut matière.",
+    highlights: ["casing_side"],
+    actions: ["Notez la localisation précise et l'évolution de la fissure", "Contactez MED-EL : une fissure progressive peut être couverte par la garantie fabricant", "En attendant, protégez le processeur de l'humidité"],
+  },
+  diag_sound_off: {
+    id: "diag_sound_off", type: "diagnosis", severity: "warning", device: "rondo3",
+    title: "Le processeur ne s'allume pas",
+    summary: "Aucune LED au démarrage = processeur hors tension. Causes possibles : batterie déchargée, problème d'alimentation interne, ou panne électronique.",
+    highlights: ["led", "charging_coil"],
+    actions: ["Mettez le Rondo 3 en charge au moins 2 heures", "Après charge complète, appuyez 2-3 secondes sur le bouton de mise en marche", "Si toujours pas de LED : contactez votre centre ou MED-EL France au 01 41 06 81 06"],
+  },
+  diag_sound_mic_covers: {
+    id: "diag_sound_mic_covers", type: "diagnosis", severity: "info", device: "rondo3",
+    title: "Couvre-microphones à changer",
+    summary: "Les Microphone Covers encrassés ou obturés bloquent l'entrée acoustique. C'est la cause n°1 de perte de son progressive chez les utilisateurs Rondo 3.",
+    highlights: ["microphones"],
+    actions: ["Retirez les deux couvre-microphones (pastilles noires sur le dessus du boîtier)", "Installez des Mic Covers neufs — disponibles en pharmacies hospitalières et chez votre audioprothésiste", "À changer tous les 1 à 3 mois selon l'activité physique"],
+  },
+  diag_sound_center: {
+    id: "diag_sound_center", type: "diagnosis", severity: "critical", device: "rondo3",
+    title: "Perte auditive totale — consultation urgente",
+    summary: "Si aucun programme ne produit de son malgré une LED allumée et un aimant correctement positionné, une panne interne ou un problème de stimulation est probable.",
+    highlights: ["led"],
+    actions: ["Contactez votre centre d'implantation dès aujourd'hui", "Demandez un processeur de prêt pour maintenir la continuité auditive", "Apportez le Rondo 3 incriminé pour inspection immédiate"],
+  },
+  diag_sound_program: {
+    id: "diag_sound_program", type: "diagnosis", severity: "info", device: "rondo3",
+    title: "Changer de programme",
+    summary: "Il est possible que le programme actuellement sélectionné soit configuré avec un volume très bas ou un mode silence.",
+    actions: ["Appuyez sur le bouton de programme du Rondo 3 pour passer en P2, P3…", "Vérifiez aussi le volume via AudioKey 2 s'il est disponible", "Si aucun programme ne donne de son, revenez au diagnostic pour continuer"],
+  },
+  diag_noise_wind: {
+    id: "diag_noise_wind", type: "diagnosis", severity: "info", device: "rondo3",
+    title: "Bruit de vent — comportement normal",
+    summary: "Un bruit de souffle uniquement dans le vent est normal sur tout microphone directif. Ce n'est pas une panne.",
+    highlights: ["microphones"],
+    actions: ["Utilisez la fonction anti-vent si votre programme l'inclut (voir AudioKey 2)", "Orientez-vous de façon à ne pas exposer directement les micros au vent", "Si le bruit persiste en intérieur, consultez pour recalibrage"],
+  },
+  diag_noise_feedback_contact: {
+    id: "diag_noise_feedback_contact", type: "diagnosis", severity: "info", device: "rondo3",
+    title: "Sifflement de contact (retour acoustique)",
+    summary: "Un sifflement déclenché par un chapeau, un casque ou la main près de l'aimant est un retour acoustique classique. Ce n'est pas une panne électronique.",
+    highlights: ["magnet", "microphones"],
+    actions: ["Augmentez la distance entre microphone et surface réfléchissante", "Réduisez le volume via AudioKey 2 ou le programme en cours", "Certains programmes anti-retour peuvent être activés par votre audioprothésiste"],
+  },
+  diag_noise_feedback_internal: {
+    id: "diag_noise_feedback_internal", type: "diagnosis", severity: "warning", device: "rondo3",
+    title: "Sifflement interne — investigation nécessaire",
+    summary: "Un sifflement sans cause de contact peut indiquer un gain trop élevé, un problème de couplage électrique, ou une entrée analogique défaillante.",
+    actions: ["Réduisez le volume et testez sur tous les programmes", "Notez si le sifflement est constant ou intermittent", "Consultez votre audioprothésiste pour recalibrage ou nouveau fitting"],
+  },
+  diag_noise_mic_covers: {
+    id: "diag_noise_mic_covers", type: "diagnosis", severity: "info", device: "rondo3",
+    title: "Mic Covers à nettoyer ou changer",
+    summary: "Des protections encrassées provoquent souvent des grésillements intermittents car elles créent une barrière partielle à l'entrée acoustique.",
+    highlights: ["microphones"],
+    actions: ["Retirez et remplacez les Mic Covers", "À défaut, essuyez délicatement avec un chiffon sec (ne jamais souffler dessus)", "Testez immédiatement après remplacement"],
+  },
+  diag_noise_electrode: {
+    id: "diag_noise_electrode", type: "diagnosis", severity: "critical", device: "rondo3",
+    title: "Grésillements persistants — investigation approfondie",
+    summary: "Des grésillements avec des Mic Covers propres et sèches peuvent indiquer un problème d'électrode, un court-circuit interne, ou un artefact de stimulation.",
+    actions: ["Consultez votre centre d'implantation pour un test d'impédances et de télémétrie", "N'attendez pas — une électrode défaillante peut progresser", "Notez la fréquence et le contexte d'apparition des grésillements"],
+  },
+  diag_as_pairing: {
+    id: "diag_as_pairing", type: "diagnosis", severity: "info", device: "rondo3",
+    title: "Appairage AudioStream à effectuer",
+    summary: "L'AudioStream doit être appairé au processeur avant première utilisation ou après réinitialisation.",
+    highlights: ["antenna_zone"],
+    actions: ["Consultez le guide d'appairage AudioStream (livré avec l'appareil ou disponible sur medel.com)", "Étapes générales : tenir l'AudioStream proche du processeur allumé, suivre la procédure de pairing", "En cas de difficulté, votre audioprothésiste peut effectuer l'appairage lors d'une consultation"],
+  },
+  diag_as_battery: {
+    id: "diag_as_battery", type: "diagnosis", severity: "info", device: "rondo3",
+    title: "AudioStream à recharger",
+    summary: "L'AudioStream ne peut pas fonctionner si sa batterie est déchargée.",
+    actions: ["Branchez l'AudioStream sur son câble de charge (USB-C)", "Attendez que le témoin indique une charge complète avant de tester à nouveau", "L'autonomie AudioStream est d'environ 15h en usage normal"],
+  },
+  diag_as_distance: {
+    id: "diag_as_distance", type: "diagnosis", severity: "info", device: "rondo3",
+    title: "Distance ou obstacles à réduire",
+    summary: "L'AudioStream utilise une technologie FM/radio à courte portée. Obstacles et distance > 5m dégradent la liaison.",
+    actions: ["Rapprochez l'AudioStream de la source audio (< 3m idéalement)", "Placez l'AudioStream en vue directe de la source", "Si la liaison reste mauvaise à courte distance, testez un appairage neuf"],
+  },
+  diag_as_reset: {
+    id: "diag_as_reset", type: "diagnosis", severity: "warning", device: "rondo3",
+    title: "Réappairage ou réinitialisation nécessaire",
+    summary: "Si l'appairage existe et les conditions sont bonnes mais l'audio ne passe pas, un reset de la liaison peut débloquer la situation.",
+    highlights: ["antenna_zone"],
+    actions: ["Éteignez et rallumez l'AudioStream", "Éteignez et rallumez le processeur", "Relancez la procédure d'appairage complète", "Si le problème persiste, contactez votre centre pour vérification firmware"],
+  },
+  diag_ak_bluetooth: {
+    id: "diag_ak_bluetooth", type: "diagnosis", severity: "info", device: "rondo3",
+    title: "Activer le Bluetooth du smartphone",
+    summary: "L'application AudioKey 2 requiert le Bluetooth pour détecter et contrôler le processeur.",
+    actions: ["Activez le Bluetooth dans les réglages de votre téléphone", "Vérifiez que les autorisations Bluetooth sont accordées à AudioKey 2", "Rouvrez AudioKey 2 après activation"],
+  },
+  diag_ak_update: {
+    id: "diag_ak_update", type: "diagnosis", severity: "info", device: "rondo3",
+    title: "Mettre à jour AudioKey 2",
+    summary: "Une version obsolète de l'app peut perdre la compatibilité avec les nouvelles mises à jour firmware du processeur.",
+    actions: ["Ouvrez l'App Store (iOS) ou Google Play (Android)", "Recherchez AudioKey 2 et installez la mise à jour disponible", "Redémarrez l'app et le processeur après mise à jour"],
+  },
+  diag_ak_restart: {
+    id: "diag_ak_restart", type: "diagnosis", severity: "info", device: "rondo3",
+    title: "Redémarrer les deux appareils",
+    summary: "Les bugs de connexion Bluetooth se résolvent souvent avec un redémarrage complet du téléphone ET du processeur.",
+    actions: ["Éteignez le processeur (maintenir le bouton jusqu'à LED rouge)", "Éteignez et rallumez votre téléphone", "Rallumez le processeur, attendez 30 secondes, ouvrez AudioKey 2"],
+  },
+  diag_ak_repair: {
+    id: "diag_ak_repair", type: "diagnosis", severity: "warning", device: "rondo3",
+    title: "Réappairage Bluetooth nécessaire",
+    summary: "Si le redémarrage n'a pas résolu le problème, le Bluetooth doit être réappairé depuis zéro.",
+    actions: ["Dans les réglages Bluetooth du téléphone, supprimez le processeur de la liste", "Dans AudioKey 2, supprimez aussi le couplage existant", "Refaites la procédure d'appairage complète depuis l'app"],
+  },
+  diag_maestro_max: {
+    id: "diag_maestro_max", type: "diagnosis", severity: "warning",
+    title: "Interface MAX non détectée",
+    summary: "Maestro ne détecte pas l'interface MAX. Problème USB, pilote, ou interface défectueuse.",
+    actions: ["Débranchez et rebranchez l'interface MAX", "Essayez un autre port USB du PC", "Vérifiez dans le Gestionnaire de périphériques Windows que MAX apparaît sans point d'exclamation", "Si le problème persiste, contactez le support technique MED-EL pour remplacement d'interface"],
+  },
+  diag_maestro_coil_position: {
+    id: "diag_maestro_coil_position", type: "diagnosis", severity: "info",
+    title: "Repositionner la coil de programmation",
+    summary: "La coil de programmation doit être centrée sur l'aimant du processeur et fermement maintenue pour établir la liaison.",
+    actions: ["Centrez la coil directement sur le disque aimant du Rondo 3 (ou sur l'antenne du Sonnet)", "Maintenez une légère pression constante pendant la session Maestro", "Évitez tout déplacement de la coil pendant le téléchargement — peut corrompre le fitting"],
+  },
+  diag_maestro_swap: {
+    id: "diag_maestro_swap", type: "diagnosis", severity: "info",
+    title: "Tester avec une autre coil",
+    summary: "Avant de conclure à une panne processeur, éliminez un défaut de coil ou de câble.",
+    actions: ["Essayez une coil de programmation issue d'un autre kit MAX", "Testez aussi le câble de renvoi coil si disponible", "Si avec une autre coil cela fonctionne : la coil d'origine est défectueuse, commandez-en une nouvelle"],
+  },
+  diag_maestro_processor: {
+    id: "diag_maestro_processor", type: "diagnosis", severity: "critical",
+    title: "Processeur probablement défectueux",
+    summary: "Si Maestro ne détecte pas le processeur malgré une MAX et une coil fonctionnelles, le module de télémétrie interne du processeur est suspect.",
+    actions: ["Confirmez avec un deuxième processeur du même patient si disponible", "Documentez la session Maestro : capture d'écran du message d'erreur", "Contactez MED-EL pour demande de SAV urgente ou processeur de remplacement"],
+  },
+
+  // ============================================================
+  // DIAGNOSIS NODES — SONNET
+  // ============================================================
+  diag_son_mic_cover_loose: {
+    id: "diag_son_mic_cover_loose", type: "diagnosis", severity: "warning", device: "sonnet",
+    title: "Couvre-microphone désolidarisé",
+    summary: "Le couvre-microphone peut se desserrer après des chutes ou manipulations répétées. Sans couvre-micro en place, le microphone est exposé à la poussière et à l'humidité.",
+    highlights: ["mic_cover"],
+    actions: ["Réenclipsez fermement le couvre-microphone en le glissant jusqu'au 'clic'", "Si des clips sont cassés, le couvre-micro doit être remplacé — disponible auprès de votre centre", "Ne pas utiliser le Sonnet sans couvre-micro : risque de panne microphone"],
+  },
+  diag_son_zinc_wait: {
+    id: "diag_son_zinc_wait", type: "diagnosis", severity: "info", device: "sonnet",
+    title: "Activer les piles zinc-air",
+    summary: "Les piles zinc-air PR675 doivent être activées par exposition à l'air avant utilisation.",
+    highlights: ["battery"],
+    actions: ["Retirez la languette adhésive des nouvelles piles", "Attendez 1 à 2 minutes avant d'insérer les piles", "Testez à nouveau — le Sonnet doit s'allumer dans les 5 secondes"],
+  },
+  diag_son_zinc_swap: {
+    id: "diag_son_zinc_swap", type: "diagnosis", severity: "info", device: "sonnet",
+    title: "Tester un autre paquet de piles",
+    summary: "Les piles zinc-air vieillissent même neuves si le paquet a été ouvert ou si la date de péremption est dépassée.",
+    highlights: ["battery"],
+    actions: ["Ouvrez un nouveau paquet de piles PR675", "Retirez la languette, attendez 2 minutes, et testez", "Si le Sonnet ne s'allume toujours pas, passez à la vérification des contacts"],
+  },
+  diag_son_rech_charge: {
+    id: "diag_son_rech_charge", type: "diagnosis", severity: "info", device: "sonnet",
+    title: "Charger la batterie rechargeable",
+    summary: "La batterie rechargeable Sonnet doit être chargée via le chargeur dédié jusqu'à ce que le témoin indique une charge complète.",
+    highlights: ["battery"],
+    actions: ["Placez la batterie dans le chargeur MED-EL dédié", "Attendez que le témoin passe au vert (charge complète, ~3h)", "Insérez la batterie chargée dans le Sonnet et testez"],
+  },
+  diag_son_power_contacts: {
+    id: "diag_son_power_contacts", type: "diagnosis", severity: "warning", device: "sonnet",
+    title: "Nettoyer les contacts batterie",
+    summary: "Des contacts dorés oxydés ou souillés empêchent le passage du courant.",
+    highlights: ["battery"],
+    actions: ["Utilisez un coton-tige légèrement humecté d'alcool isopropylique (70°)", "Nettoyez délicatement les contacts dorés dans le compartiment batterie", "Laissez sécher 2 minutes avant d'insérer les piles/batterie"],
+  },
+  diag_son_power_internal: {
+    id: "diag_son_power_internal", type: "diagnosis", severity: "critical", device: "sonnet",
+    title: "Panne interne probable",
+    summary: "Si les piles sont bonnes et les contacts propres mais le Sonnet reste éteint, une panne électronique interne est probable.",
+    actions: ["Contactez votre centre d'implantation — prise en charge SAV à prévoir", "Demandez un processeur de prêt pour ne pas rester sans entendre", "MED-EL France : 01 41 06 81 06"],
+  },
+  diag_son_magnet_strength: {
+    id: "diag_son_magnet_strength", type: "diagnosis", severity: "info", device: "sonnet",
+    title: "Ajuster la force d'aimant",
+    summary: "La force de l'aimant Sonnet (de 1 à 5) doit être adaptée à l'épaisseur des tissus, qui peut varier.",
+    highlights: ["coil_magnet"],
+    actions: ["Consultez votre centre pour essayer un aimant de force supérieure", "Si prise de poids ou changement de coiffure récent : la force doit souvent être augmentée", "Critère : maintien stable sans trace rouge après 1h de port"],
+  },
+  diag_son_magnet_demag: {
+    id: "diag_son_magnet_demag", type: "diagnosis", severity: "warning", device: "sonnet",
+    title: "Aimant potentiellement démagnétisé",
+    summary: "L'exposition à un IRM, à un portique de sécurité ou à un fort champ magnétique peut réduire la force de l'aimant Sonnet.",
+    highlights: ["coil_magnet"],
+    actions: ["L'aimant doit être remplacé — les aimants démagnétisés ne se rechargent pas", "Contactez votre centre pour remplacement de l'aimant externe", "Avant tout nouvel IRM : signalez votre implant cochléaire et demandez le protocole MED-EL"],
+  },
+  diag_son_magnet_strength_check: {
+    id: "diag_son_magnet_strength_check", type: "diagnosis", severity: "info", device: "sonnet",
+    title: "Évaluation par le centre",
+    summary: "Sans cause évidente, la force d'aimant et l'état cutané doivent être évalués en consultation.",
+    highlights: ["coil_magnet"],
+    actions: ["Rendez-vous au centre pour test de force et inspection cutanée", "Photographiez l'aimant et notez si le problème est constant ou lié à certaines activités"],
+  },
+  diag_son_shutoff_mic_cover: {
+    id: "diag_son_shutoff_mic_cover", type: "diagnosis", severity: "info", device: "sonnet",
+    title: "Changer les couvre-microphones",
+    summary: "L'extinction après 5 minutes est un mécanisme de sécurité : le Sonnet détecte un blocage microphone et coupe l'alimentation.",
+    highlights: ["mic_cover"],
+    actions: ["Retirez et remplacez les couvre-microphones (ProWax ou MicWax selon modèle)", "Testez immédiatement après remplacement", "Si le problème persiste après remplacement : passez à l'étape déshumidification"],
+  },
+  diag_son_shutoff_dry: {
+    id: "diag_son_shutoff_dry", type: "diagnosis", severity: "info", device: "sonnet",
+    title: "Déshumidifier le Sonnet",
+    summary: "L'humidité accumulée dans le canal microphone peut déclencher des courts-circuits temporaires et provoquer l'extinction automatique.",
+    highlights: ["mic_cover"],
+    actions: ["Placez le Sonnet dans un kit déshumidificateur (boîte à gel de silice) pendant une nuit entière", "Retirez les piles ou la batterie pendant la déshumidification", "Testez le lendemain — si l'extinction persiste, consultez votre centre"],
+  },
+  diag_son_shutoff_internal: {
+    id: "diag_son_shutoff_internal", type: "diagnosis", severity: "warning", device: "sonnet",
+    title: "Panne interne à explorer",
+    summary: "Si l'extinction persiste malgré Mic Covers neufs et déshumidification, une panne électronique interne est possible.",
+    actions: ["Consultez votre centre d'implantation pour inspection et test Maestro", "Documentez la durée avant extinction et les conditions (activité, température)", "Demandez un processeur de prêt si l'extinction est gênante au quotidien"],
+  },
+  diag_son_crackle_first_steps: {
+    id: "diag_son_crackle_first_steps", type: "diagnosis", severity: "info", device: "sonnet",
+    title: "Commencer par les gestes de base",
+    summary: "Avant tout envoi en SAV, deux gestes simples éliminent 90% des grésillements Sonnet.",
+    highlights: ["mic_cover"],
+    actions: ["1. Changez les couvre-microphones (MicWax / ProWax)", "2. Placez le Sonnet dans un déshumidificateur une nuit entière (piles retirées)", "3. Testez le lendemain — si le son grésille encore, revenez pour continuer le diagnostic"],
+  },
+  diag_son_crackle_repair: {
+    id: "diag_son_crackle_repair", type: "diagnosis", severity: "warning", device: "sonnet",
+    title: "Envoi en réparation — garantie probable",
+    summary: "Un processeur de moins de 5 ans avec grésillements persistants après gestes de base est généralement couvert par la garantie MED-EL.",
+    highlights: ["body"],
+    actions: ["Contactez votre centre d'implantation pour initier le dossier SAV", "Préparez : numéro de série, date d'activation, description du problème", "MED-EL prend en charge le transport et la réparation dans le cadre de la garantie"],
+  },
+  diag_son_crackle_quote: {
+    id: "diag_son_crackle_quote", type: "diagnosis", severity: "warning", device: "sonnet",
+    title: "Devis SAV — processeur hors garantie",
+    summary: "Un processeur de plus de 5 ans n'est généralement plus sous garantie. Une réparation ou un remplacement peut être envisagé via un devis.",
+    highlights: ["body"],
+    actions: ["Contactez votre centre d'implantation pour évaluation", "Un devis gratuit peut être demandé auprès de MED-EL France", "Selon l'état général, un remplacement par un processeur reconditionné peut être proposé"],
+  },
+  diag_son_crackle_check_age: {
+    id: "diag_son_crackle_check_age", type: "diagnosis", severity: "info", device: "sonnet",
+    title: "Vérifier l'âge via le numéro de série",
+    summary: "Le numéro de série permet à MED-EL de vérifier la date de fabrication et l'historique du processeur.",
+    highlights: ["body"],
+    actions: ["Localisez le numéro de série (étiquette sous la batterie du Sonnet)", "Communiquez-le à votre centre ou directement à MED-EL France", "MED-EL France : 01 41 06 81 06 — le service pourra vous indiquer la couverture applicable"],
+  },
+  diag_son_noise_wind: {
+    id: "diag_son_noise_wind", type: "diagnosis", severity: "info", device: "sonnet",
+    title: "Bruit de vent — comportement normal",
+    summary: "Un bruit de souffle uniquement dans le vent est normal sur tout microphone directif exposé. Ce n'est pas une panne.",
+    highlights: ["mic_cover"],
+    actions: ["Utilisez le programme anti-vent si disponible", "Orientez votre dos au vent pour protéger le microphone", "Si le bruit persiste en intérieur hors vent : consultez pour recalibrage"],
+  },
+  diag_son_feedback_contact: {
+    id: "diag_son_feedback_contact", type: "diagnosis", severity: "info", device: "sonnet",
+    title: "Retour acoustique de contact",
+    summary: "Un sifflement déclenché par un chapeau, une main ou un casque sur l'antenne est un retour acoustique classique, pas une panne.",
+    highlights: ["coil"],
+    actions: ["Augmentez la distance entre le couvre-micro et la surface réfléchissante", "Réduisez le volume via le bouton de programme ou AudioKey 2", "Un programme anti-larsen peut être programmé par votre audioprothésiste"],
+  },
+  diag_son_feedback_internal: {
+    id: "diag_son_feedback_internal", type: "diagnosis", severity: "warning", device: "sonnet",
+    title: "Sifflement interne — consultation recommandée",
+    summary: "Un sifflement sans cause de contact peut indiquer un gain trop élevé, un problème de couplage, ou un défaut micro.",
+    actions: ["Réduisez le volume et changez de programme pour isoler la cause", "Notez si le sifflement est constant ou déclenché par certaines situations", "Consultez votre audioprothésiste pour vérification et recalibrage du fitting"],
+  },
+  diag_son_maestro_processor: {
+    id: "diag_son_maestro_processor", type: "diagnosis", severity: "critical", device: "sonnet",
+    title: "Processeur Sonnet probablement défectueux",
+    summary: "Si Maestro ne détecte pas le Sonnet malgré une MAX et une coil fonctionnelles, le module télémétrique du processeur est suspect.",
+    actions: ["Documentez la session Maestro (capture d'écran du message d'erreur)", "Contactez MED-EL pour demande de SAV urgente", "Demandez un processeur de prêt Sonnet pour maintenir la continuité auditive"],
+  },
+};
