@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import DiagnosticPage from "@/pages/diagnostic";
 import ParcoursPage from "@/pages/parcours";
+import GuidePage from "@/pages/guide";
 import { MotionConfig } from "framer-motion";
 
 function Router() {
@@ -11,6 +12,7 @@ function Router() {
     <Switch>
       <Route path="/" component={ParcoursPage} />
       <Route path="/diagnostic" component={DiagnosticPage} />
+      <Route path="/guide" component={GuidePage} />
       <Route component={NotFound} />
     </Switch>
   );

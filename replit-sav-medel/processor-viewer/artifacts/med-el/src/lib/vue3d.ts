@@ -11,6 +11,8 @@ export type NomVue = "face" | "profil" | "dessus" | "dos" | "accueil";
 
 export type Vue3D = {
   vue: (nom: NomVue) => void;
+  // met une pièce en évidence depuis le parcours (null : aucune)
+  montrer: (piece: string | null) => void;
   detruire: () => void;
 };
 
@@ -281,6 +283,7 @@ export function creerVue3D(el: HTMLElement, proc: Processeur, onPiece?: (nom: st
 
   return {
     vue,
+    montrer: (piece) => selectionner(piece && COMPOSANTS[proc.modele][piece] ? piece : null),
     detruire() {
       cancelAnimationFrame(raf);
       io.disconnect();

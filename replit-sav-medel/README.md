@@ -23,4 +23,5 @@ Aucun Repl ne s'appelle « SAV MED-EL » ; le travail est dans deux Repls.
 - `/` : profil (Utilisateur / Professionnel) → processeur (Sonnet 1, 2, 3 · Rondo 2, 3) → type d'aide (connectivité / auto-diagnostic), avec une vue 3D manipulable sur tous les axes.
 - `/diagnostic` : l'arbre de diagnostic d'origine, inchangé ; l'auto-diagnostic y renvoie au bon nœud de départ (`?depart=…&profil=…`).
 - Fichiers ajoutés : `src/data/parcours.ts`, `src/pages/parcours.tsx`, `src/components/processeur-3d.tsx`, `src/lib/vue3d.ts`. Les modèles 3D sont approximatifs et se remplacent dans `construireModele()` par les glTF officiels.
+- `/guide` : guides pas à pas (`src/data/guides.ts`, `src/pages/guide.tsx`). Connectivité pour les 5 processeurs, et diagnostic du Rondo 2 (patient et pro). La pièce concernée par chaque étape s'allume sur le modèle 3D. Chaque fiche cite sa source ; celles marquées `verifier` sont à faire relire par MED-EL. Pour le Rondo 3, les liens « diagnostic:… » renvoient vers l'arbre d'origine (AudioStream, AudioKey).
 - Captures : `captures/`.

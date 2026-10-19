@@ -11,7 +11,7 @@ const VUES: { nom: NomVue; label: string }[] = [
   { nom: "dos", label: "Dos" },
 ];
 
-export function Processeur3D({ proc, className = "" }: { proc: Processeur; className?: string }) {
+export function Processeur3D({ proc, piece: aMontrer = null, className = "" }: { proc: Processeur; piece?: string | null; className?: string }) {
   const zone = useRef<HTMLDivElement>(null);
   const vue = useRef<Vue3D | null>(null);
   const [piece, setPiece] = useState<string | null>(null);
@@ -36,6 +36,11 @@ export function Processeur3D({ proc, className = "" }: { proc: Processeur; class
       vue.current = null;
     };
   }, [proc]);
+
+  // pièce désignée par l'étape en cours du guide
+  useEffect(() => {
+    if (pret) vue.current?.montrer(aMontrer);
+  }, [pret, aMontrer]);
 
   return (
     <div className={`relative overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm ${className}`}>

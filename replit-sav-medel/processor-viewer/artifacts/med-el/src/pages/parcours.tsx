@@ -6,6 +6,7 @@ import {
   AIDES, GAMMES, PROCESSEURS, PROFILS, departDiagnostic,
   type AideId, type ProcesseurId, type ProfilId,
 } from "@/data/parcours";
+import { departGuide } from "@/data/guides";
 import { Processeur3D } from "@/components/processeur-3d";
 
 const ROUGE = "#E2001A";
@@ -56,12 +57,21 @@ function Titre({ avant, accent, apres = "" }: { avant: string; accent: string; a
   );
 }
 
+// au retour d'un guide, l'URL ramène directement au choix de l'aide
+function repriseDepuisUrl(): { profil: ProfilId | null; proc: ProcesseurId | null } {
+  const q = new URLSearchParams(window.location.search);
+  const profil = PROFILS.find((x) => x.id === q.get("profil"))?.id ?? null;
+  const proc = (q.get("proc") as ProcesseurId | null) ?? null;
+  return profil && proc && PROCESSEURS[proc] ? { profil, proc } : { profil: null, proc: null };
+}
+
 export default function ParcoursPage() {
   const [, naviguer] = useLocation();
-  const [etape, setEtape] = useState<Etape>("profil");
+  const [reprise] = useState(repriseDepuisUrl);
+  const [etape, setEtape] = useState<Etape>(reprise.proc ? "aide" : "profil");
   const [dir, setDir] = useState(1);
-  const [profil, setProfil] = useState<ProfilId | null>(null);
-  const [procId, setProcId] = useState<ProcesseurId | null>(null);
+  const [profil, setProfil] = useState<ProfilId | null>(reprise.profil);
+  const [procId, setProcId] = useState<ProcesseurId | null>(reprise.proc);
   const [aide, setAide] = useState<AideId | null>(null);
 
   const aller = (e: Etape) => {
@@ -76,6 +86,11 @@ export default function ParcoursPage() {
   const p = profil ? PROFILS.find((x) => x.id === profil)! : null;
   const proc = procId ? PROCESSEURS[procId] : null;
   const depart = profil && procId ? departDiagnostic(profil, procId) : null;
+  const guide = profil && procId && aide ? departGuide(aide, profil, procId) : null;
+  const ouvrirGuide = () => {
+    window.scrollTo(0, 0);
+    naviguer(`/guide?depart=${guide}&proc=${procId}&profil=${profil}`);
+  };
 
   return (
     <div className="min-h-screen bg-background font-sans overflow-x-hidden">
@@ -348,11 +363,24 @@ export default function ParcoursPage() {
                               </motion.button>
                             </>
                           )}
-                          {aide === "diagnostic" && !depart && (
-                            <p>Le diagnostic guidé du {proc.nom} reste à écrire : il sera ajouté à l'étape suivante.</p>
-                          )}
-                          {aide === "connectivite" && (
-                            <p>Les guides de connexion adaptés au {proc.nom} arrivent à l'étape suivante.</p>
+                          {!(aide === "diagnostic" && depart) && guide && (
+                            <>
+                              <p>
+                                {aide === "connectivite"
+                                  ? `Les solutions de connexion compatibles avec le ${proc.nom}, étape par étape, avec le dépannage.`
+                                  : `Le diagnostic guidé du ${proc.nom}, question par question, avec la pièce concernée sur le modèle 3D.`}
+                              </p>
+                              <motion.button
+                                whileHover={{ y: -2 }}
+                                whileTap={{ scale: 0.97 }}
+                                onClick={ouvrirGuide}
+                                className="mt-3 w-full flex items-center justify-center gap-2 rounded-xl py-3 font-bold text-white"
+                                style={{ background: ROUGE }}
+                                data-testid="button-ouvrir-guide"
+                              >
+                                {aide === "connectivite" ? "Ouvrir le guide de connexion" : "Lancer le diagnostic guidé"} <ChevronRight className="w-4 h-4" />
+                              </motion.button>
+                            </>
                           )}
                         </div>
                       </motion.div>
