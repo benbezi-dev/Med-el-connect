@@ -1282,10 +1282,13 @@ class Component extends DCLogic {
     "finetuner": "63a12c09-72ee-adbb-46a2-a41b07fc3386",
     "r2-vignette": "3a3f5a01-ae0c-46f4-63ce-49dfadafc441",
     "r2": "b95baa59-6131-7513-b7a1-e3447e798624",
+    "r3-vignette": "74f7aafb-1d4b-70c4-3858-afc1082b4c9b",
     "r3": "df1f5e3e-98fb-a239-5e5f-a2c7f1052236",
     "s1-vignette": "7979763f-8f5c-82fd-af6e-131a23309407",
     "s1": "8686c060-baf7-91a7-ffb0-3c4bc61a4abe",
-    "s2": "cc358234-0f56-68ab-5790-ba64f10c9c39",
+    "s2-vignette": "32a1acc3-934d-81c0-f863-622d5da36463",
+    "s2": "b6b93b3e-4d96-546a-f6f7-be8bdcb564bd",
+    "s3-vignette": "caaecee2-c6b8-c6a9-d5ef-db20414de564",
     "s3": "3ee4fc56-a680-b338-35d5-fbce5d6f9624",
   };
   // ---------- IMAGES-FIN ----------
@@ -1310,12 +1313,31 @@ class Component extends DCLogic {
           {n:9,nom:'Ergot du coude'},{n:10,nom:'Coude EAS'},{n:11,nom:'Verrou du couvercle de pile'},
           {n:12,nom:'Coude CI'},{n:13,nom:'Entr\u00e9es d\u2019air'},
         ]},
-    s2:{img:'s2',imgFlux:'audiostream',nom:'Sonnet 2', fam:'Sonnet', sous:'Contour d\u2019oreille, antenne s\u00e9par\u00e9e',
+    s2:{img:'s2',vign:'s2-vignette',imgFlux:'audiostream',nom:'Sonnet 2', fam:'Sonnet', sous:'Contour d\u2019oreille, antenne s\u00e9par\u00e9e',
         tech:'Pas de Bluetooth int\u00e9gr\u00e9. Streaming via AudioLink ou cl\u00e9 AudioStream. M\u00eame logique d\u2019appairage que le Sonnet 1.',
-        connecte:['audiolink','finetuner','audiokey','proc']},
-    s3:{img:'s3',imgFlux:'audiostream',nom:'Sonnet 3', fam:'Sonnet', sous:'Contour d\u2019oreille, Bluetooth int\u00e9gr\u00e9',
+        connecte:['audiolink','finetuner','audiokey','proc'],
+        // Sch\u00e9ma s2.png, page « SONNET 2 Overview » : MED-EL y donne exactement
+        // les m\u00eames 13 libell\u00e9s, dans le m\u00eame ordre, que pour le Sonnet 1.
+        reperes:[
+          {n:1,nom:'Antenne'},{n:2,nom:'Voyant de l\u2019antenne'},{n:3,nom:'C\u00e2ble de l\u2019antenne'},
+          {n:4,nom:'Bo\u00eetier de pile'},{n:5,nom:'Protection des microphones'},
+          {n:6,nom:'Unit\u00e9 de commande'},{n:7,nom:'Microphones'},{n:8,nom:'Voyant du processeur'},
+          {n:9,nom:'Ergot du coude'},{n:10,nom:'Coude EAS'},{n:11,nom:'Verrou du couvercle de pile'},
+          {n:12,nom:'Coude CI'},{n:13,nom:'Entr\u00e9es d\u2019air'},
+        ]},
+    s3:{img:'s3',vign:'s3-vignette',imgFlux:'audiostream',nom:'Sonnet 3', fam:'Sonnet', sous:'Contour d\u2019oreille, Bluetooth int\u00e9gr\u00e9',
         tech:'Bluetooth int\u00e9gr\u00e9 : appairage direct au t\u00e9l\u00e9phone, sans accessoire. AudioLink classique incompatible, AudioLink XT requis.',
-        connecte:['audiolinkxt','audiokey','proc']},
+        connecte:['audiolinkxt','audiokey','proc'],
+        // Sch\u00e9ma s3.jpg, page « SONNET 3 Overview ». L'ordre n'est PAS celui du
+        // Sonnet 1 et le vocabulaire diff\u00e8re (« Coil » et non « DL-Coil »,
+        // « Touch Key » propre à ce mod\u00e8le) : rien n'est repris de s1.
+        reperes:[
+          {n:1,nom:'Antenne'},{n:2,nom:'Voyant de l\u2019antenne'},{n:3,nom:'C\u00e2ble de l\u2019antenne'},
+          {n:4,nom:'Entr\u00e9es d\u2019air'},{n:5,nom:'Bo\u00eetier de pile'},{n:6,nom:'Touche tactile'},
+          {n:7,nom:'Ouvertures des microphones'},{n:8,nom:'Protection des microphones'},
+          {n:9,nom:'Voyant du processeur'},{n:10,nom:'Coude CI'},{n:11,nom:'Coude EAS'},
+          {n:12,nom:'Unit\u00e9 de commande'},{n:13,nom:'Verrou du couvercle de pile'},
+        ]},
     r2:{img:'r2',vign:'r2-vignette',nom:'Rondo 2', fam:'Rondo', sous:'Disque unique aimant\u00e9, charge par induction',
         tech:'Recharge par socle \u00e0 induction. T\u00e9l\u00e9coil int\u00e9gr\u00e9 : boucle magn\u00e9tique et syst\u00e8mes FM. Ni Bluetooth ni AudioStream ; AudioLink incompatible.',
         connecte:[], aucuneConnectivite:true,
@@ -1324,9 +1346,16 @@ class Component extends DCLogic {
           {n:1,nom:'Voyants'},{n:2,nom:'Couvercle'},{n:3,nom:'Bouton marche/arr\u00eat'},{n:4,nom:'Microphone'},
           {n:5,nom:'Unit\u00e9 de traitement'},
         ]},
-    r3:{img:'r3',imgFlux:'audiostream-rondo',nom:'Rondo 3', fam:'Rondo', sous:'Disque unique aimant\u00e9, cl\u00e9 AudioStream',
+    r3:{img:'r3',vign:'r3-vignette',imgFlux:'audiostream-rondo',nom:'Rondo 3', fam:'Rondo', sous:'Disque unique aimant\u00e9, cl\u00e9 AudioStream',
         tech:'Pas de Bluetooth int\u00e9gr\u00e9. Streaming via cl\u00e9 AudioStream ins\u00e9r\u00e9e dans le processeur.',
-        connecte:['audiolink','finetuner','audiokey','proc']},
+        connecte:['audiolink','finetuner','audiokey','proc'],
+        // Sch\u00e9ma r3.jpg, page « RONDO 3 Overview » : le sch\u00e9ma montre les deux
+        // faces et la tranche, d'o\u00f9 des rep\u00e8res qui ne sont pas sur la m\u00eame vue.
+        reperes:[
+          {n:1,nom:'Voyant principal'},{n:2,nom:'Bouton marche/arr\u00eat'},{n:3,nom:'Ouvertures des microphones'},
+          {n:4,nom:'Encoches pour les doigts'},{n:5,nom:'Encoches pour le support'},
+          {n:6,nom:'Capuchon de la prise'},{n:7,nom:'Aimant'},{n:8,nom:'Voyant de charge'},
+        ]},
   };
 
   // Rep\u00e8res des pi\u00e8ces d\u00e9tach\u00e9es, m\u00eame format que APPAREILS.reperes, index\u00e9s par
