@@ -1,0 +1,2104 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="72d7e5f3-4da8-4b4e-b750-25809b9b85e9"></script>
+</head>
+<body>
+
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<style>/* latin-ext */
+@font-face {
+  font-family: 'Instrument Serif';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("d0790f44-baee-4f9d-b121-dbd09307637f") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Instrument Serif';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("0744ca43-62b4-45fb-9fbe-26291548a75f") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Instrument Serif';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("fb5ec1e0-0d8e-4465-af3e-26d0e06340de") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Instrument Serif';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("9cbcb414-e41b-4b0f-a4cd-fb8947087440") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("cc8a7667-4307-457b-b77c-00f0c84756b7") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("36d15970-5da9-4178-9281-11b669e34032") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("61947c1f-9b05-4325-be1f-442add51c708") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("0745b53b-fd30-45c1-b955-a3e4ae06df0f") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("31b9d9d6-2d7c-4fa6-ac4c-3a91af7871d1") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("db6d9d88-1622-41b7-87fd-083909833c18") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("cc8a7667-4307-457b-b77c-00f0c84756b7") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("36d15970-5da9-4178-9281-11b669e34032") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("61947c1f-9b05-4325-be1f-442add51c708") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("0745b53b-fd30-45c1-b955-a3e4ae06df0f") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("31b9d9d6-2d7c-4fa6-ac4c-3a91af7871d1") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("db6d9d88-1622-41b7-87fd-083909833c18") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("cc8a7667-4307-457b-b77c-00f0c84756b7") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("36d15970-5da9-4178-9281-11b669e34032") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("61947c1f-9b05-4325-be1f-442add51c708") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("0745b53b-fd30-45c1-b955-a3e4ae06df0f") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("31b9d9d6-2d7c-4fa6-ac4c-3a91af7871d1") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("db6d9d88-1622-41b7-87fd-083909833c18") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("cc8a7667-4307-457b-b77c-00f0c84756b7") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("36d15970-5da9-4178-9281-11b669e34032") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("61947c1f-9b05-4325-be1f-442add51c708") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("0745b53b-fd30-45c1-b955-a3e4ae06df0f") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("31b9d9d6-2d7c-4fa6-ac4c-3a91af7871d1") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("db6d9d88-1622-41b7-87fd-083909833c18") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("cc8a7667-4307-457b-b77c-00f0c84756b7") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("36d15970-5da9-4178-9281-11b669e34032") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("61947c1f-9b05-4325-be1f-442add51c708") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("0745b53b-fd30-45c1-b955-a3e4ae06df0f") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("31b9d9d6-2d7c-4fa6-ac4c-3a91af7871d1") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("db6d9d88-1622-41b7-87fd-083909833c18") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+</style>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  @keyframes melPulse{0%,100%{box-shadow:0 0 0 4px var(--accent-soft)}50%{box-shadow:0 0 0 7px rgba(226,0,26,.08)}}
+  @keyframes melRise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes melRing{0%{transform:scale(.85);opacity:.6}100%{transform:scale(1.25);opacity:0}}
+  @keyframes melPop{0%{transform:scale(0)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+  @keyframes melScene{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+  @keyframes melFall{to{transform:translateY(110vh) rotate(720deg);opacity:.2}}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="{{ rootStyle }}">
+  <div style="max-width:580px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;background:var(--page-bg)">
+
+    <header style="position:sticky;top:0;z-index:30;background:var(--header-bg);backdrop-filter:saturate(160%) blur(14px);-webkit-backdrop-filter:saturate(160%) blur(14px);border-bottom:1px solid var(--line)">
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 20px;min-height:62px">
+        <sc-if value="{{ showBack }}" hint-placeholder-val="{{ false }}">
+          <button onclick="{{ onBack }}" aria-label="Retour" style="border:1px solid var(--line);background:var(--card-bg);width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--ink);transition:transform .18s,border-color .18s,color .18s" style-hover="border:1px solid var(--accent);color:var(--accent);transform:translateX(-2px)">
+            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+          </button>
+        </sc-if>
+        <div style="display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.02em;font-size:16px">
+          <span style="width:11px;height:11px;border-radius:50%;background:var(--accent);flex-shrink:0;box-shadow:0 0 0 4px var(--accent-soft);animation:melPulse 2.4s ease-in-out infinite"></span>
+          <div>MED-EL Connect<small style="display:block;font-weight:500;font-size:11px;color:var(--ink-soft);letter-spacing:0;margin-top:-2px">{{ crumb }}</small></div>
+        </div>
+        <button onclick="{{ onInstall }}" aria-label="Installer l’application" title="Installer l’application" style="margin-left:auto;border:1px solid var(--line);background:var(--card-bg);width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--accent);transition:transform .18s,border-color .18s" style-hover="border:1px solid var(--accent);transform:translateY(-1px)">
+          <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="M7 11l5 5 5-5"></path><path d="M5 20h14"></path></svg>
+        </button>
+        <sc-if value="{{ showHome }}" hint-placeholder-val="{{ false }}">
+          <button onclick="{{ onHome }}" aria-label="Accueil" title="Accueil" style="border:1px solid var(--line);background:var(--card-bg);width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--ink);transition:transform .18s,border-color .18s,color .18s" style-hover="border:1px solid var(--accent);color:var(--accent);transform:translateY(-1px)">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"></path><path d="M9.5 21v-6h5v6"></path></svg>
+          </button>
+        </sc-if>
+        <sc-if value="{{ headRight }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:11px;color:var(--ink-soft);font-weight:700;text-align:right;line-height:1.3;margin-left:6px">{{ headRight }}</div>
+        </sc-if>
+      </div>
+      <sc-if value="{{ showTrail }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:2px;padding:0 20px 12px;overflow-x:auto;flex-wrap:nowrap">
+          <sc-for list="{{ trail }}" as="crumb" hint-placeholder-count="2">
+            <button onclick="{{ crumb.onClick }}" style="{{ crumb.style }}">{{ crumb.label }}</button>
+            <sc-if value="{{ crumb.sep }}" hint-placeholder-val="{{ false }}"><span style="color:var(--ink-soft);font-size:13px;flex-shrink:0;opacity:.5">›</span></sc-if>
+          </sc-for>
+        </div>
+      </sc-if>
+    </header>
+
+    <main style="flex:1;padding:26px 20px 40px" ref="{{ setMainRef }}">
+
+      <sc-if value="{{ aVue3d }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-bottom:24px">
+          <sc-if value="{{ aPhoto }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;background:var(--card-bg);border:1px solid var(--line);border-radius:14px;padding:5px;gap:5px;margin-bottom:12px;box-shadow:var(--shadow)">
+              <button onclick="{{ onMontrerPhoto }}" style="{{ ongletPhotoStyle }}">Photo</button>
+              <button onclick="{{ onMontrer3d }}" style="{{ onglet3dStyle }}">Vue 3D</button>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ montrePhoto }}" hint-placeholder-val="{{ true }}">
+            <div style="height:244px;border-radius:var(--radius);background:#fff;border:1px solid var(--line);overflow:hidden;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;padding:14px">
+              {{ photoEl }}
+            </div>
+            <p style="margin:9px 2px 0;font-size:12.5px;color:var(--ink-soft);line-height:1.45">{{ photoAlt }} — visuel officiel MED-EL.</p>
+            <sc-if value="{{ aLegende }}" hint-placeholder-val="{{ false }}">
+              <p style="margin:7px 2px 0;font-size:12.5px;color:var(--ink-soft);line-height:1.7">{{ legendeReperes }}</p>
+            </sc-if>
+          </sc-if>
+
+          <sc-if value="{{ montre3d }}" hint-placeholder-val="{{ false }}">
+            <div style="position:relative">
+              <div ref="{{ setVue3dRef }}" style="height:244px;border-radius:var(--radius);background:linear-gradient(160deg,#FBF8F8,#F1ECEC);border:1px solid var(--line);overflow:hidden;box-shadow:var(--shadow)"></div>
+              <button onclick="{{ onVueInitiale }}" aria-label="Revenir à la vue initiale" style="position:absolute;top:10px;right:10px;background:rgba(255,255,255,.92);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:99px;padding:6px 13px;font-family:inherit;font-size:12px;font-weight:700;color:var(--ink-soft);cursor:pointer">↺ Vue initiale</button>
+            </div>
+            <p style="margin:9px 2px 0;font-size:12.5px;color:var(--ink-soft);line-height:1.45">{{ vue3dAide }}</p>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isMenu }}" hint-placeholder-val="{{ true }}">
+        <div>
+          <sc-if value="{{ menu.eyebrow }}" hint-placeholder-val="{{ true }}"><div style="font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:11px">{{ menu.eyebrow }}</div></sc-if>
+          <h1 style="font-family:var(--title-font);font-weight:var(--h1-weight);font-size:var(--h1);line-height:1.05;letter-spacing:var(--h1-spacing);margin:0 0 10px">{{ menu.titleEl }}</h1>
+          <sc-if value="{{ menu.lede }}" hint-placeholder-val="{{ true }}"><p style="color:var(--ink-soft);font-size:16px;margin:0 0 26px;max-width:44ch;line-height:1.55">{{ menu.lede }}</p></sc-if>
+          <div style="display:flex;flex-direction:column;gap:13px">
+            <sc-for list="{{ menu.options }}" as="opt" hint-placeholder-count="3">
+              <button onclick="{{ opt.onClick }}" style="{{ opt.cardStyle }}" style-hover="border:1px solid var(--accent);transform:translateY(-3px);box-shadow:0 10px 40px rgba(178,0,21,.13)">
+                {{ opt.leadEl }}
+                <span style="flex:1;min-width:0;text-align:left"><strong style="display:block;font-size:16.5px;font-weight:700;letter-spacing:-.01em;line-height:1.3">{{ opt.title }}</strong><span style="display:block;font-size:13.5px;color:var(--ink-soft);margin-top:3px;line-height:1.4">{{ opt.sub }}</span></span>
+                <sc-if value="{{ opt.badge }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:10px;right:14px;font-size:10.5px;font-weight:700;color:var(--ok);background:var(--ok-soft);border:1px solid #BCE6CD;padding:2px 8px;border-radius:99px">{{ opt.badge }}</span></sc-if>
+                <span style="color:var(--ink-soft);flex-shrink:0;display:flex"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg></span>
+              </button>
+            </sc-for>
+          </div>
+          <sc-if value="{{ menu.hasHelp }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:16px">
+              <button onclick="{{ onToggleHelp }}" style="{{ helpBtnStyle }}">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"></circle><path d="M9.2 9.3a2.9 2.9 0 0 1 5.6 1c0 1.9-2.8 2.5-2.8 2.5"></path><path d="M12 17h.01"></path></svg>
+                <span style="flex:1;text-align:left">{{ helpToggleLabel }}</span>
+                <span style="{{ helpChevStyle }}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></span>
+              </button>
+              <sc-if value="{{ helpOpen }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:11px;display:flex;flex-direction:column;gap:10px">
+                  <sc-for list="{{ menu.helpItems }}" as="hi" hint-placeholder-count="2">
+                    <div style="display:flex;gap:13px;align-items:flex-start;background:var(--card-bg);border:1px solid var(--line);border-radius:14px;padding:14px 15px">
+                      <span style="width:42px;height:42px;border-radius:11px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;font-size:13px">{{ hi.tag }}</span>
+                      <div style="min-width:0"><strong style="font-size:14.5px;font-weight:700;letter-spacing:-.01em">{{ hi.name }}</strong><span style="display:block;font-size:13.5px;color:var(--ink-soft);margin-top:2px;line-height:1.45">{{ hi.desc }}</span></div>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isBilan }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="{{ bilan.badgeStyle }}">{{ bilan.badgeLabel }}</div>
+          <h1 style="font-family:var(--title-font);font-weight:var(--h1-weight);font-size:calc(var(--h1) - 8px);line-height:1.06;letter-spacing:var(--h1-spacing);margin:14px 0 12px">{{ bilan.title }}</h1>
+          <p style="color:var(--ink-soft);font-size:16px;margin:0 0 24px;max-width:46ch;line-height:1.55">{{ bilan.resume }}</p>
+
+          <sc-if value="{{ bilan.hasActions }}" hint-placeholder-val="{{ true }}">
+            <div style="background:var(--card-bg);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);margin-bottom:16px">
+              <p style="font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 16px">Marche à suivre</p>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <sc-for list="{{ bilan.actions }}" as="a" hint-placeholder-count="3">
+                  <div style="display:flex;gap:13px;align-items:flex-start">
+                    <span style="flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-family:var(--num-font);font-weight:var(--num-weight);font-size:14px;display:flex;align-items:center;justify-content:center">{{ a.n }}</span>
+                    <span style="font-size:15px;line-height:1.5;color:var(--ink)">{{ a.texte }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ bilan.pro }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:11px;align-items:flex-start;background:var(--accent-soft);border:1px solid #F4C9CE;border-radius:14px;padding:14px 15px;margin-bottom:16px;font-size:14px;line-height:1.5;color:var(--ink)">
+              <span style="flex-shrink:0;font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--accent);background:#fff;border-radius:6px;padding:3px 6px;margin-top:1px">PRO</span>
+              <div>{{ bilan.proEl }}</div>
+            </div>
+          </sc-if>
+
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <button onclick="{{ onTechnicien }}" style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;font-family:inherit;font-size:15px;font-weight:700;color:#fff;background:var(--accent);border:0;border-radius:14px;padding:15px;cursor:pointer">Demander l’aide d’un technicien</button>
+            <button onclick="{{ onHome }}" style="width:100%;font-family:inherit;font-size:14.5px;font-weight:700;color:var(--ink-soft);background:var(--card-bg);border:1px solid var(--line);border-radius:14px;padding:13px;cursor:pointer">Reprendre depuis le début</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isSteps }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <h1 style="font-family:var(--title-font);font-weight:var(--h1-weight);font-size:calc(var(--h1) - 8px);line-height:1.06;letter-spacing:var(--h1-spacing);margin:0 0 14px">{{ steps.title }}</h1>
+          <sc-if value="{{ steps.platform }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;background:var(--card-bg);border:1px solid var(--line);border-radius:14px;padding:5px;gap:5px;margin-bottom:18px;box-shadow:var(--shadow)">
+              <button onclick="{{ onAndroid }}" style="{{ segAndroidStyle }}"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M6 18c0 .55.45 1 1 1h1v3.5a1.5 1.5 0 0 0 3 0V19h2v3.5a1.5 1.5 0 0 0 3 0V19h1c.55 0 1-.45 1-1V8H6v10zM3.5 8A1.5 1.5 0 0 0 2 9.5v7a1.5 1.5 0 0 0 3 0v-7A1.5 1.5 0 0 0 3.5 8zm17 0A1.5 1.5 0 0 0 19 9.5v7a1.5 1.5 0 0 0 3 0v-7A1.5 1.5 0 0 0 20.5 8zM15.5 3.7l1.3-1.3a.4.4 0 0 0-.55-.55l-1.45 1.45A5.6 5.6 0 0 0 12 2.5c-.9 0-1.75.2-2.5.55L8.05 1.6a.4.4 0 0 0-.55.55l1.3 1.3A5.4 5.4 0 0 0 6.5 7h11a5.4 5.4 0 0 0-2-3.3z"></path></svg> Android</button>
+              <button onclick="{{ onApple }}" style="{{ segAppleStyle }}"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M17.05 12.5c-.03-2.5 2.05-3.7 2.14-3.76-1.17-1.7-2.99-1.94-3.64-1.96-1.55-.16-3.02.91-3.8.91-.78 0-2-.89-3.28-.86-1.69.02-3.25.98-4.12 2.49-1.76 3.05-.45 7.56 1.26 10.03.84 1.21 1.84 2.57 3.15 2.52 1.26-.05 1.74-.81 3.27-.81 1.52 0 1.95.81 3.28.79 1.36-.03 2.21-1.23 3.04-2.45.96-1.4 1.35-2.76 1.37-2.83-.03-.01-2.63-1.01-2.66-4.01zM14.6 4.97c.69-.84 1.16-2 1.03-3.17-1 .04-2.21.67-2.93 1.5-.64.74-1.2 1.93-1.05 3.07 1.11.09 2.25-.57 2.95-1.4z"></path></svg> iPhone</button>
+            </div>
+          </sc-if>
+          <sc-if value="{{ steps.showNotice }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:11px;align-items:flex-start;background:var(--warn-soft);border:1px solid #F0DCB4;border-radius:14px;padding:14px 15px;margin-bottom:20px;font-size:14px;color:#7A4E00">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#C77800" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path></svg>
+              <div>{{ steps.noticeEl }}</div>
+            </div>
+          </sc-if>
+
+          <div style="margin-bottom:20px">
+            <div style="height:7px;background:var(--line);border-radius:99px;overflow:hidden">
+              <div style="{{ fillStyle }}"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;color:var(--ink-soft);margin-top:9px">
+              <span>{{ stepLabel }}</span><span>{{ pct }}%</span>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:11px;flex-wrap:wrap">
+              <sc-for list="{{ dots }}" as="d" hint-placeholder-count="5">
+                <button onclick="{{ d.onClick }}" aria-label="{{ d.aria }}" style="{{ d.style }}"></button>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="background:var(--card-bg);border:1px solid var(--line);border-radius:var(--radius);padding:24px 22px;box-shadow:var(--shadow);display:flex;flex-direction:column">
+            {{ step.sceneEl }}
+            <div style="display:inline-flex;align-items:center;gap:10px;margin-bottom:12px">
+              <span style="font-family:var(--num-font);font-weight:var(--num-weight);font-size:38px;line-height:1;color:var(--accent)">{{ step.num }}</span>
+              <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)">/ {{ step.total }}</span>
+            </div>
+            <h2 style="font-size:20px;font-weight:700;letter-spacing:-.01em;margin:0 0 11px;line-height:1.3">{{ step.h }}</h2>
+            <div style="color:var(--ink-soft);font-size:16px;line-height:1.55">{{ step.pEl }}</div>
+            <sc-if value="{{ step.hasP2 }}" hint-placeholder-val="{{ false }}"><div style="color:var(--ink-soft);font-size:16px;line-height:1.55;margin-top:10px">{{ step.p2El }}</div></sc-if>
+            <sc-for list="{{ step.branches }}" as="b" hint-placeholder-count="0">
+              <div style="margin-top:11px;padding:13px 15px;border-radius:13px;background:var(--page-bg);border:1px solid var(--line);font-size:15px;line-height:1.5"><b style="color:var(--ink)">{{ b.label }} —</b> {{ b.htmlEl }}</div>
+            </sc-for>
+            <sc-if value="{{ step.showFbOk }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:13px;padding:13px 15px;border-radius:13px;font-size:15px;line-height:1.5;display:flex;gap:10px;align-items:flex-start;background:var(--ok-soft);color:#0B6135;border:1px solid #BCE6CD">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#1E9E5A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><path d="M20 6 9 17l-5-5"></path></svg><div>{{ step.fbOk }}</div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ step.showFbRetry }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:11px;padding:13px 15px;border-radius:13px;font-size:15px;line-height:1.5;display:flex;gap:10px;align-items:flex-start;background:var(--accent-soft);color:var(--accent-dark);border:1px solid #F4C9CE">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"></path></svg><div>{{ step.fbRetry }}</div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ step.showVideo }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:12px"><a href="{{ step.videoUrl }}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:9px;background:var(--ink);color:#fff;text-decoration:none;font-weight:600;font-size:14.5px;padding:12px 16px;border-radius:12px"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg> {{ step.videoLabel }}</a></div>
+            </sc-if>
+            <sc-if value="{{ step.showTip }}" hint-placeholder-val="{{ false }}">
+              <div style="background:var(--page-bg);border:1px solid var(--line);border-radius:13px;padding:14px;display:flex;gap:12px;margin-top:14px">
+                <span style="width:42px;height:42px;border-radius:11px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0">{{ step.tipIconEl }}</span>
+                <div><strong style="font-size:14.5px">{{ step.tipT }}</strong><span style="display:block;font-size:13.5px;color:var(--ink-soft);margin-top:2px;line-height:1.45">{{ step.tipS }}</span></div>
+              </div>
+            </sc-if>
+            <div onclick="{{ onToggleConfirm }}" style="{{ confirmStyle }}">
+              <span style="{{ confirmBoxStyle }}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+              <span style="font-size:15px;font-weight:600">{{ confirmLabel }}</span>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:11px;margin-top:18px">
+            <button onclick="{{ onPrev }}" style="flex:1;font-family:inherit;font-weight:700;font-size:15px;padding:15px;border-radius:14px;cursor:pointer;border:1px solid var(--line);background:var(--card-bg);color:var(--ink);transition:border-color .18s;display:flex;align-items:center;justify-content:center;gap:8px" style-hover="border:1px solid var(--ink-soft)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg> {{ prevLabel }}</button>
+            <button onclick="{{ onNext }}" style="flex:1.5;font-family:inherit;font-weight:700;font-size:15px;padding:15px;border-radius:14px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:#fff;transition:transform .18s,background .18s;display:flex;align-items:center;justify-content:center;gap:8px" style-hover="background:var(--accent-dark);transform:translateY(-1px)">{{ nextLabel }} <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg></button>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <sc-if value="{{ done.showTitle }}" hint-placeholder-val="{{ false }}"><h1 style="font-family:var(--title-font);font-weight:var(--h1-weight);font-size:calc(var(--h1) - 8px);margin:0 0 14px">{{ steps.title }}</h1></sc-if>
+          <div style="text-align:center;padding:26px 10px">
+            <div style="width:96px;height:96px;border-radius:50%;background:var(--ok-soft);border:1px solid #BCE6CD;display:flex;align-items:center;justify-content:center;margin:0 auto 22px;position:relative">
+              <span style="position:absolute;inset:-8px;border-radius:50%;border:2px solid var(--ok);opacity:0;animation:melRing 1.4s ease-out infinite"></span>
+              <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="var(--ok)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="animation:melPop .55s cubic-bezier(.2,1.5,.4,1)"><path d="M20 6 9 17l-5-5"></path></svg>
+            </div>
+            <h2 style="font-family:var(--title-font);font-weight:var(--h1-weight);font-size:32px;margin:0 0 9px">{{ done.h }}</h2>
+            <p style="color:var(--ink-soft);margin:0 auto 24px;font-size:16px;max-width:34ch;line-height:1.55">{{ done.p }}</p>
+            <div style="display:flex;gap:11px">
+              <button onclick="{{ onRestart }}" style="flex:1;font-family:inherit;font-weight:700;font-size:15px;padding:15px;border-radius:14px;cursor:pointer;border:1px solid var(--line);background:var(--card-bg);color:var(--ink);display:flex;align-items:center;justify-content:center;gap:8px" style-hover="border:1px solid var(--ink-soft)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"></path></svg> Recommencer</button>
+              <button onclick="{{ onHome }}" style="flex:1.4;font-family:inherit;font-weight:700;font-size:15px;padding:15px;border-radius:14px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px" style-hover="background:var(--accent-dark)">Accueil <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg></button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isForm }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:11px">Assistance</div>
+          <h1 style="font-family:var(--title-font);font-weight:var(--h1-weight);font-size:var(--h1);line-height:1.05;letter-spacing:var(--h1-spacing);margin:0 0 10px">{{ form.titleEl }}</h1>
+          <p style="color:var(--ink-soft);font-size:16px;margin:0 0 24px;line-height:1.55">{{ form.lede }}</p>
+          <div style="display:flex;flex-direction:column;gap:15px">
+            <label style="display:flex;flex-direction:column;gap:7px"><span style="font-size:13px;font-weight:700">Nom</span><input value="{{ form.nom }}" onchange="{{ onFnom }}" type="text" placeholder="Votre nom" autocomplete="name" style="{{ inputStyle }}"></label>
+            <label style="display:flex;flex-direction:column;gap:7px"><span style="font-size:13px;font-weight:700">Mail de rappel</span><input value="{{ form.mail }}" onchange="{{ onFmail }}" type="email" placeholder="vous@exemple.fr" autocomplete="email" style="{{ inputStyle }}"></label>
+            <label style="display:flex;flex-direction:column;gap:7px"><span style="font-size:13px;font-weight:700">Téléphone de rappel</span><input value="{{ form.tel }}" onchange="{{ onFtel }}" type="tel" placeholder="06 12 34 56 78" autocomplete="tel" style="{{ inputStyle }}"></label>
+            <label style="display:flex;flex-direction:column;gap:7px"><span style="font-size:13px;font-weight:700">Modèle de processeur / accessoire</span>
+              <select value="{{ form.modele }}" onchange="{{ onFmodele }}" style="{{ inputStyle }}"><option value="">— Sélectionner —</option><option>Sonnet 1</option><option>Sonnet 2</option><option>Sonnet 3</option><option>Rondo 3</option><option>AudioLink</option><option>AudioLink XT</option><option>FineTuner Echo</option><option>AudioStream</option><option>AudioKey</option><option>Autre / je ne sais pas</option></select></label>
+            <div style="display:flex;flex-direction:column;gap:7px"><span style="font-size:13px;font-weight:700">Urgence</span>
+              <div style="display:flex;gap:9px">
+                <sc-for list="{{ form.urgBtns }}" as="u" hint-placeholder-count="3">
+                  <button onclick="{{ u.onClick }}" type="button" style="{{ u.style }}">{{ u.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+            <label style="display:flex;flex-direction:column;gap:7px"><span style="font-size:13px;font-weight:700">Description du besoin</span><textarea value="{{ form.desc }}" onchange="{{ onFdesc }}" rows="4" placeholder="Décrivez votre problème de connexion ou votre question…" style="{{ textareaStyle }}"></textarea></label>
+            <sc-if value="{{ form.err }}" hint-placeholder-val="{{ false }}"><div style="background:var(--accent-soft);color:var(--accent-dark);border:1px solid #F4C9CE;border-radius:12px;padding:11px 14px;font-size:14px;font-weight:600">{{ form.err }}</div></sc-if>
+            <div style="display:flex;gap:11px;margin-top:2px;flex-wrap:wrap">
+              <button onclick="{{ onSendMail }}" style="flex:1;min-width:160px;font-family:inherit;font-weight:700;font-size:15px;padding:15px;border-radius:14px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px" style-hover="background:var(--accent-dark)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="3"></rect><path d="m3 7 9 6 9-6"></path></svg> Envoyer par mail</button>
+              <button onclick="{{ onSendSms }}" style="flex:1;min-width:160px;font-family:inherit;font-weight:700;font-size:15px;padding:15px;border-radius:14px;cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px" style-hover="background:#000"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.8-.8L3 21l1.3-4a8.4 8.4 0 0 1-.8-3.6A8.4 8.4 0 0 1 12 5a8.4 8.4 0 0 1 9 6.5z"></path></svg> Envoyer par SMS</button>
+            </div>
+            <p style="display:flex;gap:10px;align-items:flex-start;font-size:12.5px;color:var(--ink-soft);background:var(--page-bg);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:2px 0 0;line-height:1.5"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#C77800" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path></svg><span>Vos informations ne sont pas stockées ici : elles sont uniquement transmises à l’équipe via votre application mail ou SMS.</span></p>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ installOpen }}" hint-placeholder-val="{{ false }}">
+        <div onclick="{{ onCloseInstall }}" style="position:fixed;inset:0;z-index:60;background:rgba(20,17,18,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center">
+          <div style="background:var(--card-bg);width:100%;max-width:580px;border-radius:24px 24px 0 0;border:1px solid var(--line);border-bottom:0;box-shadow:0 -8px 40px rgba(26,23,24,.18);padding:8px 22px 30px;max-height:86dvh;overflow-y:auto">
+            <div style="width:42px;height:5px;border-radius:99px;background:var(--line);margin:8px auto 16px"></div>
+            <div style="display:flex;align-items:flex-start;gap:13px;margin-bottom:6px">
+              <span style="width:46px;height:46px;border-radius:13px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="M7 11l5 5 5-5"></path><path d="M5 20h14"></path></svg></span>
+              <div style="flex:1;min-width:0"><h2 style="font-family:var(--title-font);font-weight:var(--h1-weight);font-size:25px;margin:2px 0 2px;letter-spacing:-.01em">Installer l’application</h2><p style="color:var(--ink-soft);font-size:14px;margin:0;line-height:1.5">Ajoutez MED-EL Connect à votre écran d’accueil pour l’ouvrir comme une vraie application.</p></div>
+              <button onclick="{{ onCloseInstall }}" aria-label="Fermer" style="border:1px solid var(--line);background:var(--page-bg);width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--ink-soft)"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"></path></svg></button>
+            </div>
+            <sc-if value="{{ hasNativeInstall }}" hint-placeholder-val="{{ false }}">
+              <button onclick="{{ onNativeInstall }}" style="width:100%;margin-top:16px;font-family:inherit;font-weight:700;font-size:15.5px;padding:15px;border-radius:14px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;gap:9px" style-hover="background:var(--accent-dark)"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="M7 11l5 5 5-5"></path><path d="M5 20h14"></path></svg> Installer maintenant</button>
+              <div style="text-align:center;font-size:12.5px;color:var(--ink-soft);margin-top:10px">Installation en un appui disponible sur cet appareil.</div>
+            </sc-if>
+            <div style="margin-top:18px;display:flex;flex-direction:column;gap:11px">
+              <sc-if value="{{ isIOS }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)">iPhone · iPad (Safari)</div>
+                <sc-for list="{{ stepsIOS }}" as="st" hint-placeholder-count="3"><div style="display:flex;gap:13px;align-items:flex-start;background:var(--page-bg);border:1px solid var(--line);border-radius:14px;padding:13px 15px"><span style="width:30px;height:30px;border-radius:9px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;font-size:13px">{{ st.n }}</span><div style="font-size:14.5px;line-height:1.5;padding-top:3px">{{ st.tEl }}</div></div></sc-for>
+              </sc-if>
+              <sc-if value="{{ isAndroid }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)">Android (Chrome)</div>
+                <sc-for list="{{ stepsAndroid }}" as="st" hint-placeholder-count="3"><div style="display:flex;gap:13px;align-items:flex-start;background:var(--page-bg);border:1px solid var(--line);border-radius:14px;padding:13px 15px"><span style="width:30px;height:30px;border-radius:9px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;font-size:13px">{{ st.n }}</span><div style="font-size:14.5px;line-height:1.5;padding-top:3px">{{ st.tEl }}</div></div></sc-for>
+              </sc-if>
+              <sc-if value="{{ isMac }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)">Mac (Safari)</div>
+                <sc-for list="{{ stepsMac }}" as="st" hint-placeholder-count="3"><div style="display:flex;gap:13px;align-items:flex-start;background:var(--page-bg);border:1px solid var(--line);border-radius:14px;padding:13px 15px"><span style="width:30px;height:30px;border-radius:9px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;font-size:13px">{{ st.n }}</span><div style="font-size:14.5px;line-height:1.5;padding-top:3px">{{ st.tEl }}</div></div></sc-for>
+              </sc-if>
+              <sc-if value="{{ isDesktop }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)">Ordinateur (Chrome · Edge)</div>
+                <sc-for list="{{ stepsDesktop }}" as="st" hint-placeholder-count="3"><div style="display:flex;gap:13px;align-items:flex-start;background:var(--page-bg);border:1px solid var(--line);border-radius:14px;padding:13px 15px"><span style="width:30px;height:30px;border-radius:9px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;font-size:13px">{{ st.n }}</span><div style="font-size:14.5px;line-height:1.5;padding-top:3px">{{ st.tEl }}</div></div></sc-for>
+              </sc-if>
+            </div>
+            <p style="display:flex;gap:10px;align-items:flex-start;font-size:12.5px;color:var(--ink-soft);background:var(--page-bg);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:16px 0 0;line-height:1.5"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="9.5"></circle><path d="M12 8h.01M11 12h1v4h1"></path></svg><span>Une fois ajoutée, l’application s’ouvre depuis son icône, en plein écran, même sans connexion.</span></p>
+          </div>
+        </div>
+      </sc-if>
+
+    </main>
+
+    <footer style="text-align:center;padding:18px;font-size:12px;color:var(--ink-soft);border-top:1px solid var(--line)">Guide d'aide non officiel · Vidéos de référence sur <a href="https://www.youtube.com/@medel" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-weight:600">youtube.com/@medel</a></footer>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;412&quot;,&quot;height&quot;:&quot;880&quot;},&quot;variant&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;clair&quot;,&quot;net&quot;],&quot;default&quot;:&quot;clair&quot;,&quot;tsType&quot;:&quot;'clair'|'net'&quot;},&quot;accentColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#E2001A&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;showJourney&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = { stack:['home'], stepIndex:0, platform:'Android', dir:1, nav:0, helpOpen:false, installOpen:false, progress:{},
+    profil:null, appareil:null,
+    form:{nom:'',mail:'',tel:'',modele:'',desc:'',urgency:'',err:''} };
+
+  // ---------- contact (À REMPLACER) ----------
+  CONTACT = { email:'marine.teillon@medel.com,vincent.jourdes@medel.com,melodie.froment@medel.com', phone:'+33783834262' };
+
+  theme(){
+    const accent = this.props.accentColor || '#E2001A';
+    const accentDark = `color-mix(in srgb, ${accent} 78%, #000)`;
+    const accentSoft = `color-mix(in srgb, ${accent} 11%, #fff)`;
+    const net = (this.props.variant || 'clair') === 'net';
+    return net ? {
+      accent, accentDark, accentSoft, ink:'#13151A', inkSoft:'#5C636E', line:'#E7E8EE',
+      pageBg:'#FBFBFD', cardBg:'#FFFFFF', headerBg:'rgba(251,251,253,.82)',
+      radius:'22px', h1:'46px', h1w:'800', h1spacing:'-.03em', titleFont:"'Manrope',sans-serif",
+      numFont:"'Manrope',sans-serif", numWeight:'800', dx:34, sc:.965, dy:6
+    } : {
+      accent, accentDark, accentSoft, ink:'#1A1718', inkSoft:'#5A5356', line:'#E7E1E0',
+      pageBg:'#F4F1EF', cardBg:'#FFFFFF', headerBg:'rgba(244,241,239,.82)',
+      radius:'18px', h1:'42px', h1w:'400', h1spacing:'-.01em', titleFont:"'Instrument Serif',serif",
+      numFont:"'Instrument Serif',serif", numWeight:'400', dx:26, sc:.985, dy:4
+    };
+  }
+  rootStyle(){
+    const t=this.theme();
+    return { '--accent':t.accent,'--accent-dark':t.accentDark,'--accent-soft':t.accentSoft,
+      '--ink':t.ink,'--ink-soft':t.inkSoft,'--line':t.line,'--page-bg':t.pageBg,'--card-bg':t.cardBg,
+      '--header-bg':t.headerBg,'--radius':t.radius,'--h1':t.h1,'--h1-weight':t.h1w,'--h1-spacing':t.h1spacing,
+      '--title-font':t.titleFont,'--num-font':t.numFont,'--num-weight':t.numWeight,
+      '--ok':'#1E9E5A','--ok-soft':'#E6F5ED','--warn-soft':'#FBF1DF',
+      '--shadow':'0 1px 2px rgba(26,23,24,.04),0 8px 30px rgba(26,23,24,.07)',
+      fontFamily:"'Manrope',system-ui,sans-serif", color:'var(--ink)',
+      background:t.pageBg, minHeight:'100dvh', lineHeight:1.55 };
+  }
+
+  // ---------- helpers ----------
+  H(html, tag='span'){ return React.createElement(tag,{dangerouslySetInnerHTML:{__html:html}}); }
+  setMainRef = (el)=>{ this._main = el; };
+
+  componentDidUpdate(prevProps, prevState){
+    // Le runtime n'appelle pas toujours ce hook avec prevState : on garde le
+    // compteur de navigation de notre côté, sinon l'animation d'entrée ne part
+    // jamais et chaque mise à jour lève une erreur.
+    const navPrec = prevState ? prevState.nav : this._navPrec;
+    this._navPrec = this.state.nav;
+    if(navPrec !== this.state.nav) this.animateMain();
+    if(this.isDoneNow() && (prevState.stack!==this.state.stack || prevState.stepIndex!==this.state.stepIndex || prevState.platform!==this.state.platform) && !this._firedFor){
+      // fire when reaching done
+    }
+    prevState = prevState || this.state;
+    const doneNow=this.isDoneNow();
+    if(doneNow && !this._wasDone) this.fireConfetti();
+    this._wasDone=doneNow;
+  }
+  animateMain(){
+    const el=this._main; if(!el) return;
+    if(matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+    // apple.com-style reveal: vertical fade-up, signature ease, light stagger
+    const ease='cubic-bezier(.28,.11,.32,1)';
+    // <main> contient la vue 3D puis l'écran : on anime les blocs de l'écran,
+    // et la vue comme un bloc à part entière.
+    const blocs=[...el.children];
+    const ecran=blocs[blocs.length-1];
+    const kids=[...blocs.slice(0,-1), ...(ecran && ecran.children.length ? [...ecran.children] : [ecran||el])];
+    kids.forEach((k,i)=>{
+      k.animate(
+        [{opacity:0,transform:'translate3d(0,48px,0)'},{opacity:1,transform:'none'}],
+        {duration:1000,delay:Math.min(i*100,500),easing:ease,fill:'backwards'}
+      );
+    });
+  }
+
+  // ---------- navigation ----------
+  go=(key,memo)=>this.setState(s=>({...(memo||{}),stack:[...s.stack,key],stepIndex:0,dir:1,nav:s.nav+1,helpOpen:false}));
+  back=()=>this.setState(s=> s.stack.length>1?{stack:s.stack.slice(0,-1),stepIndex:0,dir:-1,nav:s.nav+1,helpOpen:false}:s);
+  home=()=>this.setState(s=>({stack:['home'],stepIndex:0,dir:-1,nav:s.nav+1,helpOpen:false,profil:null,appareil:null}));
+  jumpTrail=(i)=>this.setState(s=>({stack:s.stack.slice(0,i+1),stepIndex:0,dir:-1,nav:s.nav+1,helpOpen:false}));
+  setPlatform=(p)=>this.setState(s=>({platform:p,stepIndex:0,dir:1,nav:s.nav+1}));
+  toggleHelp=()=>this.setState(s=>({helpOpen:!s.helpOpen}));
+  toggleInstall=()=>this.setState(s=>({installOpen:!s.installOpen}));
+  closeInstall=()=>this.setState(s=>({installOpen:false}));
+  _ensureBip(){ if(this._bipInit) return; if(typeof window==='undefined') return; this._bipInit=true; this._bip=this._bip||null;
+    try{ window.addEventListener('beforeinstallprompt',(e)=>{ e.preventDefault(); this._bip=e; try{ this.setState(s=>({installOpen:s.installOpen})); }catch(_){} }); }catch(_){}
+  }
+  platformInfo(){
+    var ua=(typeof navigator!=='undefined'?navigator.userAgent:'')||'';
+    var isIOS=/iphone|ipad|ipod/i.test(ua)||(/Macintosh/i.test(ua)&&typeof navigator!=='undefined'&&navigator.maxTouchPoints>1);
+    var isMac=/Macintosh/i.test(ua)&&!(typeof navigator!=='undefined'&&navigator.maxTouchPoints>1);
+    var isAndroid=/android/i.test(ua);
+    if(isIOS)return{os:'ios'}; if(isAndroid)return{os:'android'}; if(isMac)return{os:'mac'}; return{os:'desktop'};
+  }
+  doNativeInstall=()=>{ var e=this._bip; if(e){ e.prompt(); e.userChoice&&e.userChoice.then(()=>{ this._bip=null; this.closeInstall(); }); } };
+  _installVM(){ var os=this.platformInfo().os;
+    var mk=function(n,t){return {n:n,t:t};};
+    return {
+      isIOS:os==='ios', isAndroid:os==='android', isMac:os==='mac', isDesktop:os==='desktop',
+      stepsIOS:[mk('1','Touchez le bouton <b>Partager/b> en bas de Safari (carré + flèche vers le haut).'),mk('2','Faites défiler puis touchez <b>« Sur l’écran d’accueil »/b>.'),mk('3','Touchez <b>Ajouter/b> en haut à droite. L’icône apparaît.')],
+      stepsAndroid:[mk('1','Touchez le menu <b>⋮/b> (trois points) en haut à droite de Chrome.'),mk('2','Touchez <b>« Ajouter à l’écran d’accueil »/b> (ou « Installer l’application »).'),mk('3','Confirmez avec <b>Ajouter/b>. L’icône apparaît.')],
+      stepsMac:[mk('1','Dans la barre de menus Safari, ouvrez <b>Fichier/b>.'),mk('2','Choisissez <b>« Ajouter au Dock »/b> (Safari 17 et plus).'),mk('3','L’application s’ouvre depuis le Dock, dans sa propre fenêtre.')],
+      stepsDesktop:[mk('1','Cliquez sur le menu <b>⋮/b> (Chrome) ou <b>···/b> (Edge) en haut à droite.'),mk('2','Choisissez <b>« Installer cette page comme application »/b>.'),mk('3','Validez avec <b>Installer/b>. Un raccourci est créé.')]
+    };
+  }
+
+  montrer3d=()=>this.setState({vue3d:true});
+  montrerPhoto=()=>this.setState({vue3d:false});
+
+  vueInitiale=()=>{ const v=this._vue3d; if(!v) return;
+    v.rx=-0.38; v.ry=0.6; v.rz=0; v.zoom=1; v.auto=true; };
+
+  curKey(){ return this.state.stack[this.state.stack.length-1]||'home'; }
+  node(){ return this.resoudre(this.DATA[this.curKey()]); }
+
+  // Un nœud peut porter des fonctions à la place de ses valeurs : elles reçoivent
+  // l'état et renvoient le contenu à afficher (options filtrées, titre, notice…).
+  resoudre(d){
+    if(!d) return d;
+    const out={}; let change=false;
+    for(const champ of ['options','title','lede','notice','steps','stepsAndroid','stepsApple','help','crumb']){
+      if(typeof d[champ]==='function'){ out[champ]=d[champ](this.state,this); change=true; }
+    }
+    return change ? {...d,...out} : d;
+  }
+  activeSteps(node){ return node.platform ? (this.state.platform==='Apple'?node.stepsApple:node.stepsAndroid) : node.steps; }
+  pkey(key){ return key+'__'+this.state.platform; }
+  doneArr(key){ return this.state.progress[this.pkey(key)]||[]; }
+  isDoneNow(){ const n=this.node(); if(!n||n.type!=='steps') return false; return this.state.stepIndex>=this.activeSteps(n).length; }
+
+  toggleConfirm=()=>this.setState(s=>{
+    const k=this.pkey(this.curKey()); const arr=new Set(s.progress[k]||[]);
+    if(arr.has(s.stepIndex)) arr.delete(s.stepIndex); else arr.add(s.stepIndex);
+    return {progress:{...s.progress,[k]:[...arr]}};
+  });
+  next=()=>this.setState(s=>{
+    const k=this.pkey(this.curKey()); const arr=new Set(s.progress[k]||[]); arr.add(s.stepIndex);
+    return {progress:{...s.progress,[k]:[...arr]}, stepIndex:s.stepIndex+1, dir:1, nav:s.nav+1};
+  });
+  prev=()=>{ if(this.state.stepIndex>0) this.setState(s=>({stepIndex:s.stepIndex-1,dir:-1,nav:s.nav+1})); else this.back(); };
+  jumpStep=(i)=>this.setState(s=>({stepIndex:i,dir:i<s.stepIndex?-1:1,nav:s.nav+1}));
+  restart=()=>this.setState(s=>{ const k=this.pkey(this.curKey()); const p={...s.progress}; delete p[k]; return {progress:p,stepIndex:0,dir:-1,nav:s.nav+1}; });
+
+  fireConfetti(){
+    if(matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+    const wrap=document.createElement('div');
+    wrap.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:50;overflow:hidden';
+    const cols=[this.theme().accent,'#1E9E5A','#2D7FF9','#C77800','#B30015'];
+    for(let i=0;i<70;i++){ const p=document.createElement('i');
+      p.style.cssText='position:absolute;top:-12px;width:9px;height:14px;border-radius:2px;animation:melFall linear forwards';
+      p.style.left=Math.random()*100+'%'; p.style.background=cols[i%cols.length];
+      p.style.animationDuration=(2+Math.random()*1.8)+'s'; p.style.animationDelay=(Math.random()*.4)+'s';
+      p.style.transform='translateY(0) rotate('+(Math.random()*360)+'deg)'; wrap.appendChild(p); }
+    document.body.appendChild(wrap); setTimeout(()=>wrap.remove(),4200);
+  }
+
+  // ---------- vue 3D ----------
+  // Rendu maison sur canvas 2D : des facettes sont projetées puis peintes de
+  // l'arrière vers l'avant. Ni WebGL ni bibliothèque : l'application reste un
+  // seul fichier et continue de fonctionner hors ligne.
+
+  // Facettes d'un solide de révolution. `profil` est une suite de [rayon, y]
+  // parcourue de bas en haut ; `seg` est le nombre de secteurs.
+  revolution(profil, seg, couleur, opts){
+    const F=[], o=opts||{};
+    for(let i=0;i<profil.length-1;i++){
+      const [r1,y1]=profil[i], [r2,y2]=profil[i+1];
+      for(let j=0;j<seg;j++){
+        const a=j/seg*Math.PI*2, b=(j+1)/seg*Math.PI*2;
+        const p=[
+          [r1*Math.cos(a), y1, r1*Math.sin(a)],
+          [r2*Math.cos(a), y2, r2*Math.sin(a)],
+          [r2*Math.cos(b), y2, r2*Math.sin(b)],
+          [r1*Math.cos(b), y1, r1*Math.sin(b)],
+        ].filter((pt,k)=>!(r1===0&&k===3)&&!(r2===0&&k===2));
+        if(p.length>=3) F.push({p, c:couleur, lisse:o.lisse!==false, nom:o.nom});
+      }
+    }
+    return F;
+  }
+
+  // Facettes d'un tube suivant une ligne de points, de rayon variable.
+  tube(ligne, rayons, seg, couleur, opts){
+    const F=[], o=opts||{};
+    const anneau=(c,prec,suiv,r)=>{
+      const d=[suiv[0]-prec[0],suiv[1]-prec[1],suiv[2]-prec[2]];
+      const n=Math.hypot(d[0],d[1],d[2])||1; const t=[d[0]/n,d[1]/n,d[2]/n];
+      let u=Math.abs(t[1])>0.9?[1,0,0]:[0,1,0];
+      const x=[t[1]*u[2]-t[2]*u[1], t[2]*u[0]-t[0]*u[2], t[0]*u[1]-t[1]*u[0]];
+      const xn=Math.hypot(x[0],x[1],x[2])||1; const e1=[x[0]/xn,x[1]/xn,x[2]/xn];
+      const e2=[t[1]*e1[2]-t[2]*e1[1], t[2]*e1[0]-t[0]*e1[2], t[0]*e1[1]-t[1]*e1[0]];
+      const pts=[];
+      for(let j=0;j<seg;j++){
+        const a=j/seg*Math.PI*2, ca=Math.cos(a)*r, sa=Math.sin(a)*r;
+        pts.push([c[0]+e1[0]*ca+e2[0]*sa, c[1]+e1[1]*ca+e2[1]*sa, c[2]+e1[2]*ca+e2[2]*sa]);
+      }
+      return pts;
+    };
+    const anneaux=ligne.map((c,i)=>anneau(c, ligne[Math.max(0,i-1)], ligne[Math.min(ligne.length-1,i+1)], rayons[i]));
+    for(let i=0;i<anneaux.length-1;i++)
+      for(let j=0;j<seg;j++){
+        const k=(j+1)%seg;
+        F.push({p:[anneaux[i][j], anneaux[i+1][j], anneaux[i+1][k], anneaux[i][k]], c:couleur, lisse:true, nom:o.nom});
+      }
+    return F;
+  }
+
+  deplacer(F, dx, dy, dz){
+    return F.map(f=>({...f, p:f.p.map(([x,y,z])=>[x+dx, y+dy, z+dz])}));
+  }
+
+  // ---------- les cinq processeurs ----------
+  // Volumes approchés d'après les formes générales des appareils : un repère
+  // pour situer une zone, pas un plan coté.
+  modele(cle){
+    const BLANC='#F2EFEC', GRIS='#DAD4D0', SOMBRE='#2B2628', METAL='#B9B2AC', ROUGE='#E2001A';
+    const F=[]; const zones={};
+    const pousser=(f)=>{ for(const x of f) F.push(x); };
+
+    if(cle==='r2' || cle==='r3'){
+      const R = cle==='r3' ? 1.55 : 1.62, H = cle==='r3' ? 0.30 : 0.34;
+      // Disque principal, bords adoucis.
+      pousser(this.revolution([[0,-H],[R*0.72,-H],[R*0.97,-H*0.55],[R,0],[R*0.97,H*0.55],[R*0.72,H],[0,H]], 44, BLANC));
+      // Aimant central, en dessous.
+      pousser(this.revolution([[0,-H-0.16],[0.5,-H-0.16],[0.56,-H-0.06],[0.56,-H]], 32, METAL));
+      zones.magnet=[0,-H-0.18,0]; zones.magnet_thread=[0,-H-0.20,0];
+      zones.casing_top=[R*0.45,H+0.04,R*0.45]; zones.casing_side=[0,0,R+0.06];
+      if(cle==='r3'){
+        // Deux micros sur la tranche supérieure.
+        pousser(this.deplacer(this.revolution([[0,0],[0.11,0],[0.11,0.05]],16,SOMBRE), R*0.62, H, R*0.33));
+        pousser(this.deplacer(this.revolution([[0,0],[0.11,0],[0.11,0.05]],16,SOMBRE), R*0.62, H, -R*0.33));
+        zones.microphones=[R*0.62,H+0.1,0];
+        // Témoin lumineux.
+        pousser(this.deplacer(this.revolution([[0,0],[0.08,0],[0.08,0.03]],14,ROUGE), 0, H, R*0.62));
+        zones.led=[0,H+0.08,R*0.62];
+        zones.charging_coil=[0,H+0.06,0]; zones.antenna_zone=[0,H+0.06,0];
+      } else {
+        // Rondo 2 : couvercle de charge par induction, sans micro apparent sur le dessus.
+        pousser(this.deplacer(this.revolution([[0,0],[R*0.55,0],[R*0.55,0.03]],36,GRIS), 0, H, 0));
+        zones.charging_coil=[0,H+0.08,0]; zones.antenna_zone=[0,H+0.08,0];
+        zones.microphones=[R*0.6,H+0.06,0];
+      }
+      return {F, zones, echelle:1};
+    }
+
+    // Gamme Sonnet : boîtier contour d'oreille, câble, antenne aimantée.
+    const crochet=[], rayons=[];
+    for(let i=0;i<=16;i++){
+      const t=i/16, a=Math.PI*(0.08+t*0.72);
+      crochet.push([Math.cos(a)*0.95-0.1, Math.sin(a)*1.25-0.35, 0]);
+      rayons.push(0.17+0.09*Math.sin(Math.PI*t));
+    }
+    pousser(this.tube(crochet, rayons, 18, BLANC));
+    // Corps du processeur, le long du crochet.
+    pousser(this.deplacer(this.revolution([[0,-0.62],[0.21,-0.66],[0.26,-0.4],[0.26,0.42],[0.21,0.66],[0,0.62]], 26, BLANC), -0.92, 0.1, 0));
+    zones.casing_side=[-1.2,0.1,0]; zones.casing_top=[-0.92,0.78,0];
+    // Compartiment d'alimentation, en bas.
+    const alim = cle==='s3' ? GRIS : SOMBRE;
+    pousser(this.deplacer(this.revolution([[0,-0.3],[0.2,-0.33],[0.23,-0.1],[0.23,0.1]], 24, alim), -0.92, -0.72, 0));
+    zones.battery=[-0.92,-1.05,0]; zones.power=[-0.92,-1.05,0];
+    // Micros sur l'arête supérieure.
+    pousser(this.deplacer(this.revolution([[0,0],[0.075,0],[0.075,0.04]],14,SOMBRE), -0.92, 0.72, 0.1));
+    if(cle!=='s1') pousser(this.deplacer(this.revolution([[0,0],[0.075,0],[0.075,0.04]],14,SOMBRE), -0.92, 0.72, -0.1));
+    zones.microphones=[-0.92,0.84,0]; zones.mic_covers=[-0.92,0.84,0];
+    // Câble vers l'antenne.
+    const fil=[]; for(let i=0;i<=10;i++){ const t=i/10;
+      fil.push([-0.75+t*1.45, 0.62+Math.sin(t*Math.PI)*0.22+t*0.25, 0]); }
+    pousser(this.tube(fil, fil.map(()=>0.045), 10, SOMBRE));
+    // Antenne aimantée.
+    pousser(this.deplacer(this.revolution([[0,-0.1],[0.42,-0.1],[0.46,0],[0.42,0.1],[0,0.1]], 32, BLANC), 0.72, 0.9, 0));
+    pousser(this.deplacer(this.revolution([[0,0],[0.26,0],[0.26,0.05]], 24, METAL), 0.72, 1.0, 0));
+    zones.magnet=[0.72,1.12,0]; zones.magnet_thread=[0.72,1.14,0];
+    zones.antenna_zone=[0.72,1.05,0]; zones.charging_coil=[0.72,1.05,0];
+    zones.coil=[0.72,1.05,0]; zones.electrode=[0.72,1.05,0];
+    if(cle==='s3'){ // témoin Bluetooth
+      pousser(this.deplacer(this.revolution([[0,0],[0.06,0],[0.06,0.03]],12,ROUGE), -1.1, 0.35, 0.18));
+      zones.led=[-1.2,0.35,0.22];
+    } else { zones.led=[-1.2,0.35,0.2]; }
+    // La clé AudioStream se loge sous le compartiment d'alimentation.
+    zones.audiostream=[-0.92,-1.05,0];
+    return {F, zones, echelle:0.95};
+  }
+
+  // Monte ou démonte la vue selon l'écran affiché. Appelée par le callback de ref.
+  setVue3dRef=(el)=>{
+    if(this._vue3d && this._vue3d.hote!==el) this.detruireVue3d();
+    if(!el) return;
+    if(this._vue3d && this._vue3d.hote===el) return;
+    this.monterVue3d(el);
+  };
+
+  detruireVue3d(){
+    const v=this._vue3d; if(!v) return;
+    cancelAnimationFrame(v.raf);
+    v.hote.removeEventListener('pointerdown', v.onDown);
+    window.removeEventListener('pointermove', v.onMove);
+    window.removeEventListener('pointerup', v.onUp);
+    v.hote.removeEventListener('wheel', v.onWheel);
+    if(v.ro) v.ro.disconnect();
+    this._vue3d=null;
+  }
+
+  monterVue3d(hote){
+    const cle=this.state.appareil; if(!cle) return;
+    const canvas=document.createElement('canvas');
+    canvas.style.cssText='width:100%;height:100%;display:block;touch-action:none;cursor:grab';
+    hote.innerHTML=''; hote.appendChild(canvas);
+    const ctx=canvas.getContext('2d');
+    const m=this.modele(cle);
+
+    const v={ hote, canvas, ctx, modele:m, cle,
+      rx:-0.38, ry:0.6, rz:0, crx:-0.38, cry:0.6, crz:0, zoom:1, czoom:1,
+      auto:true, glisse:false, lx:0, ly:0, shift:false, t:0, raf:0, zones:[] };
+    this._vue3d=v; window.__vue3d=v; window.__app=this;
+
+    const dim=()=>{ const r=hote.getBoundingClientRect(), d=Math.min(devicePixelRatio||1,2);
+      canvas.width=Math.max(1,Math.round(r.width*d)); canvas.height=Math.max(1,Math.round(r.height*d));
+      ctx.setTransform(d,0,0,d,0,0); v.l=r.width; v.h=r.height; };
+    dim();
+    if(window.ResizeObserver){ v.ro=new ResizeObserver(dim); v.ro.observe(hote); }
+
+    v.onDown=(e)=>{ v.glisse=true; v.auto=false; v.lx=e.clientX; v.ly=e.clientY;
+      v.shift=e.shiftKey; canvas.style.cursor='grabbing'; };
+    v.onMove=(e)=>{ if(!v.glisse) return;
+      const dx=e.clientX-v.lx, dy=e.clientY-v.ly; v.lx=e.clientX; v.ly=e.clientY;
+      if(e.shiftKey||v.shift){ v.rz+=dx*0.012; }
+      else { v.ry+=dx*0.011; v.rx=Math.max(-1.45,Math.min(1.45, v.rx+dy*0.011)); } };
+    v.onUp=()=>{ v.glisse=false; canvas.style.cursor='grab'; };
+    v.onWheel=(e)=>{ e.preventDefault(); v.auto=false;
+      v.zoom=Math.max(0.6,Math.min(2.4, v.zoom*(e.deltaY<0?1.1:0.9))); };
+    hote.addEventListener('pointerdown', v.onDown);
+    window.addEventListener('pointermove', v.onMove);
+    window.addEventListener('pointerup', v.onUp);
+    hote.addEventListener('wheel', v.onWheel, {passive:false});
+
+    const lent=matchMedia('(prefers-reduced-motion:reduce)').matches;
+    const boucle=()=>{ v.t+=0.016;
+      if(v.auto && !lent) v.ry+=0.0045;
+      const k=lent?1:0.12;
+      v.crx+=(v.rx-v.crx)*k; v.cry+=(v.ry-v.cry)*k;
+      v.crz+=(v.rz-v.crz)*k; v.czoom+=(v.zoom-v.czoom)*k;
+      try{ this.dessinerVue3d(v); }catch(err){ console.error('vue3d:', err && err.stack || err); }
+      v.raf=requestAnimationFrame(boucle); };
+    boucle();
+  }
+
+  pivoter(p, rx, ry, rz){
+    let [x,y,z]=p;
+    let c=Math.cos(rz), s=Math.sin(rz); [x,y]=[x*c-y*s, x*s+y*c];
+    c=Math.cos(ry); s=Math.sin(ry);   [x,z]=[x*c+z*s, -x*s+z*c];
+    c=Math.cos(rx); s=Math.sin(rx);   [y,z]=[y*c-z*s, y*s+z*c];
+    return [x,y,z];
+  }
+
+  dessinerVue3d(v){
+    const {ctx,l,h}=v; if(!l||!h) return;
+    const t=this.theme();
+    ctx.clearRect(0,0,l,h);
+
+    const ech=Math.min(l,h)*0.30*v.czoom*v.modele.echelle;
+    const cx=l/2, cy=h/2, dist=7;
+    const proj=(p)=>{ const q=this.pivoter(p, v.crx, v.cry, v.crz);
+      const f=dist/(dist-q[2]*0.55);
+      return [cx+q[0]*ech*f, cy-q[1]*ech*f, q[2]]; };
+
+    // Ombre portée, pour poser l'objet.
+    ctx.save(); ctx.globalAlpha=0.10; ctx.fillStyle='#1A1718';
+    ctx.beginPath(); ctx.ellipse(cx, cy+ech*1.45, ech*1.15, ech*0.17, 0, 0, Math.PI*2);
+    ctx.fill(); ctx.restore();
+
+    const lum=[0.42,0.72,0.56];
+    const faces=[];
+    for(const f of v.modele.F){
+      const pts=f.p.map(proj);
+      const [a,b,c]=f.p.map(p=>this.pivoter(p, v.crx, v.cry, v.crz));
+      const u=[b[0]-a[0],b[1]-a[1],b[2]-a[2]], w=[c[0]-a[0],c[1]-a[1],c[2]-a[2]];
+      let n=[u[1]*w[2]-u[2]*w[1], u[2]*w[0]-u[0]*w[2], u[0]*w[1]-u[1]*w[0]];
+      const nn=Math.hypot(n[0],n[1],n[2])||1; n=[n[0]/nn,n[1]/nn,n[2]/nn];
+      if(n[2]<0) n=[-n[0],-n[1],-n[2]];
+      const i=Math.max(0, n[0]*lum[0]+n[1]*lum[1]+n[2]*lum[2]);
+      faces.push({pts, c:f.c, k:0.46+0.62*i, z:pts.reduce((s,p)=>s+p[2],0)/pts.length});
+    }
+    faces.sort((a,b)=>a.z-b.z);
+
+    for(const f of faces){
+      ctx.fillStyle=this.teinter(f.c, f.k);
+      ctx.beginPath(); ctx.moveTo(f.pts[0][0], f.pts[0][1]);
+      for(let i=1;i<f.pts.length;i++) ctx.lineTo(f.pts[i][0], f.pts[i][1]);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle=ctx.fillStyle; ctx.lineWidth=0.7; ctx.stroke();
+    }
+
+    // Repères de zone, par-dessus l'objet.
+    const pulse=0.5+0.5*Math.sin(v.t*3);
+    for(const nom of (v.zones||[])){
+      const p=v.modele.zones[nom]; if(!p) continue;
+      const [px,py]=proj(p);
+      ctx.save();
+      ctx.globalAlpha=0.25+0.35*(1-pulse);
+      ctx.beginPath(); ctx.arc(px,py, ech*(0.16+0.1*pulse), 0, Math.PI*2);
+      ctx.fillStyle=t.accent; ctx.fill();
+      ctx.globalAlpha=1;
+      ctx.beginPath(); ctx.arc(px,py, ech*0.075, 0, Math.PI*2);
+      ctx.fillStyle=t.accent; ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  teinter(hex, k){
+    const n=parseInt(hex.slice(1),16);
+    const f=(x)=>Math.max(0,Math.min(255,Math.round(x*k)));
+    return 'rgb('+f((n>>16)&255)+','+f((n>>8)&255)+','+f(n&255)+')';
+  }
+
+  // ---------- scenes ----------
+  scene(kind){
+    const t=this.theme(); const C={red:t.accent,ink:t.inkSoft,soft:'#CFC8C9',blue:'#2D7FF9',ok:'#1E9E5A',paper:'#fff',line:t.line};
+    const stage={height:'186px',margin:'-6px -6px 18px',borderRadius:'14px',background:'linear-gradient(160deg,#FBF8F8,#F1ECEC)',border:'1px solid '+t.line,display:'flex',alignItems:'center',justifyContent:'center',position:'relative',overflow:'hidden'};
+    const P=(s)=>{const g=s==='on'?'<circle cx="60" cy="55" r="9" fill="'+C.red+'"><animate attributeName="opacity" values="1;.3;1" dur="1.4s" repeatCount="indefinite"/></circle>':'<circle cx="60" cy="55" r="9" fill="'+C.soft+'"/>';return '<g><ellipse cx="60" cy="118" rx="40" ry="7" fill="rgba(0,0,0,.05)"/><rect x="34" y="30" width="52" height="60" rx="14" fill="#fff" stroke="'+C.line+'" stroke-width="2"/>'+g+'<circle cx="60" cy="55" r="15" fill="none" stroke="'+C.line+'" stroke-width="2"/><rect x="52" y="78" width="16" height="6" rx="3" fill="'+C.soft+'"/><text x="60" y="108" text-anchor="middle" font-family="Manrope" font-size="11" font-weight="700" fill="'+C.ink+'">Processeur '+(s==='on'?'allumé':'éteint')+'</text></g>';};
+    const AL=(bt)=>{const led='<circle cx="60" cy="34" r="6" fill="'+C.soft+'"/>';const keys=bt?'<circle cx="46" cy="62" r="7" fill="'+C.blue+'"><animate attributeName="opacity" values="1;.2;1" dur="0.6s" repeatCount="indefinite"/></circle><circle cx="74" cy="62" r="7" fill="'+C.blue+'"><animate attributeName="opacity" values="1;.2;1" dur="0.6s" repeatCount="indefinite"/></circle>':'<circle cx="46" cy="62" r="7" fill="#fff" stroke="'+C.line+'" stroke-width="2"/><circle cx="74" cy="62" r="7" fill="#fff" stroke="'+C.line+'" stroke-width="2"/>';return '<g><ellipse cx="60" cy="118" rx="42" ry="7" fill="rgba(0,0,0,.05)"/><rect x="30" y="22" width="60" height="78" rx="16" fill="#fff" stroke="'+C.line+'" stroke-width="2"/>'+led+keys+'<circle cx="46" cy="82" r="7" fill="#fff" stroke="'+C.line+'" stroke-width="2"/><circle cx="74" cy="82" r="7" fill="#fff" stroke="'+C.line+'" stroke-width="2"/><text x="60" y="112" text-anchor="middle" font-family="Manrope" font-size="10" font-weight="700" fill="'+C.ink+'">AudioLink</text></g>';};
+    const DK=(blink)=>{const led=blink?'<rect x="42" y="20" width="36" height="6" rx="3" fill="'+C.red+'"><animate attributeName="opacity" values="1;.2;1" dur="0.7s" repeatCount="indefinite"/></rect>':'';return '<g><ellipse cx="60" cy="118" rx="44" ry="7" fill="rgba(0,0,0,.05)"/><rect x="26" y="60" width="68" height="44" rx="14" fill="#fff" stroke="'+C.line+'" stroke-width="2"/>'+led+'<rect x="44" y="26" width="32" height="42" rx="11" fill="'+C.red+'" opacity=".92"/><circle cx="60" cy="46" r="8" fill="#fff" opacity=".85"/><path d="M60 26 L60 14" stroke="'+C.ink+'" stroke-width="2" stroke-linecap="round"/><circle cx="60" cy="12" r="4" fill="none" stroke="'+C.ink+'" stroke-width="2"/><text x="60" y="98" text-anchor="middle" font-family="Manrope" font-size="10" font-weight="700" fill="'+C.ink+'">Antenne posée</text></g>';};
+    const RM=(valid)=>{const sc=valid?'<path d="M50 44 L57 51 L72 36" fill="none" stroke="'+C.ok+'" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><animate attributeName="stroke-dasharray" values="0 40;40 40" dur="0.5s" fill="freeze"/></path>':'<circle cx="60" cy="44" r="3" fill="'+C.soft+'"/><circle cx="60" cy="44" r="11" fill="none" stroke="'+C.soft+'" stroke-width="2" stroke-dasharray="3 4"><animateTransform attributeName="transform" type="rotate" from="0 60 44" to="360 60 44" dur="2s" repeatCount="indefinite"/></circle>';return '<g><ellipse cx="60" cy="118" rx="34" ry="6" fill="rgba(0,0,0,.05)"/><rect x="38" y="14" width="44" height="92" rx="13" fill="#fff" stroke="'+C.line+'" stroke-width="2"/><rect x="46" y="24" width="28" height="34" rx="6" fill="#EEF6FF" stroke="'+C.line+'"/>'+sc+'<circle cx="50" cy="72" r="5" fill="'+C.soft+'"/><circle cx="70" cy="72" r="5" fill="'+C.soft+'"/><circle cx="50" cy="90" r="5" fill="'+C.soft+'"/><circle cx="70" cy="90" r="5" fill="'+C.soft+'"/></g>';};
+    const PH=(mode)=>{const inner=mode==='app'?'<rect x="40" y="30" width="40" height="8" rx="4" fill="'+C.red+'"/><rect x="40" y="46" width="40" height="6" rx="3" fill="'+C.line+'"/><rect x="40" y="58" width="28" height="6" rx="3" fill="'+C.line+'"/><rect x="40" y="78" width="40" height="13" rx="6" fill="'+C.red+'"/>':'<g><path d="M60 40 v26 M60 40 l9 7 l-9 7 M60 66 l9 -7" fill="none" stroke="'+C.blue+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="60" cy="53" r="20" fill="none" stroke="'+C.blue+'" stroke-width="2" opacity=".5"><animate attributeName="r" values="14;26;14" dur="1.8s" repeatCount="indefinite"/><animate attributeName="opacity" values=".5;0;.5" dur="1.8s" repeatCount="indefinite"/></circle></g>';return '<g><rect x="34" y="12" width="52" height="96" rx="13" fill="#fff" stroke="'+C.line+'" stroke-width="2"/><rect x="50" y="16" width="20" height="4" rx="2" fill="'+C.line+'"/>'+inner+'<text x="60" y="104" text-anchor="middle" font-family="Manrope" font-size="9" font-weight="700" fill="'+C.ink+'">'+(mode==='app'?'AudioKey':'Bluetooth')+'</text></g>';};
+    const SU=()=>'<g><circle cx="60" cy="56" r="34" fill="'+C.ok+'" opacity=".12"/><circle cx="60" cy="56" r="24" fill="'+C.ok+'"/><path d="M49 56 l7 7 l16 -16" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><animate attributeName="stroke-dasharray" values="0 50;50 50" dur="0.5s" fill="freeze"/></path></g>';
+    const M={off:()=>P('off'),on:()=>P('on'),audiolink:()=>AL(false),'audiolink-bt':()=>AL(true),dock:()=>DK(false),'dock-blink':()=>DK(true),remote:()=>RM(false),'remote-ok':()=>RM(true),'phone-bt':()=>PH('bt'),'phone-app':()=>PH('app'),success:SU};
+    const g = M[kind] ? M[kind]() : '';
+    if(!g) return null;
+    return React.createElement('div',{style:stage},
+      React.createElement('svg',{viewBox:'0 0 120 130',style:{width:'auto',height:'150px',overflow:'visible',animation:'melScene .5s cubic-bezier(.2,.8,.2,1)'},dangerouslySetInnerHTML:{__html:g}}));
+  }
+
+  icon(name){ return this.H(this.I[name]); }
+
+  // ---------- view model ----------
+  renderVals(){
+    this._ensureBip();
+    const s=this.state, key=this.curKey(), node=this.node(), t=this.theme();
+    const showBack = s.stack.length>1;
+    const trailLabel=(k)=>{ if(k==='home') return 'Accueil'; const n=this.resoudre(this.DATA[k]); return n.trail||n.crumb||'…'; };
+    const showTrail = (this.props.showJourney ?? true) && s.stack.length>1;
+    const trail = s.stack.map((k,i)=>{
+      const last = i===s.stack.length-1;
+      return { label: trailLabel(k), sep: !last,
+        onClick: last?(()=>{}):(()=>this.jumpTrail(i)),
+        style: { flexShrink:0, whiteSpace:'nowrap', border:0, background:'transparent', cursor:last?'default':'pointer',
+          fontFamily:'inherit', fontSize:'12.5px', fontWeight: last?800:600, padding:'3px 7px', borderRadius:'8px',
+          color: last?'var(--accent)':'var(--ink-soft)' } };
+    });
+
+    const vm = {
+      rootStyle:this.rootStyle(), setMainRef:this.setMainRef,
+      crumb: node.crumb || 'Assistant de connectivité',
+      showBack, onBack:this.back, showHome: key!=='home', onHome:this.home,
+      showTrail, trail,
+      headRight: node.platform ? s.platform : '',
+      isMenu:node.type==='menu', isSteps:node.type==='steps', isForm:node.type==='form', isBilan:node.type==='bilan',
+      isDone:false,
+      onInstall:this.toggleInstall, onCloseInstall:this.closeInstall, installOpen:this.state.installOpen,
+      hasNativeInstall:!!this._bip, onNativeInstall:this.doNativeInstall,
+      ...this._installVM(),
+      ...this.vueVM(key, node),
+    };
+    if(this._vue3d) this._vue3d.zones = node.zones || [];
+
+    if(node.type==='menu') Object.assign(vm, this.menuVM(node));
+    else if(node.type==='bilan') Object.assign(vm, this.bilanVM(node));
+    else if(node.type==='form') Object.assign(vm, this.formVM(node));
+    else { const r=this.stepsVM(key,node); Object.assign(vm,r); }
+    return vm;
+  }
+
+  // La photo sert à reconnaître son matériel, le volume à situer une pièce.
+  vueVM(key, node){
+    const a = this.appareil();
+    const visible = !!this.state.appareil && (key==='aide' || !!node.vue || node.type==='bilan' || !!node.zones);
+    const photo = a ? this.image(a.img) : null;
+    // Par défaut la photo ; l'onglet reste sur le choix du visiteur.
+    const montrePhoto = photo && this.state.vue3d !== true;
+    const onglet = (actif)=>({ flex:1, border:0, fontFamily:'inherit', fontWeight:700, fontSize:'14px',
+      padding:'10px', borderRadius:'10px', cursor:'pointer',
+      background: actif ? 'var(--accent)' : 'transparent', color: actif ? '#fff' : 'var(--ink-soft)' });
+    // La l\u00e9gende donne un nom aux pastilles num\u00e9rot\u00e9es des sch\u00e9mas annot\u00e9s.
+    // Les appareils dont la photo n'est pas annot\u00e9e n'ont pas de champ `reperes`.
+    const rond = n => String.fromCharCode(0x2460 + n - 1);
+    const reperes = (a && a.reperes) ? a.reperes.map(r=>rond(r.n)+'\u00a0'+r.nom).join('\u00a0 \u00b7 ') : '';
+    return {
+      aVue3d: visible, aPhoto: !!photo,
+      aLegende: !!(montrePhoto && reperes), legendeReperes: reperes,
+      montrePhoto: !!montrePhoto, montre3d: !montrePhoto,
+      photoEl: photo ? React.createElement('img',{src:photo, alt:(a?a.nom:''),
+        style:{maxWidth:'100%',maxHeight:'100%',objectFit:'contain'}}) : null,
+      photoAlt: a ? a.nom : '',
+      onMontrerPhoto:this.montrerPhoto, onMontrer3d:this.montrer3d,
+      ongletPhotoStyle: onglet(!!montrePhoto), onglet3dStyle: onglet(!montrePhoto),
+      setVue3dRef:this.setVue3dRef, onVueInitiale:this.vueInitiale,
+      vue3dAide: 'Glissez pour faire tourner l\u2019appareil \u00b7 Maj + glisser pour le pivoter \u00b7 molette pour zoomer.',
+    };
+  }
+
+  bilanVM(node){
+    const N={
+      critical:{l:'Urgence',          bg:'#FDECEE',          fg:'#B30015', bd:'#F4C9CE'},
+      warning: {l:'\u00c0 surveiller', bg:'var(--warn-soft)', fg:'#9A5E00', bd:'#F0DCB4'},
+      success: {l:'R\u00e9solu',       bg:'var(--ok-soft)',   fg:'#15724A', bd:'#BFE5D0'},
+      info:    {l:'Information',      bg:'#EDF3FE',          fg:'#1B5FC1', bd:'#CFE0FA'},
+    };
+    const v = N[node.severite] || N.info;
+    const actions = (node.actions||[]).map((t,i)=>({n:String(i+1), texte:t}));
+    // Le bloc « PRO » ne dit que ce que le n\u0153ud contient : rien n'est d\u00e9duit.
+    let pro='';
+    if(this.estPro()){
+      const z=(node.zones||[]).map(x=>x.replace(/_/g,' ')).join(', ');
+      pro = 'Criticit\u00e9 <b>'+(node.severite||'info')+'</b>' + (z ? ' \u00b7 Zone concern\u00e9e : <b>'+z+'</b>' : '');
+    }
+    return { bilan:{ badgeLabel:v.l,
+        badgeStyle:{ display:'inline-flex', alignItems:'center', gap:'7px', fontSize:'12px',
+          fontWeight:800, letterSpacing:'.08em', textTransform:'uppercase',
+          color:v.fg, background:v.bg, border:'1px solid '+v.bd, borderRadius:'99px', padding:'6px 13px' },
+        title:node.title, resume:node.resume,
+        hasActions:actions.length>0, actions, pro:!!pro, proEl:pro?this.H(pro):null },
+      onTechnicien:()=>this.go('help') };
+  }
+
+  menuVM(node){
+    const t=this.theme();
+    const cardBase = { position:'relative', background:'var(--card-bg)', border:'1px solid var(--line)',
+      borderRadius:'var(--radius)', padding:'20px', cursor:'pointer', display:'flex', alignItems:'center',
+      gap:'16px', width:'100%', boxShadow:'var(--shadow)', transition:'transform .2s cubic-bezier(.2,.8,.2,1),border-color .2s,box-shadow .2s', overflow:'hidden' };
+    const options = node.options.map(o=>{
+      const ds=this.state.progress[o.to+'__'+this.state.platform]||this.state.progress[o.to+'__Android']||this.state.progress[o.to+'__Apple'];
+      const badge = ds&&ds.length>0 ? 'Repris ✓' : '';
+      const url = this.image(o.img);
+      const lead = url
+        ? React.createElement('span',{style:{width:'62px',height:'62px',borderRadius:'14px',background:'#fff',border:'1px solid var(--line)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,overflow:'hidden'}},
+            React.createElement('img',{src:url, alt:'', loading:'lazy', style:{width:'100%',height:'100%',objectFit:'contain',padding:'4px'}}))
+        : o.n
+        ? React.createElement('span',{style:{fontFamily:'var(--num-font)',fontWeight:'var(--num-weight)',fontSize:'26px',color:'var(--accent)',width:'48px',height:'48px',borderRadius:'13px',background:'var(--accent-soft)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},o.n)
+        : React.createElement('span',{style:{width:'48px',height:'48px',borderRadius:'13px',background:o.accent?'var(--accent)':'var(--accent-soft)',color:o.accent?'#fff':'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0},dangerouslySetInnerHTML:{__html:this.I[o.icon]}});
+      return { title:o.title, sub:o.sub, badge, leadEl:lead, onClick:()=>this.go(o.to,o.memo),
+        cardStyle: o.accent ? {...cardBase, background:'linear-gradient(160deg,#FFF,#FFF6F7)', borderColor:'#F4C9CE'} : cardBase };
+    });
+    const help = node.help || null;
+    return { menu:{ eyebrow:node.eyebrow||'', titleEl:this.H(node.title), lede:node.lede||'', options,
+        hasHelp:!!help, helpItems: help? help.items : [] },
+      onToggleHelp:this.toggleHelp, helpOpen:this.state.helpOpen,
+      helpToggleLabel: help? help.label : '',
+      helpBtnStyle:{ width:'100%', display:'flex', alignItems:'center', gap:'10px', fontFamily:'inherit',
+        fontSize:'14.5px', fontWeight:700, color:'var(--ink)', background:'var(--card-bg)',
+        border:'1px dashed var(--line)', borderRadius:'14px', padding:'13px 15px', cursor:'pointer' },
+      helpChevStyle:{ display:'flex', color:'var(--ink-soft)', transition:'transform .2s', transform:this.state.helpOpen?'rotate(180deg)':'none' } };
+  }
+
+  stepsVM(key,node){
+    const s=this.state, steps=this.activeSteps(node), total=steps.length;
+    const platform=node.platform;
+    const segOn={flex:1,border:0,fontFamily:'inherit',fontWeight:700,fontSize:'14px',padding:'11px',borderRadius:'10px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',background:'var(--accent)',color:'#fff',boxShadow:'0 4px 12px rgba(226,0,26,.22)'};
+    const segOff={flex:1,border:0,fontFamily:'inherit',fontWeight:700,fontSize:'14px',padding:'11px',borderRadius:'10px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',background:'transparent',color:'var(--ink-soft)'};
+    const base={ steps:{ title:node.title, platform:!!platform, showNotice:!!node.notice, noticeEl: node.notice?this.H(node.notice):null },
+      onAndroid:()=>this.setPlatform('Android'), onApple:()=>this.setPlatform('Apple'),
+      segAndroidStyle: s.platform==='Android'?segOn:segOff, segAppleStyle: s.platform==='Apple'?segOn:segOff };
+
+    if(s.stepIndex>=total){
+      const d=node.done;
+      return { ...base, isSteps:false, isDone:true, done:{ showTitle:!!platform, h:d.h, p:d.p },
+        onRestart:this.restart, onHome:this.home };
+    }
+
+    const st=steps[s.stepIndex];
+    const ds=new Set(this.doneArr(key));
+    const checked=ds.has(s.stepIndex);
+    const pct=Math.round((s.stepIndex+1)/total*100);
+    const dots=steps.map((_,i)=>({ aria:'Étape '+(i+1), onClick:()=>this.jumpStep(i),
+      style:{ width:i===s.stepIndex?'30px':'22px', height:'7px', borderRadius:'99px', border:0, cursor:'pointer', padding:0,
+        transition:'.25s', background: i===s.stepIndex?'var(--accent)':((i<s.stepIndex||ds.has(i))?'var(--ok)':'var(--line)') } }));
+
+    return { ...base, isDone:false,
+      fillStyle:{ height:'100%', background:'linear-gradient(90deg,var(--accent),var(--accent-dark))', borderRadius:'99px', width:pct+'%', transition:'width .5s cubic-bezier(.2,.8,.2,1)' },
+      stepLabel:'Étape '+(s.stepIndex+1)+' sur '+total, pct, dots,
+      step:{ sceneEl:this.scene(st.scene), num:s.stepIndex+1, total, h:st.h,
+        pEl:this.H(st.p), hasP2:!!st.p2, p2El: st.p2?this.H(st.p2):null,
+        branches:(st.branches||[]).map(b=>({label:b.label, htmlEl:this.H(b.html)})),
+        showFbOk:!!(st.fb&&st.fb.ok), fbOk: st.fb&&st.fb.ok?this.H(st.fb.ok):null,
+        showFbRetry:!!(st.fb&&st.fb.retry), fbRetry: st.fb&&st.fb.retry?this.H(st.fb.retry):null,
+        showVideo:!!st.video, videoUrl: st.video?st.video.url:'', videoLabel: st.video?st.video.label:'',
+        showTip:!!st.tip, tipIconEl: st.tip?this.icon(st.tip.ic):null, tipT: st.tip?st.tip.t:'', tipS: st.tip?st.tip.s:'' },
+      onToggleConfirm:this.toggleConfirm,
+      confirmLabel: checked?'Étape effectuée':'Marquer cette étape comme faite',
+      confirmStyle:{ marginTop:'16px', display:'flex', alignItems:'center', gap:'12px', padding:'13px 15px',
+        border:'1px solid '+(checked?'#BCE6CD':'var(--line)'), borderRadius:'13px', background:checked?'var(--ok-soft)':'var(--page-bg)', cursor:'pointer', userSelect:'none', transition:'.2s' },
+      confirmBoxStyle:{ width:'24px', height:'24px', borderRadius:'8px', border:'2px solid '+(checked?'var(--ok)':'var(--ink-soft)'),
+        background:checked?'var(--ok)':'transparent', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'.2s' },
+      onPrev:this.prev, prevLabel: s.stepIndex===0?'Retour':'Précédent',
+      onNext: s.stepIndex===total-1?this.next:this.next, nextLabel: s.stepIndex===total-1?'Terminer':'Suivant' };
+  }
+
+  // ---------- form ----------
+  setF=(k)=>(e)=>{ const v=e.target.value; this.setState(s=>({form:{...s.form,[k]:v}})); };
+  setUrg=(u)=>this.setState(s=>({form:{...s.form,urgency:u}}));
+  gather(){ const f=this.state.form; return {nom:f.nom.trim(),mail:f.mail.trim(),tel:f.tel.trim(),modele:f.modele,desc:f.desc.trim()}; }
+  validate(d){ if(!d.desc) return 'Merci de décrire votre besoin.'; if(!d.mail&&!d.tel) return 'Indiquez au moins un mail ou un téléphone de rappel.'; return ''; }
+  bodyText(d){ const L=['Demande d\u2019aide \u2014 MED-EL Connect','']; if(d.nom)L.push('Nom : '+d.nom); if(d.mail)L.push('Mail de rappel : '+d.mail); if(d.tel)L.push('Téléphone de rappel : '+d.tel); if(d.modele)L.push('Matériel : '+d.modele); L.push('Urgence : '+(this.state.form.urgency||'non précisée')); L.push('','Besoin :',d.desc); return L.join('\n'); }
+  sendMail=()=>{ const d=this.gather(),e=this.validate(d); if(e){this.setState(s=>({form:{...s.form,err:e}}));return;} this.setState(s=>({form:{...s.form,err:''}})); const subj=encodeURIComponent('Demande d\u2019aide \u2014 '+(d.modele||'MED-EL')+(this.state.form.urgency==='forte'?' [URGENT]':'')); window.location.href='mailto:'+this.CONTACT.email+'?subject='+subj+'&body='+encodeURIComponent(this.bodyText(d)); };
+  sendSms=()=>{ const d=this.gather(),e=this.validate(d); if(e){this.setState(s=>({form:{...s.form,err:e}}));return;} this.setState(s=>({form:{...s.form,err:''}})); const sep=/iphone|ipad|mac/i.test(navigator.userAgent)?'&':'?'; window.location.href='sms:'+this.CONTACT.phone+sep+'body='+encodeURIComponent(this.bodyText(d)); };
+  formVM(node){
+    const f=this.state.form;
+    const inputStyle={ fontFamily:'inherit', fontSize:'16px', color:'var(--ink)', background:'var(--card-bg)', border:'1px solid var(--line)', borderRadius:'13px', padding:'13px 14px', width:'100%', transition:'.18s' };
+    const urg=[['faible','Faible'],['moyenne','Moyenne'],['forte','Forte']];
+    const urgBtns=urg.map(u=>({ label:u[1], onClick:()=>this.setUrg(u[0]),
+      style:{ flex:1, fontFamily:'inherit', fontWeight:700, fontSize:'14px', borderRadius:'12px', padding:'12px', cursor:'pointer',
+        background: f.urgency===u[0]?'var(--accent)':'var(--card-bg)', color: f.urgency===u[0]?'#fff':'var(--ink-soft)',
+        border:'1px solid '+(f.urgency===u[0]?'var(--accent)':'var(--line)') } }));
+    return { form:{ titleEl:this.H(node.title), lede:node.lede, nom:f.nom, mail:f.mail, tel:f.tel, modele:f.modele, desc:f.desc, err:f.err, urgBtns },
+      inputStyle, textareaStyle:{...inputStyle, resize:'vertical', minHeight:'96px', lineHeight:1.5},
+      onFnom:this.setF('nom'), onFmail:this.setF('mail'), onFtel:this.setF('tel'), onFmodele:this.setF('modele'), onFdesc:this.setF('desc'),
+      onSendMail:this.sendMail, onSendSms:this.sendSms };
+  }
+
+  // ---------- icons ----------
+  I = {
+    phone:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>',
+    chip:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg>',
+    support:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-3v-7h3a2 2 0 0 1 2 2zM3 19a2 2 0 0 0 2 2h3v-7H5a2 2 0 0 0-2 2z"/></svg>',
+    music:'<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
+    sliders:'<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>',
+    user:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
+    stetho:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6 6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"></path><path d="M8 15v1a6 6 0 0 0 6 6 6 6 0 0 0 6-6v-4"></path><circle cx="20" cy="10" r="2"></circle></svg>',
+    batterie:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="16" height="10" rx="2"></rect><path d="M22 11v2"></path><path d="M6 11v2"></path></svg>',
+    aimant:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4H3v7a9 9 0 0 0 18 0V4h-3v7a6 6 0 0 1-12 0z"></path><path d="M3 9h3"></path><path d="M18 9h3"></path></svg>',
+    alerte:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>',
+    volume:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"></path><path d="M19.1 4.9a10 10 0 0 1 0 14.2"></path><path d="M15.5 8.5a5 5 0 0 1 0 7"></path></svg>',
+    onde:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"></circle><path d="M4.9 19.1a10 10 0 0 1 0-14.2"></path><path d="M19.1 4.9a10 10 0 0 1 0 14.2"></path><path d="M7.8 16.2a6 6 0 0 1 0-8.4"></path><path d="M16.2 7.8a6 6 0 0 1 0 8.4"></path></svg>',
+    bluetooth:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7 10 10-5 5V2l5 5L7 17"></path></svg>',
+    power:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10"></path><path d="M18.4 6.6a9 9 0 1 1-12.8 0"></path></svg>',
+    horloge:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"></circle><path d="M12 6.5V12l4 2"></path></svg>',
+    micro:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"></rect><path d="M5 10v1a7 7 0 0 0 14 0v-1"></path><path d="M12 18v4"></path></svg>',
+    proc:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8.5a6 6 0 0 1 12 0c0 2.2-1.2 3-2.2 3.9-.9.8-1.3 1.4-1.3 2.6a2.5 2.5 0 0 1-5 0"></path><path d="M9 8.5a3 3 0 0 1 6 0"></path><path d="M7.5 19.5 5 22"></path></svg>',
+  };
+
+  // ---------- content ----------
+  // ---------- IMAGES-DEBUT ----------
+  // Visuels officiels MED-EL. Table régénérée par outils/construire.py
+  // à partir de source/images/ : ne pas la modifier à la main.
+  IMAGES = {
+    "adaptateur-batterie": "177dbbdc-1423-e687-85c2-b943f46f4829",
+    "audiolink": "efe252a6-bd8e-a62a-4f37-4fa3742d277f",
+    "audiolinkxt": "50e55463-fe04-3f34-80bc-96c30e2bae1d",
+    "audiostream-rondo": "844a9ab2-29c0-97a7-cd3d-25d1341e0ba5",
+    "audiostream": "62380a96-c58a-e3d3-6f53-85259131e9a6",
+    "boitier-pile": "b6093750-b453-9bf0-6f06-a0550a455e19",
+    "couvre-boitier": "c2be76d0-8ee2-1e10-63f9-09ebd852c8bf",
+    "finetuner": "63a12c09-72ee-adbb-46a2-a41b07fc3386",
+    "r2-vignette": "3a3f5a01-ae0c-46f4-63ce-49dfadafc441",
+    "r2": "b95baa59-6131-7513-b7a1-e3447e798624",
+    "r3-vignette": "74f7aafb-1d4b-70c4-3858-afc1082b4c9b",
+    "r3": "df1f5e3e-98fb-a239-5e5f-a2c7f1052236",
+    "s1-vignette": "7979763f-8f5c-82fd-af6e-131a23309407",
+    "s1": "8686c060-baf7-91a7-ffb0-3c4bc61a4abe",
+    "s2-vignette": "32a1acc3-934d-81c0-f863-622d5da36463",
+    "s2": "b6b93b3e-4d96-546a-f6f7-be8bdcb564bd",
+    "s3-vignette": "caaecee2-c6b8-c6a9-d5ef-db20414de564",
+    "s3": "3ee4fc56-a680-b338-35d5-fbce5d6f9624",
+  };
+  // ---------- IMAGES-FIN ----------
+
+  image(cle){ return cle && this.IMAGES[cle] ? this.IMAGES[cle] : null; }
+
+  // ---------- processeurs ----------
+  // `connecte` liste les parcours de connectivité ouverts pour ce processeur.
+  // Ces compatibilités viennent du contenu déjà écrit dans l'assistant ; celles
+  // qui n'y figuraient pas ne sont PAS devinées : voir APPAREILS.r2 et la note
+  // `aucuneConnectivite`.
+  APPAREILS = {
+    s1:{img:'s1',vign:'s1-vignette',imgFlux:'audiostream',nom:'Sonnet 1', fam:'Sonnet', sous:'Contour d\u2019oreille, antenne s\u00e9par\u00e9e',
+        tech:'Pas de Bluetooth int\u00e9gr\u00e9. Streaming via AudioLink ou cl\u00e9 AudioStream. Pile zinc-air ou accu rechargeable.',
+        connecte:['audiolink','finetuner','audiokey','proc'],
+        // Rep\u00e8res du sch\u00e9ma s1.png, dans l'ordre de la page officielle MED-EL
+        // « SONNET Handling Overview » (libell\u00e9s anglais traduits, rien de devin\u00e9).
+        reperes:[
+          {n:1,nom:'Antenne'},{n:2,nom:'Voyant de l\u2019antenne'},{n:3,nom:'C\u00e2ble de l\u2019antenne'},
+          {n:4,nom:'Bo\u00eetier de pile'},{n:5,nom:'Protection des microphones'},
+          {n:6,nom:'Unit\u00e9 de commande'},{n:7,nom:'Microphones'},{n:8,nom:'Voyant du processeur'},
+          {n:9,nom:'Ergot du coude'},{n:10,nom:'Coude EAS'},{n:11,nom:'Verrou du couvercle de pile'},
+          {n:12,nom:'Coude CI'},{n:13,nom:'Entr\u00e9es d\u2019air'},
+        ]},
+    s2:{img:'s2',vign:'s2-vignette',imgFlux:'audiostream',nom:'Sonnet 2', fam:'Sonnet', sous:'Contour d\u2019oreille, antenne s\u00e9par\u00e9e',
+        tech:'Pas de Bluetooth int\u00e9gr\u00e9. Streaming via AudioLink ou cl\u00e9 AudioStream. M\u00eame logique d\u2019appairage que le Sonnet 1.',
+        connecte:['audiolink','finetuner','audiokey','proc'],
+        // Sch\u00e9ma s2.png, page « SONNET 2 Overview » : MED-EL y donne exactement
+        // les m\u00eames 13 libell\u00e9s, dans le m\u00eame ordre, que pour le Sonnet 1.
+        reperes:[
+          {n:1,nom:'Antenne'},{n:2,nom:'Voyant de l\u2019antenne'},{n:3,nom:'C\u00e2ble de l\u2019antenne'},
+          {n:4,nom:'Bo\u00eetier de pile'},{n:5,nom:'Protection des microphones'},
+          {n:6,nom:'Unit\u00e9 de commande'},{n:7,nom:'Microphones'},{n:8,nom:'Voyant du processeur'},
+          {n:9,nom:'Ergot du coude'},{n:10,nom:'Coude EAS'},{n:11,nom:'Verrou du couvercle de pile'},
+          {n:12,nom:'Coude CI'},{n:13,nom:'Entr\u00e9es d\u2019air'},
+        ]},
+    s3:{img:'s3',vign:'s3-vignette',imgFlux:'audiostream',nom:'Sonnet 3', fam:'Sonnet', sous:'Contour d\u2019oreille, Bluetooth int\u00e9gr\u00e9',
+        tech:'Bluetooth int\u00e9gr\u00e9 : appairage direct au t\u00e9l\u00e9phone, sans accessoire. AudioLink classique incompatible, AudioLink XT requis.',
+        connecte:['audiolinkxt','audiokey','proc'],
+        // Sch\u00e9ma s3.jpg, page « SONNET 3 Overview ». L'ordre n'est PAS celui du
+        // Sonnet 1 et le vocabulaire diff\u00e8re (« Coil » et non « DL-Coil »,
+        // « Touch Key » propre à ce mod\u00e8le) : rien n'est repris de s1.
+        reperes:[
+          {n:1,nom:'Antenne'},{n:2,nom:'Voyant de l\u2019antenne'},{n:3,nom:'C\u00e2ble de l\u2019antenne'},
+          {n:4,nom:'Entr\u00e9es d\u2019air'},{n:5,nom:'Bo\u00eetier de pile'},{n:6,nom:'Touche tactile'},
+          {n:7,nom:'Ouvertures des microphones'},{n:8,nom:'Protection des microphones'},
+          {n:9,nom:'Voyant du processeur'},{n:10,nom:'Coude CI'},{n:11,nom:'Coude EAS'},
+          {n:12,nom:'Unit\u00e9 de commande'},{n:13,nom:'Verrou du couvercle de pile'},
+        ]},
+    r2:{img:'r2',vign:'r2-vignette',nom:'Rondo 2', fam:'Rondo', sous:'Disque unique aimant\u00e9, charge par induction',
+        tech:'Recharge par socle \u00e0 induction. T\u00e9l\u00e9coil int\u00e9gr\u00e9 : boucle magn\u00e9tique et syst\u00e8mes FM. Ni Bluetooth ni AudioStream ; AudioLink incompatible.',
+        connecte:[], aucuneConnectivite:true,
+        // Rep\u00e8res du sch\u00e9ma r2.jpg, page officielle « RONDO 2 Handling Overview ».
+        reperes:[
+          {n:1,nom:'Voyants'},{n:2,nom:'Couvercle'},{n:3,nom:'Bouton marche/arr\u00eat'},{n:4,nom:'Microphone'},
+          {n:5,nom:'Unit\u00e9 de traitement'},
+        ]},
+    r3:{img:'r3',vign:'r3-vignette',imgFlux:'audiostream-rondo',nom:'Rondo 3', fam:'Rondo', sous:'Disque unique aimant\u00e9, cl\u00e9 AudioStream',
+        tech:'Pas de Bluetooth int\u00e9gr\u00e9. Streaming via cl\u00e9 AudioStream ins\u00e9r\u00e9e dans le processeur.',
+        connecte:['audiolink','finetuner','audiokey','proc'],
+        // Sch\u00e9ma r3.jpg, page « RONDO 3 Overview » : le sch\u00e9ma montre les deux
+        // faces et la tranche, d'o\u00f9 des rep\u00e8res qui ne sont pas sur la m\u00eame vue.
+        reperes:[
+          {n:1,nom:'Voyant principal'},{n:2,nom:'Bouton marche/arr\u00eat'},{n:3,nom:'Ouvertures des microphones'},
+          {n:4,nom:'Encoches pour les doigts'},{n:5,nom:'Encoches pour le support'},
+          {n:6,nom:'Capuchon de la prise'},{n:7,nom:'Aimant'},{n:8,nom:'Voyant de charge'},
+        ]},
+  };
+
+  // Rep\u00e8res des pi\u00e8ces d\u00e9tach\u00e9es, m\u00eame format que APPAREILS.reperes, index\u00e9s par
+  // cl\u00e9 d'image. Aucun \u00e9cran n'affiche encore ces visuels : la table attend
+  // qu'un n\u0153ud les montre. Source : page officielle « SONNET Mini Battery Pack ».
+  REPERES_PIECES = {
+    'boitier-pile':[
+      {n:1,nom:'Interrupteur marche/arr\u00eat et verrou du compartiment'},{n:2,nom:'Adaptateur du bo\u00eetier'},
+      {n:3,nom:'C\u00e2ble du bo\u00eetier'},{n:4,nom:'Prise FM 3 broches'},
+      {n:5,nom:'Compartiment pour accu DaCapo ou pile AAA'},
+    ],
+  };
+
+  appareil(){ return this.APPAREILS[this.state.appareil] || null; }
+  // L'arbre d'auto-diagnostic ne couvre que le Rondo 3 et la gamme Sonnet.
+  racineDiag(){
+    const a=this.appareil(); if(!a) return 'sans_diag';
+    if(this.state.appareil==='r2') return 'sans_diag';
+    const base = a.fam==='Rondo' ? 'rondo3_root' : 'sonnet_root';
+    return (this.estPro()?'pro_':'patient_')+base;
+  }
+  estPro(){ return this.state.profil==='pro'; }
+  // Encart technique r\u00e9serv\u00e9 au profil professionnel.
+  noteTech(html){ return this.estPro() ? html : ''; }
+
+  DATA = (()=>{
+    const br=(label,html)=>({label,html});
+    return {
+    home:{type:'menu',eyebrow:'Bonjour',title:'Qui a besoin d\u2019<em style="font-style:italic;color:var(--accent)">aide</em> ?',lede:'L\u2019assistant s\u2019adapte : marche \u00e0 suivre pour le porteur, rep\u00e8res techniques pour le professionnel.',
+      options:[
+        {to:'appareil',icon:'user',title:'Utilisateur',sub:'Porteur du processeur, proche ou aidant',memo:{profil:'patient'}},
+        {to:'appareil',icon:'stetho',title:'Professionnel',sub:'Audioproth\u00e9siste, ORL, technicien SAV',memo:{profil:'pro'}}
+      ],
+      help:{label:'Dois-je choisir \u00ab Professionnel \u00bb ?',items:[
+        {tag:'Vous',name:'Utilisateur',desc:'Les \u00e9tapes sont \u00e9crites en langage courant, sans r\u00e9f\u00e9rence technique.'},
+        {tag:'Pro',name:'Professionnel',desc:'M\u00eames parcours, enrichis des r\u00e9f\u00e9rences mat\u00e9riel, des incompatibilit\u00e9s connues et des points de contr\u00f4le.'}
+      ]}},
+
+    appareil:{type:'menu',crumb:'Processeur',trail:'Processeur',eyebrow:'\u00c9tape 2',
+      title:'Quel <em style="font-style:italic;color:var(--accent)">processeur</em> ?',
+      lede:'Le choix du processeur filtre la suite : vous ne verrez que ce qui est compatible avec lui.',
+      options:(st,c)=>Object.entries(c.APPAREILS).map(([cle,a])=>({
+        to:'aide', title:a.nom, sub: c.estPro() ? a.tech : a.sous, memo:{appareil:cle},
+        img: a.vign || a.img, icon: a.fam==='Rondo' ? 'chip' : 'proc'
+      })),
+      help:{label:'Comment reconna\u00eetre mon processeur ?',items:[
+        {tag:'S',name:'Gamme Sonnet',desc:'Bo\u00eetier port\u00e9 derri\u00e8re l\u2019oreille, reli\u00e9 \u00e0 une antenne aimant\u00e9e s\u00e9par\u00e9e pos\u00e9e sur la t\u00eate.'},
+        {tag:'R',name:'Gamme Rondo',desc:'Un seul disque aimant\u00e9 pos\u00e9 sur la t\u00eate, sans rien derri\u00e8re l\u2019oreille.'},
+        {tag:'N\u00b0',name:'Le num\u00e9ro',desc:'Il est grav\u00e9 sur le bo\u00eetier ou inscrit sur la carte d\u2019implant remise par le centre.'}
+      ]}},
+
+    aide:{type:'menu',crumb:'Type d\u2019aide',trail:'Aide',eyebrow:'\u00c9tape 3',
+      title:(st,c)=>'Que faire avec votre <em style="font-style:italic;color:var(--accent)">'+(c.appareil()?c.appareil().nom:'processeur')+'</em> ?',
+      lede:'Deux chemins : brancher le mat\u00e9riel, ou chercher d\u2019o\u00f9 vient une panne.',
+      options:(st,c)=>{
+        const a=c.appareil(); const liste=[];
+        liste.push({to: (a&&a.aucuneConnectivite)?'sans_connect':'connect', n:'1',
+          title:'Aide \u00e0 la connectivit\u00e9', sub:'Appairer un accessoire, l\u2019application ou le t\u00e9l\u00e9phone'});
+        liste.push({to:c.racineDiag(), n:'2', title:'Auto-diagnostic',
+          sub:'Le processeur ne marche pas comme d\u2019habitude'});
+        liste.push({to:'help', icon:'support', title:'Demander l\u2019aide d\u2019un technicien',
+          sub:'Envoyez votre besoin par mail ou SMS', accent:true});
+        return liste;
+      }},
+
+    sans_connect:{type:'menu',crumb:'Connectivit\u00e9',trail:'Connectivit\u00e9',eyebrow:'Connectivit\u00e9',
+      title:(st,c)=>'Le '+(c.appareil()?c.appareil().nom:'ce processeur')+' passe par le <em style="font-style:italic;color:var(--accent)">t\u00e9l\u00e9coil</em>',
+      lede:'Ce processeur n\u2019a ni Bluetooth int\u00e9gr\u00e9 ni cl\u00e9 AudioStream : il passe par son t\u00e9l\u00e9coil int\u00e9gr\u00e9 \u2014 boucle magn\u00e9tique, syst\u00e8mes FM. L\u2019assistant n\u2019a pas encore de marche \u00e0 suivre \u00e9crite pour cela ; plut\u00f4t que d\u2019en inventer une, il vous met en relation.',
+      options:[
+        {to:'help', icon:'support', title:'Demander l\u2019aide d\u2019un technicien', sub:'Envoyez votre besoin par mail ou SMS', accent:true},
+        {to:'sans_diag', n:'2', title:'Auto-diagnostic', sub:'Si le processeur lui-m\u00eame pose probl\u00e8me'}
+      ]},
+
+    sans_diag:{type:'menu',crumb:'Auto-diagnostic',trail:'Diagnostic',eyebrow:'Auto-diagnostic',
+      title:(st,c)=>'Pas d\u2019arbre pour le <em style="font-style:italic;color:var(--accent)">'+(c.appareil()?c.appareil().nom:'ce processeur')+'</em>',
+      lede:'L\u2019auto-diagnostic de cet assistant couvre le Rondo 3 et la gamme Sonnet. Pour ce processeur, mieux vaut passer par un technicien que suivre une proc\u00e9dure \u00e9crite pour un autre mod\u00e8le.',
+      options:[
+        {to:'help', icon:'support', title:'Demander l\u2019aide d\u2019un technicien', sub:'D\u00e9crivez le sympt\u00f4me, on vous rappelle', accent:true},
+        {to:'appareil', icon:'proc', title:'Changer de processeur', sub:'Ce n\u2019est pas le bon mod\u00e8le'}
+      ]},
+
+    connect:{type:'menu',crumb:'Connectivit\u00e9',trail:'Connectivit\u00e9',eyebrow:'Connectivit\u00e9',
+      title:'Connectons votre <em style="font-style:italic;color:var(--accent)">matériel</em>',
+      lede:(st,c)=>{ const a=c.appareil(); return a ? ('Seules les options compatibles avec le '+a.nom+' sont affich\u00e9es.') : 'Choisissez ce que vous souhaitez connecter. Je vous guide \u00e9tape par \u00e9tape.'; },
+
+      // Le processeur est déjà connu : on pointe droit sur les parcours compatibles
+      // et on saute les menus intermédiaires opt1 / opt3 / p_legacy.
+      options:(st,c)=>{
+        const a=c.appareil();
+        if(!a) return [
+          {to:'opt1',n:'1',title:'AudioLink · FineTuner Echo',sub:'Streaming audio & télécommande'},
+          {to:'opt2',icon:'phone',title:'Application AudioKey',sub:'Réglages depuis votre smartphone'},
+          {to:'opt3',icon:'chip',title:'Connexion du processeur',sub:'Sonnet 1·2 · Sonnet 3 · Rondo 3'},
+          {to:'help',icon:'support',title:'Demander l’aide d’un technicien',sub:'Envoyez votre besoin par mail ou SMS',accent:true}
+        ];
+        const ok=a.connecte, L=[]; let n=0;
+        if(ok.includes('audiolink')) L.push({img:'audiolink',to:'audiolink',n:String(++n),title:'AudioLink',sub:'Boîtier de streaming audio'});
+        if(ok.includes('audiolinkxt')) L.push({img:'audiolinkxt',to:'audiolinkxt',n:String(++n),title:'AudioLink XT',sub:'Boîtier de streaming, génération '+a.nom});
+        if(ok.includes('finetuner')) L.push({img:'finetuner',to:'finetuner',n:String(++n),title:'FineTuner Echo',sub:'Télécommande'});
+        if(ok.includes('audiokey')) L.push({to:'opt2',icon:'phone',title:'Application AudioKey',sub:'Réglages depuis votre smartphone'});
+        if(ok.includes('proc')) L.push({to: a.fam==='Sonnet' ? (st.appareil==='s3'?'sonnet3':'sonnet12') : 'rondo3',
+          img: st.appareil==='s3' ? a.img : (a.imgFlux||a.img), icon:'chip', title:'Connecter le '+a.nom+' au téléphone',
+          sub: st.appareil==='s3' ? 'Bluetooth intégré' : 'Via la clé AudioStream'});
+        L.push({to:'help',icon:'support',title:'Demander l’aide d’un technicien',sub:'Envoyez votre besoin par mail ou SMS',accent:true});
+        return L;
+      },
+      help:{label:'Je ne sais pas quel matériel j’ai',items:[
+        {tag:'Proc.',name:'Processeur',desc:'Sonnet = boîtier derrière l’oreille avec antenne séparée. Rondo = un seul disque aimanté posé sur la tête.'},
+        {tag:'Acc.',name:'Accessoires',desc:'AudioLink/XT = petit boîtier à boutons. FineTuner Echo = télécommande fine à écran. AudioStream = clé qui s’insère dans le processeur.'}
+      ]}},
+    opt1:{type:'menu',crumb:'AudioLink · FineTuner Echo',trail:'Option 1',eyebrow:'Option 1',title:'Quel <em style="font-style:italic;color:var(--accent)">appareil</em> ?',lede:'Sélectionnez l’accessoire que vous voulez appairer.',
+      options:[
+        {to:'audiolink',n:'1',title:'AudioLink',sub:'Modèle classique'},
+        {to:'audiolinkxt',n:'2',title:'AudioLink XT',sub:'Nouvelle génération'},
+        {to:'finetuner',n:'3',title:'FineTuner Echo',sub:'Télécommande'}
+      ],
+      help:{label:'AudioLink ou AudioLink XT ?',items:[
+        {tag:'Std',name:'AudioLink',desc:'Compatible Sonnet 1 et 2. Incompatible avec le Sonnet 3 et le Rondo 2.'},
+        {tag:'XT',name:'AudioLink XT',desc:'Conçu pour le Sonnet 3. Incompatible avec les Sonnet 1 et 2.'}
+      ]}},
+    audiolink:{type:'steps',crumb:'AudioLink',trail:'AudioLink',title:'AudioLink',
+      notice:'L’AudioLink classique <strong>n’est pas compatible</strong> avec le Sonnet 3 ni le Rondo 2.',
+      steps:[
+        {scene:'off',h:'Éteindre le processeur',p:'Retirez le couvercle de l’alimentation si votre processeur est un <b>Sonnet</b>. Si c’est un <b>Rondo 3</b>, appuyez au centre du processeur pour l’éteindre.'},
+        {scene:'audiolink',h:'Allumer l’AudioLink',p:'Mettez votre AudioLink sous tension.'},
+        {scene:'dock',h:'Poser l’antenne sur l’AudioLink',p:'Posez l’antenne de votre processeur sur l’AudioLink, juste <b>en dessous de la première touche</b>.',branches:[br('Type Sonnet','Posez l’antenne sous la première touche.'),br('Type Rondo','Déposez le Rondo directement sur l’AudioLink, toujours sous la première touche.')]},
+        {scene:'dock-blink',h:'Allumer le processeur',p:'Rallumez votre processeur tout en le laissant posé sur l’AudioLink.',fb:{ok:'L’AudioLink clignote en blanc et indique le côté de votre processeur — la connexion est faite, bravo !',retry:'S’il ne clignote pas, reprenez la procédure depuis le début.'}},
+        {scene:'audiolink-bt',h:'Activer l’appairage Bluetooth',p:'Maintenez les <b>touches 2 et 3</b> qui se font face jusqu’à ce qu’elles <b>clignotent en bleu</b>.'},
+        {scene:'phone-bt',h:'Connecter le smartphone',p:'Sur votre smartphone, activez le <b>Bluetooth</b>, recherchez <b>AudioLink</b> et connectez-vous.'},
+        {scene:'success',h:'Connecté !',p:'Bravo, vous êtes maintenant connecté.'},
+        {scene:'phone-app',h:'Écouter de la musique',p:'Installez l’application <b>Audio2Ear</b> pour écouter la musique de votre téléphone via l’AudioLink.',tip:{ic:'music',t:'Audio2Ear',s:'Diffuse l’audio de votre téléphone vers le processeur.'}}
+      ],
+      done:{h:'Tout est prêt',p:'Votre AudioLink est appairé et Audio2Ear vous permet de streamer votre musique.'}},
+    audiolinkxt:{type:'steps',crumb:'AudioLink XT',trail:'AudioLink XT',title:'AudioLink XT',
+      notice:'L’AudioLink XT <strong>n’est pas compatible</strong> avec le Sonnet 1 ni le Sonnet 2.',
+      steps:[
+        {scene:'off',h:'Éteindre le Sonnet 3',p:'Éteignez votre Sonnet 3 en retirant le capuchon de l’alimentation.'},
+        {scene:'audiolink-bt',h:'Mettre l’XT en appairage',p:'Appuyez sur les <b>touches 2 et 3</b> qui se font face sur l’AudioLink XT. Il se met à clignoter.'},
+        {scene:'dock',h:'Poser l’antenne',p:'Posez l’antenne de votre processeur <b>en dessous de la première touche</b> de l’AudioLink XT.'},
+        {scene:'dock-blink',h:'Allumer & répéter',p:'Allumez votre processeur. L’AudioLink clignote pour le côté que vous venez de connecter.',p2:'Répétez l’opération pour l’autre côté si vous avez deux processeurs.'},
+        {scene:'success',h:'Connecté !',p:'Félicitations, vous êtes connecté.'}
+      ],
+      done:{h:'Connexion réussie',p:'Votre AudioLink XT est appairé à votre Sonnet 3.'}},
+    finetuner:{type:'steps',crumb:'FineTuner Echo',trail:'FineTuner',title:'FineTuner Echo',
+      steps:[
+        {scene:'remote',h:'Réinitialiser la télécommande',p:'Maintenez ensemble <b>Volume +</b>, <b>Volume −</b> et la <b>demi-lune</b> de la colonne gauche. Une lumière verte doit s’allumer puis s’éteindre seule.'},
+        {scene:'off',h:'Éteindre le processeur',p:'Retirez le capuchon si c’est un <b>Sonnet</b>, ou appuyez au centre si c’est un <b>Rondo 3</b>.'},
+        {scene:'remote',h:'Poser sur la télécommande',p:'Posez l’antenne du processeur sur la télécommande (Sonnet), ou déposez le Rondo 3 <b>sous l’écran</b>, puis allumez-le.'},
+        {scene:'remote-ok',h:'Vérifier la validation',p:'Une flèche de validation apparaît à l’écran.',fb:{ok:'La flèche « validé » est affichée — c’est bon !',retry:'Sinon, retirez la pile de la télécommande et recommencez.'}}
+      ],
+      done:{h:'Télécommande appairée',p:'Votre FineTuner Echo est prêt à piloter votre processeur.'}},
+    opt2:{type:'steps',crumb:'Application AudioKey',trail:'AudioKey',title:'Application AudioKey',platform:true,
+      stepsAndroid:[
+        {scene:'phone-bt',h:'Activer localisation & Bluetooth',p:'Sur Android, assurez-vous que la <b>géolocalisation</b> et le <b>Bluetooth</b> sont activés avant d’aller plus loin.'},
+        {scene:'phone-app',h:'Ouvrir et se connecter',p:'Ouvrez l’application AudioKey et connectez-vous.'},
+        {scene:'phone-app',h:'Connecter mes appareils',p:'Appuyez sur les <b>3 traits horizontaux</b> en haut à gauche, puis sur le bouton rouge <b>« Connecter mes appareils »</b>. Éteignez puis rallumez votre processeur.'},
+        {scene:'success',h:'Suivre les instructions',p:'Appuyez sur le bouton rouge et suivez les instructions.',p2:'Refaites la même chose avec votre second processeur si vous en avez un.',tip:{ic:'sliders',t:'Ce que permet AudioKey',s:'Naviguer dans vos réglages, régler le volume et la sensibilité.'}}
+      ],
+      stepsApple:[
+        {scene:'phone-app',h:'Autoriser la position',p:'<b>Réglages</b> → <b>Applications</b> → <b>AudioKey</b> → <b>Position</b>, cochez <b>« Toujours »</b>. Activez ensuite le <b>Bluetooth</b>.'},
+        {scene:'phone-app',h:'Ouvrir et se connecter',p:'Ouvrez l’application AudioKey et connectez-vous.'},
+        {scene:'phone-app',h:'Connecter mes appareils',p:'Appuyez sur les <b>3 traits horizontaux</b> en haut à gauche, puis sur <b>« Connecter mes appareils »</b>. Éteignez puis rallumez votre processeur.'},
+        {scene:'success',h:'Suivre les instructions',p:'Appuyez sur le bouton rouge et suivez les instructions.',p2:'Refaites la même chose avec votre second processeur si vous en avez un.',tip:{ic:'sliders',t:'Ce que permet AudioKey',s:'Naviguer dans vos réglages, régler le volume et la sensibilité.'}}
+      ],
+      done:{h:'AudioKey est prête',p:'Vous pouvez piloter vos processeurs depuis votre téléphone.'}},
+    opt3:{type:'menu',crumb:'Connexion du processeur',trail:'Option 3',eyebrow:'Option 3',title:'Quel <em style="font-style:italic;color:var(--accent)">processeur</em> ?',lede:'Le choix dépend de votre modèle.',
+      options:[
+        {to:'sonnet3',n:'1',title:'Sonnet 3',sub:'Bluetooth intégré'},
+        {to:'p_legacy',n:'2',title:'Sonnet 1·2 · Rondo 3',sub:'Via AudioStream'}
+      ],
+      help:{label:'Comment reconnaître mon processeur ?',items:[
+        {tag:'S3',name:'Sonnet 3',desc:'Bluetooth intégré : il se connecte directement au téléphone, sans accessoire.'},
+        {tag:'1·2',name:'Sonnet 1·2 / Rondo 3',desc:'Pas de Bluetooth intégré : nécessite la clé AudioStream insérée dans le processeur.'}
+      ]}},
+    sonnet3:{type:'steps',crumb:'Sonnet 3',trail:'Sonnet 3',title:'Sonnet 3',platform:true,
+      stepsAndroid:[
+        {scene:'on',h:'Allumer le Sonnet 3',p:'Mettez votre Sonnet 3 sous tension.'},
+        {scene:'phone-bt',h:'Activer le Bluetooth',p:'Dans les <b>Réglages</b>, activez le <b>Bluetooth</b>, puis recherchez <b>Sonnet 3</b>.'},
+        {scene:'success',h:'Se connecter',p:'Sélectionnez Sonnet 3 et connectez-vous.'}
+      ],
+      stepsApple:[
+        {scene:'on',h:'Allumer le Sonnet 3',p:'Mettez votre Sonnet 3 sous tension et gardez-le à portée du téléphone.'},
+        {scene:'phone-bt',h:'Réglages d’accessibilité',p:'<b>Réglages</b> → <b>Accessibilité</b> → <b>Appareils auditifs</b> (Bluetooth activé).'},
+        {scene:'phone-bt',h:'Sélectionner le processeur',p:'Votre <b>Sonnet 3</b> apparaît dans la liste. Touchez son nom puis acceptez le jumelage (une fois par côté).'},
+        {scene:'success',h:'Confirmer',p:'Une fois « Connecté » affiché, l’audio de l’iPhone est diffusé vers votre Sonnet 3.',video:{url:'https://www.youtube.com/watch?v=P-QCeVF8DRE',label:'Voir la vidéo officielle MED-EL'}}
+      ],
+      done:{h:'Sonnet 3 connecté',p:'Votre processeur reçoit le son de votre téléphone.'}},
+    p_legacy:{type:'menu',crumb:'Sonnet 1·2 · Rondo 3',trail:'AudioStream',eyebrow:'AudioStream',title:'Quel <em style="font-style:italic;color:var(--accent)">modèle</em> ?',lede:'La connexion se fait via l’accessoire AudioStream.',
+      options:[
+        {to:'sonnet12',n:'1',title:'Sonnet 1 et 2',sub:'Via AudioStream'},
+        {to:'rondo3',n:'2',title:'Rondo 3',sub:'Via AudioStream'}
+      ]},
+    sonnet12:{type:'steps',crumb:'Sonnet 1 et 2',trail:'Sonnet 1·2',title:'Sonnet 1 & 2',platform:true,
+      stepsAndroid:[
+        {scene:'off',h:'Insérer l’AudioStream & redémarrer',p:'Vérifiez que l’<b>AudioStream</b> est bien inséré, puis éteignez et rallumez le processeur.'},
+        {scene:'phone-bt',h:'Rechercher dans le Bluetooth',p:'Allez dans le menu <b>Bluetooth</b> et recherchez <b>AudioStream</b>.'},
+        {scene:'success',h:'Se connecter',p:'Sélectionnez AudioStream et connectez-vous.',fb:{retry:'Si vous ne trouvez pas l’AudioStream, essayez un autre appareil. Sinon retournez-le-nous : s’il a moins de deux ans, il sera remplacé à neuf.'}}
+      ],
+      stepsApple:[
+        {scene:'off',h:'Insérer l’AudioStream & redémarrer',p:'Vérifiez que l’<b>AudioStream</b> est bien inséré, puis éteignez et rallumez le processeur.'},
+        {scene:'phone-bt',h:'Ouvrir les Réglages',p:'Activez le <b>Bluetooth</b>, puis <b>Réglages</b> → <b>Accessibilité</b> → <b>Appareils auditifs</b> pour rechercher l’AudioStream.'},
+        {scene:'success',h:'Se connecter',p:'Sélectionnez l’AudioStream et acceptez le jumelage.',video:{url:'https://www.youtube.com/watch?v=uRrmI4liHTk&list=PLT_--N4wea5D9Qec2QPA1tTrrzPimyDPa',label:'Voir la vidéo Sonnet 2 (Apple)'},fb:{retry:'Si vous ne trouvez pas l’AudioStream, essayez un autre appareil. Sinon retournez-le-nous : s’il a moins de deux ans, il sera remplacé à neuf.'}}
+      ],
+      done:{h:'Sonnet connecté',p:'L’AudioStream relaie le son vers votre processeur.'}},
+    rondo3:{type:'steps',crumb:'Rondo 3',trail:'Rondo 3',title:'Rondo 3',platform:true,
+      stepsAndroid:[
+        {scene:'off',h:'Insérer l’AudioStream & redémarrer',p:'Vérifiez que l’<b>AudioStream</b> est bien inséré, puis éteignez et rallumez le processeur.'},
+        {scene:'success',h:'Rechercher dans le Bluetooth',p:'Allez dans le menu <b>Bluetooth</b>, recherchez <b>AudioStream</b> et connectez-vous.'}
+      ],
+      stepsApple:[
+        {scene:'off',h:'Insérer l’AudioStream & redémarrer',p:'Vérifiez que l’<b>AudioStream</b> est bien inséré, puis éteignez et rallumez le processeur.'},
+        {scene:'phone-bt',h:'Suivre la vidéo Apple',p:'L’appairage du Rondo 3 sur iPhone se fait via les Réglages d’accessibilité. Suivez la vidéo officielle ci-dessous.',video:{url:'https://www.youtube.com/watch?v=1wIGRH1BGeo&list=PLT_--N4wea5C6aA7f583X6ArbCSeh4zP5',label:'Voir la vidéo Rondo 3 (Apple)'}}
+      ],
+      done:{h:'Rondo 3 connecté',p:'L’AudioStream relaie le son vers votre processeur.'}},
+    // ---------- ARBRE-DEBUT ----------
+    // Arbre d'auto-diagnostic repris du prototype « Processor Viewer ».
+    // Ne pas éditer à la main : régénérer avec
+    //   python3 outils/convertir-arbre.py
+    // depuis source/arbre-diagnostic.json, puis recoller entre ces marqueurs.
+    patient_rondo3_root:{type:'menu',crumb:"Rondo 3 — Symptôme principal",trail:"Symptôme principal",eyebrow:"Rondo 3 — Symptôme principal",title:"Quel problème observez-vous sur le Rondo 3 ?",vue:"rondo3",
+      options:[
+        {to:"q_charge_1",title:"Le processeur ne charge plus",icon:"batterie"},
+        {to:"q_magnet_1",title:"L'aimant ne tient pas",icon:"aimant"},
+        {to:"diag_crack_magnet",title:"Fissure venant de l'aimant",icon:"alerte"},
+        {to:"q_crack_other_1",title:"Fissure ailleurs sur le boîtier",icon:"alerte"},
+        {to:"q_sound_1",title:"Aucun son",icon:"volume"},
+        {to:"q_noise_1",title:"Grésillements ou sifflements",icon:"onde"},
+        {to:"q_as_1",title:"AudioStream ne fonctionne pas",icon:"support"},
+        {to:"q_ak_1",title:"AudioKey ne détecte pas le processeur",icon:"bluetooth"}
+      ]},
+    pro_rondo3_root:{type:'menu',crumb:"Rondo 3 — Symptôme · Pro",trail:"Symptôme · Pro",eyebrow:"Rondo 3 — Symptôme · Pro",title:"Quel problème souhaitez-vous diagnostiquer ?",vue:"rondo3",
+      options:[
+        {to:"q_maestro_1",title:"Maestro ne reconnaît pas le processeur",icon:"chip"},
+        {to:"q_charge_1",title:"Le processeur ne charge plus",icon:"batterie"},
+        {to:"q_magnet_1",title:"L'aimant ne tient pas",icon:"aimant"},
+        {to:"diag_crack_magnet",title:"Fissure venant de l'aimant",icon:"alerte"},
+        {to:"q_crack_other_1",title:"Fissure ailleurs sur le boîtier",icon:"alerte"},
+        {to:"q_sound_1",title:"Aucun son",icon:"volume"},
+        {to:"q_noise_1",title:"Grésillements ou sifflements",icon:"onde"},
+        {to:"q_as_1",title:"AudioStream",icon:"support"},
+        {to:"q_ak_1",title:"AudioKey",icon:"bluetooth"}
+      ]},
+    q_charge_1:{type:'menu',crumb:"Charge par induction",trail:"Charge par induction",eyebrow:"Charge par induction",title:"Que se passe-t-il quand vous posez le Rondo 3 sur le chargeur ?",zones:["charging_coil"],vue:"rondo3",
+      options:[
+        {to:"q_charge_2",title:"Aucune LED, rien ne se passe"},
+        {to:"diag_charge_led_error",title:"La LED clignote anormalement"},
+        {to:"diag_charge_battery",title:"La charge démarre mais s'arrête vite"},
+        {to:"diag_charge_battery",title:"Charge normale mais autonomie très courte"}
+      ]},
+    q_charge_2:{type:'menu',crumb:"Charge par induction",trail:"Charge par induction",eyebrow:"Charge par induction",title:"Le chargeur est-il alimenté ? (témoin lumineux visible)",zones:["charging_coil"],vue:"rondo3",
+      options:[
+        {to:"diag_charger_power",title:"Non, aucun témoin sur le chargeur"},
+        {to:"q_charge_3",title:"Oui, le chargeur est bien alimenté"}
+      ]},
+    q_charge_3:{type:'menu',crumb:"Charge par induction",trail:"Charge par induction",eyebrow:"Charge par induction",title:"Avez-vous essayé de repositionner le Rondo 3 bien centré sur le chargeur ?",lede:"L'induction nécessite un alignement précis de la bobine.",zones:["charging_coil"],vue:"rondo3",
+      options:[
+        {to:"diag_charge_coil",title:"Oui, repositionné — toujours rien"},
+        {to:"diag_charge_reposition",title:"Non, pas encore essayé"}
+      ]},
+    q_magnet_1:{type:'menu',crumb:"Maintien de l'aimant",trail:"Maintien de l'aimant",eyebrow:"Maintien de l'aimant",title:"Quand vous retirez l'aimant et observez son logement, que voyez-vous ?",zones:["magnet", "magnet_thread"],vue:"rondo3",
+      options:[
+        {to:"diag_magnet_debris",title:"Un morceau de plastique coincé dans le pas de vis"},
+        {to:"diag_magnet_ergot",title:"L'ergot de maintien semble cassé ou tordu"},
+        {to:"q_magnet_2",title:"Tout semble intact mais l'aimant tombe quand même"},
+        {to:"diag_magnet_replace",title:"L'aimant lui-même est abîmé"}
+      ]},
+    q_magnet_2:{type:'menu',crumb:"Maintien de l'aimant",trail:"Maintien de l'aimant",eyebrow:"Maintien de l'aimant",title:"Avez-vous récemment changé d'aimant, de coiffure, ou eu une variation de poids ?",lede:"La force d'aimant dépend de l'épaisseur des tissus au-dessus de l'implant.",zones:["magnet"],vue:"rondo3",
+      options:[
+        {to:"diag_magnet_strength",title:"Oui, ces conditions ont changé"},
+        {to:"diag_magnet_strength_check",title:"Non, tout est habituel"}
+      ]},
+    q_crack_other_1:{type:'menu',crumb:"Fissure du boîtier",trail:"Fissure du boîtier",eyebrow:"Fissure du boîtier",title:"Le processeur a-t-il subi un choc récent (chute, pression) ?",zones:["casing_side"],vue:"rondo3",
+      options:[
+        {to:"diag_crack_impact",title:"Oui, une chute identifiée"},
+        {to:"diag_crack_progressive",title:"Non, apparue progressivement"}
+      ]},
+    q_sound_1:{type:'menu',crumb:"Son absent",trail:"Son absent",eyebrow:"Son absent",title:"Le processeur s'allume-t-il (LED visible au démarrage) ?",zones:["led"],vue:"rondo3",
+      options:[
+        {to:"q_sound_2",title:"Oui, il s'allume normalement"},
+        {to:"diag_sound_off",title:"Non, aucune LED"}
+      ]},
+    q_sound_2:{type:'menu',crumb:"Son absent",trail:"Son absent",eyebrow:"Son absent",title:"L'aimant tient-il bien en place sur la tête, contre l'implant ?",lede:"Sans contact magnétique correct, aucun signal n'est transmis.",zones:["magnet"],vue:"rondo3",
+      options:[
+        {to:"q_sound_3",title:"Oui, parfaitement positionné"},
+        {to:"q_magnet_1",title:"Non, il glisse ou ne tient pas"}
+      ]},
+    q_sound_3:{type:'menu',crumb:"Son absent",trail:"Son absent",eyebrow:"Son absent",title:"Avez-vous changé les protections de microphones récemment ?",lede:"Les Microphone Cover s'encrassent et bloquent le son. Remplacement tous les 1 à 3 mois recommandé.",zones:["microphones"],vue:"rondo3",
+      options:[
+        {to:"diag_sound_mic_covers",title:"Non, plus de 3 mois"},
+        {to:"q_sound_4",title:"Oui, récemment"}
+      ]},
+    q_sound_4:{type:'menu',crumb:"Son absent",trail:"Son absent",eyebrow:"Son absent",title:"Avez-vous essayé de changer de programme (P1, P2, P3…) ?",vue:"rondo3",
+      options:[
+        {to:"diag_sound_center",title:"Oui, aucun programme ne donne de son"},
+        {to:"diag_sound_program",title:"Non, je vais essayer"}
+      ]},
+    q_noise_1:{type:'menu',crumb:"Bruits parasites",trail:"Bruits parasites",eyebrow:"Bruits parasites",title:"Quelle est la nature du bruit ?",zones:["microphones"],vue:"rondo3",
+      options:[
+        {to:"q_noise_feedback",title:"Sifflement aigu continu (type Larsen)"},
+        {to:"q_noise_crackle",title:"Grésillements intermittents"},
+        {to:"diag_noise_wind",title:"Bruit dans le vent uniquement"}
+      ]},
+    q_noise_feedback:{type:'menu',crumb:"Bruits parasites",trail:"Bruits parasites",eyebrow:"Bruits parasites",title:"Le sifflement apparaît-il quand vous portez un chapeau, casque ou appuyez près de l'aimant ?",zones:["magnet"],vue:"rondo3",
+      options:[
+        {to:"diag_noise_feedback_contact",title:"Oui, lié à un contact"},
+        {to:"diag_noise_feedback_internal",title:"Non, sans cause apparente"}
+      ]},
+    q_noise_crackle:{type:'menu',crumb:"Bruits parasites",trail:"Bruits parasites",eyebrow:"Bruits parasites",title:"Les protections de microphones sont-elles propres et sèches ?",lede:"Humidité, sueur ou poussière dans les Mic Covers = grésillements typiques.",zones:["microphones"],vue:"rondo3",
+      options:[
+        {to:"diag_noise_mic_covers",title:"Non, ou pas sûr"},
+        {to:"diag_noise_electrode",title:"Oui, propres et neuves"}
+      ]},
+    q_as_1:{type:'menu',crumb:"AudioStream",trail:"AudioStream",eyebrow:"AudioStream",title:"L'AudioStream est-il appairé au processeur (procédure d'appairage faite) ?",zones:["antenna_zone"],vue:"rondo3",
+      options:[
+        {to:"q_as_2",title:"Oui, déjà appairé auparavant"},
+        {to:"diag_as_pairing",title:"Non / je ne sais pas"}
+      ]},
+    q_as_2:{type:'menu',crumb:"AudioStream",trail:"AudioStream",eyebrow:"AudioStream",title:"L'AudioStream est-il chargé et allumé ?",vue:"rondo3",
+      options:[
+        {to:"q_as_3",title:"Oui"},
+        {to:"diag_as_battery",title:"Non / batterie faible"}
+      ]},
+    q_as_3:{type:'menu',crumb:"AudioStream",trail:"AudioStream",eyebrow:"AudioStream",title:"À quelle distance se trouve la source audio (TV, téléphone) de l'AudioStream ?",vue:"rondo3",
+      options:[
+        {to:"diag_as_distance",title:"Plus de 5 mètres ou avec obstacles"},
+        {to:"diag_as_reset",title:"Moins de 5 mètres, en vue directe"}
+      ]},
+    q_ak_1:{type:'menu',crumb:"AudioKey 2",trail:"AudioKey 2",eyebrow:"AudioKey 2",title:"Le Bluetooth de votre smartphone est-il activé ?",vue:"rondo3",
+      options:[
+        {to:"q_ak_2",title:"Oui"},
+        {to:"diag_ak_bluetooth",title:"Non / pas sûr"}
+      ]},
+    q_ak_2:{type:'menu',crumb:"AudioKey 2",trail:"AudioKey 2",eyebrow:"AudioKey 2",title:"L'application AudioKey 2 est-elle à jour ?",vue:"rondo3",
+      options:[
+        {to:"q_ak_3",title:"Oui, dernière version"},
+        {to:"diag_ak_update",title:"Non / je ne sais pas"}
+      ]},
+    q_ak_3:{type:'menu',crumb:"AudioKey 2",trail:"AudioKey 2",eyebrow:"AudioKey 2",title:"Avez-vous redémarré le processeur ET le téléphone ?",vue:"rondo3",
+      options:[
+        {to:"diag_ak_repair",title:"Oui, les deux"},
+        {to:"diag_ak_restart",title:"Non, pas les deux"}
+      ]},
+    q_maestro_1:{type:'menu',crumb:"Maestro — accès professionnel",trail:"accès professionnel",eyebrow:"Maestro — accès professionnel",title:"L'interface MAX est-elle correctement détectée par Maestro ?",zones:["antenna_zone"],vue:"rondo3",
+      options:[
+        {to:"q_maestro_2",title:"Oui, MAX détectée"},
+        {to:"diag_maestro_max",title:"Non, MAX absente du logiciel"}
+      ]},
+    q_maestro_2:{type:'menu',crumb:"Maestro",trail:"Maestro",eyebrow:"Maestro",title:"La coil de programmation est-elle reliée à la MAX et posée sur le Rondo 3 ?",vue:"rondo3",
+      options:[
+        {to:"q_maestro_3",title:"Oui"},
+        {to:"diag_maestro_coil_position",title:"Non / mal positionnée"}
+      ]},
+    q_maestro_3:{type:'menu',crumb:"Maestro",trail:"Maestro",eyebrow:"Maestro",title:"Avez-vous testé une autre coil ou un autre câble de programmation ?",vue:"rondo3",
+      options:[
+        {to:"diag_maestro_processor",title:"Oui, problème persiste"},
+        {to:"diag_maestro_swap",title:"Non, pas encore testé"}
+      ]},
+    patient_sonnet_root:{type:'menu',crumb:"Sonnet — Symptôme principal",trail:"Symptôme principal",eyebrow:"Sonnet — Symptôme principal",title:"Quel problème observez-vous sur le Sonnet ?",lede:"Compatible Sonnet 1, 2 et 3.",vue:"sonnet",
+      options:[
+        {to:"q_son_power_1",title:"Le processeur ne s'allume plus",icon:"power"},
+        {to:"q_son_magnet_1",title:"L'aimant ne tient pas",icon:"aimant"},
+        {to:"diag_son_mic_cover_loose",title:"Couvre-microphone désolidarisé",icon:"micro"},
+        {to:"q_son_shutoff_1",title:"S'allume mais s'éteint après 5 minutes",icon:"horloge"},
+        {to:"q_son_crackle_age_1",title:"Le son grésille",icon:"volume"},
+        {to:"q_son_noise_1",title:"Grésillements ou sifflements",icon:"onde"},
+        {to:"q_as_1",title:"AudioStream ne fonctionne pas",icon:"support"},
+        {to:"q_ak_1",title:"AudioKey ne détecte pas le processeur",icon:"bluetooth"}
+      ]},
+    pro_sonnet_root:{type:'menu',crumb:"Sonnet — Symptôme · Pro",trail:"Symptôme · Pro",eyebrow:"Sonnet — Symptôme · Pro",title:"Quel problème souhaitez-vous diagnostiquer ?",vue:"sonnet",
+      options:[
+        {to:"q_son_maestro_1",title:"Maestro ne reconnaît pas le processeur",icon:"chip"},
+        {to:"q_son_power_1",title:"Le processeur ne s'allume plus",icon:"power"},
+        {to:"q_son_magnet_1",title:"L'aimant ne tient pas",icon:"aimant"},
+        {to:"diag_son_mic_cover_loose",title:"Couvre-microphone désolidarisé",icon:"micro"},
+        {to:"q_son_shutoff_1",title:"S'allume mais s'éteint après 5 minutes",icon:"horloge"},
+        {to:"q_son_crackle_age_1",title:"Le son grésille",icon:"volume"},
+        {to:"q_son_noise_1",title:"Grésillements ou sifflements",icon:"onde"},
+        {to:"q_as_1",title:"AudioStream",icon:"support"},
+        {to:"q_ak_1",title:"AudioKey",icon:"bluetooth"}
+      ]},
+    q_son_power_1:{type:'menu',crumb:"Le processeur ne s'allume pas",trail:"Le processeur ne s'…",eyebrow:"Le processeur ne s'allume pas",title:"Avec quel type d'alimentation testez-vous le Sonnet ?",lede:"Le Sonnet fonctionne avec piles zinc-air PR675 ou une batterie rechargeable dédiée.",zones:["battery"],vue:"sonnet",
+      options:[
+        {to:"q_son_power_zinc",title:"Piles zinc-air (PR675)"},
+        {to:"q_son_power_rech",title:"Batterie rechargeable"}
+      ]},
+    q_son_power_zinc:{type:'menu',crumb:"Piles zinc-air",trail:"Piles zinc-air",eyebrow:"Piles zinc-air",title:"Les piles ont-elles été activées (languette retirée, attente de 1-2 minutes) ?",lede:"Les piles zinc-air ont besoin d'air pour s'activer après retrait de la languette.",zones:["battery"],vue:"sonnet",
+      options:[
+        {to:"q_son_power_zinc_2",title:"Oui, languette retirée et patientée"},
+        {to:"diag_son_zinc_wait",title:"Non, j'ai testé immédiatement"}
+      ]},
+    q_son_power_zinc_2:{type:'menu',crumb:"Piles zinc-air",trail:"Piles zinc-air",eyebrow:"Piles zinc-air",title:"Avez-vous essayé un autre paquet de piles neuves ?",lede:"Les piles zinc-air ont une durée de vie limitée même neuves (humidité, péremption).",zones:["battery"],vue:"sonnet",
+      options:[
+        {to:"q_son_power_contacts",title:"Oui, autre paquet — toujours rien"},
+        {to:"diag_son_zinc_swap",title:"Non, même paquet uniquement"}
+      ]},
+    q_son_power_rech:{type:'menu',crumb:"Batterie rechargeable",trail:"Batterie rechargeab…",eyebrow:"Batterie rechargeable",title:"La batterie a-t-elle été chargée à 100 % et le témoin du chargeur fonctionne-t-il ?",zones:["battery"],vue:"sonnet",
+      options:[
+        {to:"q_son_power_contacts",title:"Oui, pleinement chargée"},
+        {to:"diag_son_rech_charge",title:"Non / chargeur sans témoin"}
+      ]},
+    q_son_power_contacts:{type:'menu',crumb:"Contacts batterie",trail:"Contacts batterie",eyebrow:"Contacts batterie",title:"Les contacts dorés du compartiment batterie sont-ils propres et brillants ?",lede:"Cérumen, oxydation ou dépôts blanchâtres bloquent le contact électrique.",zones:["battery"],vue:"sonnet",
+      options:[
+        {to:"diag_son_power_internal",title:"Oui, parfaitement propres"},
+        {to:"diag_son_power_contacts",title:"Non, traces visibles"}
+      ]},
+    q_son_magnet_1:{type:'menu',crumb:"Maintien de l'aimant",trail:"Maintien de l'aimant",eyebrow:"Maintien de l'aimant",title:"Avez-vous récemment changé d'aimant, de coiffure, ou eu une variation de poids ?",lede:"La force de l'aimant Sonnet (échelle 0 à 5) doit être adaptée à l'épaisseur de la peau.",zones:["coil_magnet"],vue:"sonnet",
+      options:[
+        {to:"diag_son_magnet_strength",title:"Oui, ces conditions ont changé"},
+        {to:"q_son_magnet_2",title:"Non, tout est habituel"}
+      ]},
+    q_son_magnet_2:{type:'menu',crumb:"Maintien de l'aimant",trail:"Maintien de l'aimant",eyebrow:"Maintien de l'aimant",title:"L'aimant a-t-il été exposé à un IRM, un portique ou un choc magnétique ?",zones:["coil_magnet"],vue:"sonnet",
+      options:[
+        {to:"diag_son_magnet_demag",title:"Oui"},
+        {to:"diag_son_magnet_strength_check",title:"Non"}
+      ]},
+    q_son_shutoff_1:{type:'menu',crumb:"Extinction prématurée",trail:"Extinction prématur…",eyebrow:"Extinction prématurée",title:"Avez-vous remplacé récemment les couvre-microphones (Mic Covers) ?",lede:"L'extinction après 3-5 min est presque toujours liée à des couvre-microphones encrassés ou humides.",zones:["mic_cover"],vue:"sonnet",
+      options:[
+        {to:"diag_son_shutoff_mic_cover",title:"Non, plus de 2 mois"},
+        {to:"q_son_shutoff_2",title:"Oui, récemment changés"}
+      ]},
+    q_son_shutoff_2:{type:'menu',crumb:"Extinction prématurée",trail:"Extinction prématur…",eyebrow:"Extinction prématurée",title:"Avez-vous séché le processeur dans un kit déshumidificateur sur une nuit ?",zones:["mic_cover"],vue:"sonnet",
+      options:[
+        {to:"diag_son_shutoff_internal",title:"Oui, sans amélioration"},
+        {to:"diag_son_shutoff_dry",title:"Non, pas encore"}
+      ]},
+    q_son_crackle_age_1:{type:'menu',crumb:"Son grésille",trail:"Son grésille",eyebrow:"Son grésille",title:"Avez-vous d'abord changé les couvre-microphones et séché le processeur ?",lede:"Étape obligatoire avant tout envoi : 90 % des grésillements disparaissent avec ces gestes.",zones:["mic_cover"],vue:"sonnet",
+      options:[
+        {to:"q_son_crackle_age_2",title:"Oui, problème persiste après ces gestes"},
+        {to:"diag_son_crackle_first_steps",title:"Non, pas encore"}
+      ]},
+    q_son_crackle_age_2:{type:'menu',crumb:"Son grésille — âge du processeur",trail:"âge du processeur",eyebrow:"Son grésille — âge du processeur",title:"Quel est l'âge de ce processeur Sonnet ?",lede:"L'âge détermine la prise en charge MED-EL : garantie ou devis.",zones:["body"],vue:"sonnet",
+      options:[
+        {to:"diag_son_crackle_repair",title:"Moins de 5 ans"},
+        {to:"diag_son_crackle_quote",title:"Plus de 5 ans"},
+        {to:"diag_son_crackle_check_age",title:"Je ne sais pas — n° de série requis"}
+      ]},
+    q_son_noise_1:{type:'menu',crumb:"Bruits parasites",trail:"Bruits parasites",eyebrow:"Bruits parasites",title:"Quelle est la nature du bruit ?",zones:["mic_cover"],vue:"sonnet",
+      options:[
+        {to:"q_son_noise_feedback",title:"Sifflement aigu continu (type Larsen)"},
+        {to:"q_son_crackle_age_1",title:"Grésillements intermittents"},
+        {to:"diag_son_noise_wind",title:"Bruit dans le vent uniquement"}
+      ]},
+    q_son_noise_feedback:{type:'menu',crumb:"Bruits parasites",trail:"Bruits parasites",eyebrow:"Bruits parasites",title:"Le sifflement apparaît-il quand vous portez un chapeau, casque ou appuyez sur l'antenne ?",zones:["coil"],vue:"sonnet",
+      options:[
+        {to:"diag_son_feedback_contact",title:"Oui, lié à un contact"},
+        {to:"diag_son_feedback_internal",title:"Non, sans cause apparente"}
+      ]},
+    q_son_maestro_1:{type:'menu',crumb:"Maestro — accès professionnel",trail:"accès professionnel",eyebrow:"Maestro — accès professionnel",title:"L'interface MAX est-elle correctement détectée par Maestro ?",zones:["body"],vue:"sonnet",
+      options:[
+        {to:"q_son_maestro_2",title:"Oui, MAX détectée"},
+        {to:"diag_maestro_max",title:"Non, MAX absente du logiciel"}
+      ]},
+    q_son_maestro_2:{type:'menu',crumb:"Maestro",trail:"Maestro",eyebrow:"Maestro",title:"La coil de programmation est-elle reliée à la MAX et posée sur l'antenne du Sonnet ?",zones:["coil"],vue:"sonnet",
+      options:[
+        {to:"q_son_maestro_3",title:"Oui"},
+        {to:"diag_maestro_coil_position",title:"Non / mal positionnée"}
+      ]},
+    q_son_maestro_3:{type:'menu',crumb:"Maestro",trail:"Maestro",eyebrow:"Maestro",title:"Avez-vous testé une autre coil ou un autre câble de programmation ?",vue:"sonnet",
+      options:[
+        {to:"diag_son_maestro_processor",title:"Oui, problème persiste"},
+        {to:"diag_maestro_swap",title:"Non, pas encore testé"}
+      ]},
+    diag_charge_battery:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"warning",title:"Batterie en fin de cycle de vie",resume:"Une charge qui s'interrompt ou une autonomie très réduite indique généralement une batterie lithium-ion en fin de cycle (typiquement après 2 à 3 ans d'usage quotidien).",zones:["charging_coil"],vue:"rondo3",actions:[
+        "Contacter votre centre d'implantation pour planifier un remplacement de batterie",
+        "Conserver la fonction d'urgence avec le boîtier piles si disponible",
+        "MED-EL prend en charge le remplacement dans le cadre du suivi"
+      ]},
+    diag_charge_led_error:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"warning",title:"Erreur de charge signalée par la LED",resume:"Un clignotement anormal lors de la mise en charge correspond à un code d'erreur du chargeur ou du processeur.",zones:["led"],vue:"rondo3",actions:[
+        "Notez la séquence de clignotements (couleur, nombre, rythme)",
+        "Référez-vous au manuel utilisateur Rondo 3, section codes lumineux",
+        "Contactez le support MED-EL avec ce code pour orientation précise"
+      ]},
+    diag_charger_power:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Le chargeur n'est pas alimenté",resume:"Le problème vient probablement de la source d'alimentation, pas du Rondo 3.",vue:"rondo3",actions:[
+        "Vérifiez la prise murale avec un autre appareil",
+        "Testez un autre câble USB-C / adaptateur secteur",
+        "Si l'alimentation fonctionne ailleurs : le chargeur peut être défectueux, contactez MED-EL"
+      ]},
+    diag_charge_reposition:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Repositionnement à essayer",resume:"La charge par induction nécessite un alignement précis entre la bobine du Rondo 3 et celle du chargeur.",zones:["charging_coil"],vue:"rondo3",actions:[
+        "Retirez le Rondo 3, attendez 5 secondes",
+        "Replacez-le bien à plat, centré sur le pad de charge",
+        "Vérifiez qu'aucun objet métallique ne se trouve entre les deux",
+        "Si le problème persiste, revenez en arrière pour continuer le diagnostic"
+      ]},
+    diag_charge_coil:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"critical",title:"Bobine de charge probablement défectueuse",resume:"Si le chargeur fonctionne et que le repositionnement n'a rien donné, la bobine d'induction interne du Rondo 3 ou son électronique de charge est en cause. Réparation en atelier nécessaire.",zones:["charging_coil"],vue:"rondo3",actions:[
+        "Contactez immédiatement votre centre d'implantation",
+        "Demandez un processeur de prêt en attendant la réparation",
+        "MED-EL France : 01 41 06 81 06 (support technique)"
+      ]},
+    diag_magnet_debris:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"warning",title:"Débris dans le pas de vis de l'aimant",resume:"Un fragment de plastique est coincé dans le filetage. L'aimant ne peut plus être vissé correctement.",zones:["magnet_thread"],vue:"rondo3",actions:[
+        "NE PAS forcer pour visser un aimant par-dessus — risque d'aggraver",
+        "Le retrait du débris doit être fait par le fabricant ou en atelier MED-EL",
+        "Contactez votre centre pour expédition en SAV",
+        "Utilisez un Rondo de prêt en attendant"
+      ]},
+    diag_magnet_ergot:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"warning",title:"Ergot de maintien endommagé",resume:"L'ergot qui maintient l'aimant en position est cassé ou tordu. La pièce ne peut plus assurer son rôle, l'aimant se dévisse spontanément.",zones:["magnet"],vue:"rondo3",actions:[
+        "Réparation en atelier MED-EL nécessaire (pièce non remplaçable par l'utilisateur)",
+        "Contactez votre centre d'implantation",
+        "Conservez la pièce cassée si elle s'est détachée — utile au SAV"
+      ]},
+    diag_magnet_replace:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Aimant à remplacer",resume:"Les aimants Rondo 3 sont des pièces consommables disponibles en plusieurs forces. Un aimant abîmé peut être remplacé sans renvoyer le processeur.",zones:["magnet"],vue:"rondo3",actions:[
+        "Demandez un nouvel aimant à votre centre d'implantation",
+        "Précisez la force actuelle utilisée (gravée sur l'aimant)",
+        "Vérifiez aussi l'état de l'ergot avant remontage"
+      ]},
+    diag_magnet_strength:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Force d'aimant probablement insuffisante",resume:"Une variation de poids, un changement de coiffure ou un nouvel aimant de force différente peuvent expliquer un maintien insuffisant.",zones:["magnet"],vue:"rondo3",actions:[
+        "Consultez votre centre pour essayer un aimant de force supérieure",
+        "Attention : un aimant trop fort peut provoquer rougeurs ou douleurs cutanées",
+        "Le bon réglage = maintien sûr SANS marque rouge après 1h de port"
+      ]},
+    diag_magnet_strength_check:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Vérification de la force et de la peau",resume:"Sans cause évidente, plusieurs facteurs sont à investiguer : démagnétisation lente, modification cutanée, ou usure des pièces.",zones:["magnet"],vue:"rondo3",actions:[
+        "Rendez-vous au centre pour un test de force d'aimant et inspection cutanée",
+        "Photographiez le logement aimant et le pas de vis avant la consultation",
+        "Notez si le problème est progressif ou subit"
+      ]},
+    diag_crack_magnet:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"critical",title:"Fissure provenant de l'aimant — boîtier compromis",resume:"Une fissure rayonnant depuis l'aimant indique généralement un sur-serrage ou une fragilité du boîtier. L'étanchéité IP54 du Rondo 3 n'est plus garantie.",zones:["magnet", "casing_top"],vue:"rondo3",actions:[
+        "ARRÊTEZ d'utiliser le processeur en environnement humide (sueur, douche, pluie)",
+        "Contactez votre centre d'implantation en urgence",
+        "Demandez un processeur de prêt immédiatement",
+        "Le boîtier complet devra être remplacé en atelier MED-EL"
+      ]},
+    diag_crack_impact:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"warning",title:"Fissure suite à un choc",resume:"Une chute ou un impact localisé peut fissurer le boîtier sans endommager les circuits internes — mais l'étanchéité n'est plus garantie.",zones:["casing_side"],vue:"rondo3",actions:[
+        "Évaluez l'étendue de la fissure (photo sous bonne lumière)",
+        "Évitez tout contact avec l'eau jusqu'à l'inspection",
+        "Contactez le centre d'implantation pour évaluation SAV"
+      ]},
+    diag_crack_progressive:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"warning",title:"Fissure progressive — contrainte mécanique",resume:"Une fissure apparaissant sans choc identifié peut être due à une contrainte répétée ou à un défaut matière.",zones:["casing_side"],vue:"rondo3",actions:[
+        "Notez la localisation précise et l'évolution de la fissure",
+        "Contactez MED-EL : une fissure progressive peut être couverte par la garantie fabricant",
+        "En attendant, protégez le processeur de l'humidité"
+      ]},
+    diag_sound_off:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"warning",title:"Le processeur ne s'allume pas",resume:"Aucune LED au démarrage = processeur hors tension. Causes possibles : batterie déchargée, problème d'alimentation interne, ou panne électronique.",zones:["led", "charging_coil"],vue:"rondo3",actions:[
+        "Mettez le Rondo 3 en charge au moins 2 heures",
+        "Après charge complète, appuyez 2-3 secondes sur le bouton de mise en marche",
+        "Si toujours pas de LED : contactez votre centre ou MED-EL France au 01 41 06 81 06"
+      ]},
+    diag_sound_mic_covers:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Couvre-microphones à changer",resume:"Les Microphone Covers encrassés ou obturés bloquent l'entrée acoustique. C'est la cause n°1 de perte de son progressive chez les utilisateurs Rondo 3.",zones:["microphones"],vue:"rondo3",actions:[
+        "Retirez les deux couvre-microphones (pastilles noires sur le dessus du boîtier)",
+        "Installez des Mic Covers neufs — disponibles en pharmacies hospitalières et chez votre audioprothésiste",
+        "À changer tous les 1 à 3 mois selon l'activité physique"
+      ]},
+    diag_sound_center:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"critical",title:"Perte auditive totale — consultation urgente",resume:"Si aucun programme ne produit de son malgré une LED allumée et un aimant correctement positionné, une panne interne ou un problème de stimulation est probable.",zones:["led"],vue:"rondo3",actions:[
+        "Contactez votre centre d'implantation dès aujourd'hui",
+        "Demandez un processeur de prêt pour maintenir la continuité auditive",
+        "Apportez le Rondo 3 incriminé pour inspection immédiate"
+      ]},
+    diag_sound_program:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Changer de programme",resume:"Il est possible que le programme actuellement sélectionné soit configuré avec un volume très bas ou un mode silence.",vue:"rondo3",actions:[
+        "Appuyez sur le bouton de programme du Rondo 3 pour passer en P2, P3…",
+        "Vérifiez aussi le volume via AudioKey 2 s'il est disponible",
+        "Si aucun programme ne donne de son, revenez au diagnostic pour continuer"
+      ]},
+    diag_noise_wind:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Bruit de vent — comportement normal",resume:"Un bruit de souffle uniquement dans le vent est normal sur tout microphone directif. Ce n'est pas une panne.",zones:["microphones"],vue:"rondo3",actions:[
+        "Utilisez la fonction anti-vent si votre programme l'inclut (voir AudioKey 2)",
+        "Orientez-vous de façon à ne pas exposer directement les micros au vent",
+        "Si le bruit persiste en intérieur, consultez pour recalibrage"
+      ]},
+    diag_noise_feedback_contact:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Sifflement de contact (retour acoustique)",resume:"Un sifflement déclenché par un chapeau, un casque ou la main près de l'aimant est un retour acoustique classique. Ce n'est pas une panne électronique.",zones:["magnet", "microphones"],vue:"rondo3",actions:[
+        "Augmentez la distance entre microphone et surface réfléchissante",
+        "Réduisez le volume via AudioKey 2 ou le programme en cours",
+        "Certains programmes anti-retour peuvent être activés par votre audioprothésiste"
+      ]},
+    diag_noise_feedback_internal:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"warning",title:"Sifflement interne — investigation nécessaire",resume:"Un sifflement sans cause de contact peut indiquer un gain trop élevé, un problème de couplage électrique, ou une entrée analogique défaillante.",vue:"rondo3",actions:[
+        "Réduisez le volume et testez sur tous les programmes",
+        "Notez si le sifflement est constant ou intermittent",
+        "Consultez votre audioprothésiste pour recalibrage ou nouveau fitting"
+      ]},
+    diag_noise_mic_covers:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Mic Covers à nettoyer ou changer",resume:"Des protections encrassées provoquent souvent des grésillements intermittents car elles créent une barrière partielle à l'entrée acoustique.",zones:["microphones"],vue:"rondo3",actions:[
+        "Retirez et remplacez les Mic Covers",
+        "À défaut, essuyez délicatement avec un chiffon sec (ne jamais souffler dessus)",
+        "Testez immédiatement après remplacement"
+      ]},
+    diag_noise_electrode:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"critical",title:"Grésillements persistants — investigation approfondie",resume:"Des grésillements avec des Mic Covers propres et sèches peuvent indiquer un problème d'électrode, un court-circuit interne, ou un artefact de stimulation.",vue:"rondo3",actions:[
+        "Consultez votre centre d'implantation pour un test d'impédances et de télémétrie",
+        "N'attendez pas — une électrode défaillante peut progresser",
+        "Notez la fréquence et le contexte d'apparition des grésillements"
+      ]},
+    diag_as_pairing:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Appairage AudioStream à effectuer",resume:"L'AudioStream doit être appairé au processeur avant première utilisation ou après réinitialisation.",zones:["antenna_zone"],vue:"rondo3",actions:[
+        "Consultez le guide d'appairage AudioStream (livré avec l'appareil ou disponible sur medel.com)",
+        "Étapes générales : tenir l'AudioStream proche du processeur allumé, suivre la procédure de pairing",
+        "En cas de difficulté, votre audioprothésiste peut effectuer l'appairage lors d'une consultation"
+      ]},
+    diag_as_battery:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"AudioStream à recharger",resume:"L'AudioStream ne peut pas fonctionner si sa batterie est déchargée.",vue:"rondo3",actions:[
+        "Branchez l'AudioStream sur son câble de charge (USB-C)",
+        "Attendez que le témoin indique une charge complète avant de tester à nouveau",
+        "L'autonomie AudioStream est d'environ 15h en usage normal"
+      ]},
+    diag_as_distance:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Distance ou obstacles à réduire",resume:"L'AudioStream utilise une technologie FM/radio à courte portée. Obstacles et distance > 5m dégradent la liaison.",vue:"rondo3",actions:[
+        "Rapprochez l'AudioStream de la source audio (< 3m idéalement)",
+        "Placez l'AudioStream en vue directe de la source",
+        "Si la liaison reste mauvaise à courte distance, testez un appairage neuf"
+      ]},
+    diag_as_reset:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"warning",title:"Réappairage ou réinitialisation nécessaire",resume:"Si l'appairage existe et les conditions sont bonnes mais l'audio ne passe pas, un reset de la liaison peut débloquer la situation.",zones:["antenna_zone"],vue:"rondo3",actions:[
+        "Éteignez et rallumez l'AudioStream",
+        "Éteignez et rallumez le processeur",
+        "Relancez la procédure d'appairage complète",
+        "Si le problème persiste, contactez votre centre pour vérification firmware"
+      ]},
+    diag_ak_bluetooth:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Activer le Bluetooth du smartphone",resume:"L'application AudioKey 2 requiert le Bluetooth pour détecter et contrôler le processeur.",vue:"rondo3",actions:[
+        "Activez le Bluetooth dans les réglages de votre téléphone",
+        "Vérifiez que les autorisations Bluetooth sont accordées à AudioKey 2",
+        "Rouvrez AudioKey 2 après activation"
+      ]},
+    diag_ak_update:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Mettre à jour AudioKey 2",resume:"Une version obsolète de l'app peut perdre la compatibilité avec les nouvelles mises à jour firmware du processeur.",vue:"rondo3",actions:[
+        "Ouvrez l'App Store (iOS) ou Google Play (Android)",
+        "Recherchez AudioKey 2 et installez la mise à jour disponible",
+        "Redémarrez l'app et le processeur après mise à jour"
+      ]},
+    diag_ak_restart:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Redémarrer les deux appareils",resume:"Les bugs de connexion Bluetooth se résolvent souvent avec un redémarrage complet du téléphone ET du processeur.",vue:"rondo3",actions:[
+        "Éteignez le processeur (maintenir le bouton jusqu'à LED rouge)",
+        "Éteignez et rallumez votre téléphone",
+        "Rallumez le processeur, attendez 30 secondes, ouvrez AudioKey 2"
+      ]},
+    diag_ak_repair:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"warning",title:"Réappairage Bluetooth nécessaire",resume:"Si le redémarrage n'a pas résolu le problème, le Bluetooth doit être réappairé depuis zéro.",vue:"rondo3",actions:[
+        "Dans les réglages Bluetooth du téléphone, supprimez le processeur de la liste",
+        "Dans AudioKey 2, supprimez aussi le couplage existant",
+        "Refaites la procédure d'appairage complète depuis l'app"
+      ]},
+    diag_maestro_max:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"warning",title:"Interface MAX non détectée",resume:"Maestro ne détecte pas l'interface MAX. Problème USB, pilote, ou interface défectueuse.",actions:[
+        "Débranchez et rebranchez l'interface MAX",
+        "Essayez un autre port USB du PC",
+        "Vérifiez dans le Gestionnaire de périphériques Windows que MAX apparaît sans point d'exclamation",
+        "Si le problème persiste, contactez le support technique MED-EL pour remplacement d'interface"
+      ]},
+    diag_maestro_coil_position:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Repositionner la coil de programmation",resume:"La coil de programmation doit être centrée sur l'aimant du processeur et fermement maintenue pour établir la liaison.",actions:[
+        "Centrez la coil directement sur le disque aimant du Rondo 3 (ou sur l'antenne du Sonnet)",
+        "Maintenez une légère pression constante pendant la session Maestro",
+        "Évitez tout déplacement de la coil pendant le téléchargement — peut corrompre le fitting"
+      ]},
+    diag_maestro_swap:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Tester avec une autre coil",resume:"Avant de conclure à une panne processeur, éliminez un défaut de coil ou de câble.",actions:[
+        "Essayez une coil de programmation issue d'un autre kit MAX",
+        "Testez aussi le câble de renvoi coil si disponible",
+        "Si avec une autre coil cela fonctionne : la coil d'origine est défectueuse, commandez-en une nouvelle"
+      ]},
+    diag_maestro_processor:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"critical",title:"Processeur probablement défectueux",resume:"Si Maestro ne détecte pas le processeur malgré une MAX et une coil fonctionnelles, le module de télémétrie interne du processeur est suspect.",actions:[
+        "Confirmez avec un deuxième processeur du même patient si disponible",
+        "Documentez la session Maestro : capture d'écran du message d'erreur",
+        "Contactez MED-EL pour demande de SAV urgente ou processeur de remplacement"
+      ]},
+    diag_son_mic_cover_loose:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"warning",title:"Couvre-microphone désolidarisé",resume:"Le couvre-microphone peut se desserrer après des chutes ou manipulations répétées. Sans couvre-micro en place, le microphone est exposé à la poussière et à l'humidité.",zones:["mic_cover"],vue:"sonnet",actions:[
+        "Réenclipsez fermement le couvre-microphone en le glissant jusqu'au 'clic'",
+        "Si des clips sont cassés, le couvre-micro doit être remplacé — disponible auprès de votre centre",
+        "Ne pas utiliser le Sonnet sans couvre-micro : risque de panne microphone"
+      ]},
+    diag_son_zinc_wait:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Activer les piles zinc-air",resume:"Les piles zinc-air PR675 doivent être activées par exposition à l'air avant utilisation.",zones:["battery"],vue:"sonnet",actions:[
+        "Retirez la languette adhésive des nouvelles piles",
+        "Attendez 1 à 2 minutes avant d'insérer les piles",
+        "Testez à nouveau — le Sonnet doit s'allumer dans les 5 secondes"
+      ]},
+    diag_son_zinc_swap:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Tester un autre paquet de piles",resume:"Les piles zinc-air vieillissent même neuves si le paquet a été ouvert ou si la date de péremption est dépassée.",zones:["battery"],vue:"sonnet",actions:[
+        "Ouvrez un nouveau paquet de piles PR675",
+        "Retirez la languette, attendez 2 minutes, et testez",
+        "Si le Sonnet ne s'allume toujours pas, passez à la vérification des contacts"
+      ]},
+    diag_son_rech_charge:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Charger la batterie rechargeable",resume:"La batterie rechargeable Sonnet doit être chargée via le chargeur dédié jusqu'à ce que le témoin indique une charge complète.",zones:["battery"],vue:"sonnet",actions:[
+        "Placez la batterie dans le chargeur MED-EL dédié",
+        "Attendez que le témoin passe au vert (charge complète, ~3h)",
+        "Insérez la batterie chargée dans le Sonnet et testez"
+      ]},
+    diag_son_power_contacts:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"warning",title:"Nettoyer les contacts batterie",resume:"Des contacts dorés oxydés ou souillés empêchent le passage du courant.",zones:["battery"],vue:"sonnet",actions:[
+        "Utilisez un coton-tige légèrement humecté d'alcool isopropylique (70°)",
+        "Nettoyez délicatement les contacts dorés dans le compartiment batterie",
+        "Laissez sécher 2 minutes avant d'insérer les piles/batterie"
+      ]},
+    diag_son_power_internal:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"critical",title:"Panne interne probable",resume:"Si les piles sont bonnes et les contacts propres mais le Sonnet reste éteint, une panne électronique interne est probable.",vue:"sonnet",actions:[
+        "Contactez votre centre d'implantation — prise en charge SAV à prévoir",
+        "Demandez un processeur de prêt pour ne pas rester sans entendre",
+        "MED-EL France : 01 41 06 81 06"
+      ]},
+    diag_son_magnet_strength:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Ajuster la force d'aimant",resume:"La force de l'aimant Sonnet (de 1 à 5) doit être adaptée à l'épaisseur des tissus, qui peut varier.",zones:["coil_magnet"],vue:"sonnet",actions:[
+        "Consultez votre centre pour essayer un aimant de force supérieure",
+        "Si prise de poids ou changement de coiffure récent : la force doit souvent être augmentée",
+        "Critère : maintien stable sans trace rouge après 1h de port"
+      ]},
+    diag_son_magnet_demag:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"warning",title:"Aimant potentiellement démagnétisé",resume:"L'exposition à un IRM, à un portique de sécurité ou à un fort champ magnétique peut réduire la force de l'aimant Sonnet.",zones:["coil_magnet"],vue:"sonnet",actions:[
+        "L'aimant doit être remplacé — les aimants démagnétisés ne se rechargent pas",
+        "Contactez votre centre pour remplacement de l'aimant externe",
+        "Avant tout nouvel IRM : signalez votre implant cochléaire et demandez le protocole MED-EL"
+      ]},
+    diag_son_magnet_strength_check:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Évaluation par le centre",resume:"Sans cause évidente, la force d'aimant et l'état cutané doivent être évalués en consultation.",zones:["coil_magnet"],vue:"sonnet",actions:[
+        "Rendez-vous au centre pour test de force et inspection cutanée",
+        "Photographiez l'aimant et notez si le problème est constant ou lié à certaines activités"
+      ]},
+    diag_son_shutoff_mic_cover:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Changer les couvre-microphones",resume:"L'extinction après 5 minutes est un mécanisme de sécurité : le Sonnet détecte un blocage microphone et coupe l'alimentation.",zones:["mic_cover"],vue:"sonnet",actions:[
+        "Retirez et remplacez les couvre-microphones (ProWax ou MicWax selon modèle)",
+        "Testez immédiatement après remplacement",
+        "Si le problème persiste après remplacement : passez à l'étape déshumidification"
+      ]},
+    diag_son_shutoff_dry:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Déshumidifier le Sonnet",resume:"L'humidité accumulée dans le canal microphone peut déclencher des courts-circuits temporaires et provoquer l'extinction automatique.",zones:["mic_cover"],vue:"sonnet",actions:[
+        "Placez le Sonnet dans un kit déshumidificateur (boîte à gel de silice) pendant une nuit entière",
+        "Retirez les piles ou la batterie pendant la déshumidification",
+        "Testez le lendemain — si l'extinction persiste, consultez votre centre"
+      ]},
+    diag_son_shutoff_internal:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"warning",title:"Panne interne à explorer",resume:"Si l'extinction persiste malgré Mic Covers neufs et déshumidification, une panne électronique interne est possible.",vue:"sonnet",actions:[
+        "Consultez votre centre d'implantation pour inspection et test Maestro",
+        "Documentez la durée avant extinction et les conditions (activité, température)",
+        "Demandez un processeur de prêt si l'extinction est gênante au quotidien"
+      ]},
+    diag_son_crackle_first_steps:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Commencer par les gestes de base",resume:"Avant tout envoi en SAV, deux gestes simples éliminent 90% des grésillements Sonnet.",zones:["mic_cover"],vue:"sonnet",actions:[
+        "1. Changez les couvre-microphones (MicWax / ProWax)",
+        "2. Placez le Sonnet dans un déshumidificateur une nuit entière (piles retirées)",
+        "3. Testez le lendemain — si le son grésille encore, revenez pour continuer le diagnostic"
+      ]},
+    diag_son_crackle_repair:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"warning",title:"Envoi en réparation — garantie probable",resume:"Un processeur de moins de 5 ans avec grésillements persistants après gestes de base est généralement couvert par la garantie MED-EL.",zones:["body"],vue:"sonnet",actions:[
+        "Contactez votre centre d'implantation pour initier le dossier SAV",
+        "Préparez : numéro de série, date d'activation, description du problème",
+        "MED-EL prend en charge le transport et la réparation dans le cadre de la garantie"
+      ]},
+    diag_son_crackle_quote:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"warning",title:"Devis SAV — processeur hors garantie",resume:"Un processeur de plus de 5 ans n'est généralement plus sous garantie. Une réparation ou un remplacement peut être envisagé via un devis.",zones:["body"],vue:"sonnet",actions:[
+        "Contactez votre centre d'implantation pour évaluation",
+        "Un devis gratuit peut être demandé auprès de MED-EL France",
+        "Selon l'état général, un remplacement par un processeur reconditionné peut être proposé"
+      ]},
+    diag_son_crackle_check_age:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Vérifier l'âge via le numéro de série",resume:"Le numéro de série permet à MED-EL de vérifier la date de fabrication et l'historique du processeur.",zones:["body"],vue:"sonnet",actions:[
+        "Localisez le numéro de série (étiquette sous la batterie du Sonnet)",
+        "Communiquez-le à votre centre ou directement à MED-EL France",
+        "MED-EL France : 01 41 06 81 06 — le service pourra vous indiquer la couverture applicable"
+      ]},
+    diag_son_noise_wind:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Bruit de vent — comportement normal",resume:"Un bruit de souffle uniquement dans le vent est normal sur tout microphone directif exposé. Ce n'est pas une panne.",zones:["mic_cover"],vue:"sonnet",actions:[
+        "Utilisez le programme anti-vent si disponible",
+        "Orientez votre dos au vent pour protéger le microphone",
+        "Si le bruit persiste en intérieur hors vent : consultez pour recalibrage"
+      ]},
+    diag_son_feedback_contact:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"info",title:"Retour acoustique de contact",resume:"Un sifflement déclenché par un chapeau, une main ou un casque sur l'antenne est un retour acoustique classique, pas une panne.",zones:["coil"],vue:"sonnet",actions:[
+        "Augmentez la distance entre le couvre-micro et la surface réfléchissante",
+        "Réduisez le volume via le bouton de programme ou AudioKey 2",
+        "Un programme anti-larsen peut être programmé par votre audioprothésiste"
+      ]},
+    diag_son_feedback_internal:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"warning",title:"Sifflement interne — consultation recommandée",resume:"Un sifflement sans cause de contact peut indiquer un gain trop élevé, un problème de couplage, ou un défaut micro.",vue:"sonnet",actions:[
+        "Réduisez le volume et changez de programme pour isoler la cause",
+        "Notez si le sifflement est constant ou déclenché par certaines situations",
+        "Consultez votre audioprothésiste pour vérification et recalibrage du fitting"
+      ]},
+    diag_son_maestro_processor:{type:'bilan',crumb:'Conclusion',trail:'Conclusion',severite:"critical",title:"Processeur Sonnet probablement défectueux",resume:"Si Maestro ne détecte pas le Sonnet malgré une MAX et une coil fonctionnelles, le module télémétrique du processeur est suspect.",vue:"sonnet",actions:[
+        "Documentez la session Maestro (capture d'écran du message d'erreur)",
+        "Contactez MED-EL pour demande de SAV urgente",
+        "Demandez un processeur de prêt Sonnet pour maintenir la continuité auditive"
+      ]},
+    // ---------- ARBRE-FIN ----------
+
+    help:{type:'form',crumb:'Demande d’aide',trail:'Aide',title:'Demander l’aide d’un <em style="font-style:italic;color:var(--accent)">technicien</em>',lede:'Remplissez ce formulaire : votre demande part directement par mail ou SMS à notre équipe. Rien n’est enregistré dans cette application.'}
+    };
+  })();
+}
+</script>
+
+
+</body></html>
