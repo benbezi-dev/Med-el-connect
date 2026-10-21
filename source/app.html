@@ -439,6 +439,7 @@
           <div style="{{ bilan.badgeStyle }}">{{ bilan.badgeLabel }}</div>
           <h1 style="font-family:var(--title-font);font-weight:var(--h1-weight);font-size:calc(var(--h1) - 8px);line-height:1.06;letter-spacing:var(--h1-spacing);margin:14px 0 12px">{{ bilan.title }}</h1>
           <p style="color:var(--ink-soft);font-size:16px;margin:0 0 24px;max-width:46ch;line-height:1.55">{{ bilan.resume }}</p>
+          <sc-if value="{{ bilan.hasGarantie }}" hint-placeholder-val="{{ false }}"><div>{{ bilan.garantieEl }}</div></sc-if>
 
           <sc-if value="{{ bilan.hasActions }}" hint-placeholder-val="{{ true }}">
             <div style="background:var(--card-bg);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);margin-bottom:16px">
@@ -1448,6 +1449,82 @@ class Component extends DCLogic {
     };
   }
 
+  // ---------- garantie ----------
+  // Processeurs garantis 5 ans, sauf casse physique (règle donnée par l'auteur, 21/10/2026).
+  // Les exceptions de casse (Sonnet, Rondo 2, Rondo 3) arriveront : EXCEPTIONS_CASSE.
+  GARANTIE_ANS = 5;
+  GARANTIE = {
+    panne: ['diag_charge_coil','diag_sound_off','diag_noise_feedback_internal','diag_maestro_processor','diag_son_power_internal',
+            'diag_son_shutoff_internal','diag_son_crackle_repair','diag_son_crackle_quote','diag_son_crackle_check_age',
+            'diag_son_feedback_internal','diag_son_maestro_processor'],
+    casse: ['diag_crack_magnet','diag_crack_impact','diag_crack_progressive','diag_magnet_ergot'],
+  };
+  // Accessoires contenant de l'électronique : 2 ans, sauf casse (règle de l'auteur, 21/10/2026).
+  GARANTIE_ACC_ANS = 2;
+  // conclusion du diagnostic -> accessoire concerné
+  GARANTIE_ACC = { diag_charge_battery:'la batterie', diag_charge_led_error:'le chargeur ou la batterie', diag_as_reset:'l’AudioStream' };
+  // fiches du catalogue 3D qui contiennent de l'électronique
+  ACC_ELECTRONIQUE = ['audiolink','audiolinkxt','finetuner','audiostream','audiostream-adapter','audiostream-pack','cadre-pile',
+    'accu-standard','adaptateur-accu','chargeur','batterie-audiolink','station-accueil','adaptateur-telecoil','adaptateur-fm','tour-de-cou','dl-coil'];
+  // Fiches du catalogue qui montrent un audio processeur (seul garanti 5 ans).
+  PROC_CATALOGUE = { sonnet:' Garantie : 5 ans pour l’audio processeur, 2 ans pour l’antenne, sauf casse.',
+    'sonnet2-audiostream':' Garantie : 5 ans pour l’audio processeur, 2 ans pour l’AudioStream, sauf casse.' };
+  // processeur -> liste de textes « casse couverte malgré tout » (vide tant que non communiqué).
+  EXCEPTIONS_CASSE = { s1:[], s2:[], s3:[], r2:[], r3:[] };
+  garantieEl(key){
+    const E=React.createElement, acc=this.GARANTIE_ACC[key];
+    const type=this.GARANTIE.panne.includes(key)?'panne':this.GARANTIE.casse.includes(key)?'casse':acc?'panne':null;
+    if(!type) return null;
+    const a=this.appareil(), nom=acc ? acc : (a?'le '+a.nom:'votre processeur'), ans=acc?this.GARANTIE_ACC_ANS:this.GARANTIE_ANS;
+    const Nom=nom.charAt(0).toUpperCase()+nom.slice(1), quoi=acc?'cet accessoire':'votre processeur';
+    const boite=(fond,bord,enfants)=>E('div',{style:{background:fond,border:'1px solid '+bord,borderRadius:'var(--radius)',padding:'16px 18px',marginBottom:'18px'}},
+      E('div',{style:{fontSize:'12px',fontWeight:800,letterSpacing:'.12em',textTransform:'uppercase',color:'var(--ink-soft)',marginBottom:'8px'}},'🛡️ Garantie'), ...enfants);
+    if(type==='casse'){
+      const exc=(this.EXCEPTIONS_CASSE[this.state.appareil]||[]);
+      return boite('var(--warn-soft)','#F0DCB4',[
+        E('div',{key:1,style:{fontSize:'16px',fontWeight:700,marginBottom:'6px'}},'Casse physique : en principe hors garantie'),
+        E('div',{key:2,style:{fontSize:'14.5px',color:'var(--ink-soft)',lineHeight:1.5}},
+          exc.length ? ['Exceptions pour '+nom+' : ', E('ul',{key:'u',style:{margin:'6px 0 0 18px'}}, exc.map((x,i)=>E('li',{key:i},x)))]
+                     : 'La garantie de '+ans+' ans ne couvre pas un appareil cassé. Il existe des exceptions selon le type de casse : votre centre ou MED-EL vous dira si la vôtre en fait partie.')]);
+    }
+    // La réponse dépend de la date d'acquisition : on la demande (mois + année).
+    const cible=acc ? 'acc:'+acc : 'proc:'+this.state.appareil;
+    const date=this.dateGarantie(cible), MOIS=this.MOIS_FR, an0=new Date().getFullYear();
+    const sel=(val,opts,onCh,label)=>E('select',{key:label,'aria-label':label,value:val,onChange:onCh,style:{flex:'1 1 120px',fontFamily:'inherit',fontSize:'16px',padding:'11px 10px',borderRadius:'12px',border:'1px solid var(--line)',background:'var(--card-bg)',color:'var(--ink)'}},
+      E('option',{value:''},label), ...opts.map(([v,l])=>E('option',{key:v,value:v},l)));
+    const [y,m]=(date||'-').split('-');
+    const maj=(ny,nm)=>this.fixerDateGarantie(cible, ny&&nm ? ny+'-'+nm : (ny||nm ? (ny||'')+'-'+(nm||'') : ''));
+    const res=date && /^\d{4}-\d{2}$/.test(date) ? this.etatGarantie(date, ans) : null;
+    const fin=res ? MOIS[res.finMois-1]+' '+res.finAn : '';
+    const reponse = !res ? null
+      : res.etat==='sous' ? ['#15724A','Sous garantie jusqu’en '+fin, 'Encore environ '+res.moisRestants+' mois. Si le centre confirme la panne, la réparation ou l’échange est couvert.']
+      : res.etat==='limite' ? ['#9A5E00','La garantie se termine ce mois-ci ('+fin+')', 'Contactez votre centre sans attendre avec la date exacte d’achat ou de pose.']
+      : ['#B30015','Garantie terminée depuis '+fin, 'La réparation fait l’objet d’un devis.'];
+    return boite('#EEF6F1','#BFE5D0',[
+      E('div',{key:1,style:{fontSize:'16px',fontWeight:700,marginBottom:'4px'}},Nom+(acc?' : garantie ':' est garanti ')+ans+' ans, sauf casse'),
+      E('div',{key:2,style:{fontSize:'14.5px',color:'var(--ink-soft)',marginBottom:'10px'}},'Depuis quand avez-vous '+(acc?'cet accessoire':'votre processeur')+' ? '+(acc?'(date d’achat)':'(date de pose ou de remise)')),
+      E('div',{key:3,style:{display:'flex',gap:'8px',flexWrap:'wrap'}},
+        sel(m||'', MOIS.map((l,i)=>[String(i+1).padStart(2,'0'),l]), ev=>maj(y,ev.target.value), 'Mois'),
+        sel(y||'', Array.from({length:16},(_,i)=>[String(an0-i),String(an0-i)]), ev=>maj(ev.target.value,m), 'Année')),
+      reponse ? E('div',{key:4,style:{marginTop:'11px',fontSize:'14.5px',lineHeight:1.5,animation:'melRise .3s ease'}}, E('b',{style:{color:reponse[0]}},reponse[1]+'. '), reponse[2])
+              : E('div',{key:5,style:{marginTop:'10px',fontSize:'13px',color:'var(--ink-soft)',lineHeight:1.45}},'Vous ne savez pas ? '+(acc?'La facture ou le numéro de série':'Le numéro de série')+' permet de retrouver la date : demandez à votre centre ou à MED-EL.')]);
+  }
+
+  MOIS_FR = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  // Garantie au mois près (seuls le mois et l'année sont connus) : 'sous', 'limite' (dernier mois) ou 'finie'.
+  etatGarantie(debut, ans, auj=new Date()){
+    const [y,m]=debut.split('-').map(Number), finIdx=(y+ans)*12+(m-1), ajd=auj.getFullYear()*12+auj.getMonth();
+    return { etat: ajd<finIdx ? 'sous' : ajd===finIdx ? 'limite' : 'finie', finAn:y+ans, finMois:m, moisRestants:Math.max(0,finIdx-ajd) };
+  }
+  // La date saisie est gardée sur ce téléphone pour ne pas la redemander (commodité seulement).
+  dateGarantie(cible){ const d=(this.state.garantieDates||{})[cible]; if(d!==undefined) return d;
+    try{ return (JSON.parse(localStorage.getItem('medel-garantie')||'{}'))[cible]||''; }catch(_){ return ''; } }
+  fixerDateGarantie(cible, val){
+    this.setState(s=>{ const g={...(s.garantieDates||{}),[cible]:val};
+      try{ const st=JSON.parse(localStorage.getItem('medel-garantie')||'{}'); st[cible]=val; localStorage.setItem('medel-garantie',JSON.stringify(st)); }catch(_){}
+      return {garantieDates:g}; });
+  }
+
   bilanVM(node){
     const N={
       critical:{l:'Urgence',          bg:'#FDECEE',          fg:'#B30015', bd:'#F4C9CE'},
@@ -1468,7 +1545,8 @@ class Component extends DCLogic {
           fontWeight:800, letterSpacing:'.08em', textTransform:'uppercase',
           color:v.fg, background:v.bg, border:'1px solid '+v.bd, borderRadius:'99px', padding:'6px 13px' },
         title:node.title, resume:node.resume,
-        hasActions:actions.length>0, actions, pro:!!pro, proEl:pro?this.H(pro):null },
+        hasActions:actions.length>0, actions, pro:!!pro, proEl:pro?this.H(pro):null,
+        hasGarantie:!!this.garantieEl(this.curKey()), garantieEl:this.garantieEl(this.curKey()) },
       onTechnicien:()=>this.go('help') };
   }
 
@@ -2052,7 +2130,7 @@ class Component extends DCLogic {
       lede:'Touchez un accessoire pour le voir en 3D, le tourner dans tous les sens et savoir à quoi il sert.',
       options:(st,c)=>c.ACCESSOIRES.map(a=>({to:'acc_'+a.k, icon:'chip', title:a.nom, sub:a.cat}))},
     ...Object.fromEntries(this.ACCESSOIRES.map(a=>['acc_'+a.k, {type:'menu', objet3d:a.k, crumb:a.nom, trail:a.nom, eyebrow:a.cat,
-      title:a.nom, lede:a.desc,
+      title:a.nom, lede:a.desc+(this.ACC_ELECTRONIQUE.includes(a.k) ? ' Garantie : '+this.GARANTIE_ACC_ANS+' ans, sauf casse.' : this.PROC_CATALOGUE[a.k]||''),
       options:[
         {href:this.BOUTIQUE, icon:'support', title:'Boutique MED-EL', sub:'Prix affiché après connexion à votre compte myMED-EL', accent:true},
         {to:'help', icon:'support', title:'Demander l’aide d’un technicien', sub:'Envoyez votre besoin par mail ou SMS'}
