@@ -395,6 +395,8 @@
         </div>
       </sc-if>
 
+      <sc-if value="{{ isCarte }}" hint-placeholder-val="{{ false }}"><div>{{ carteEl }}</div></sc-if>
+
       <sc-if value="{{ isMenu }}" hint-placeholder-val="{{ true }}">
         <div>
           <sc-if value="{{ menu.eyebrow }}" hint-placeholder-val="{{ true }}"><div style="font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:11px">{{ menu.eyebrow }}</div></sc-if>
@@ -527,6 +529,19 @@
                 <div><strong style="font-size:14.5px">{{ step.tipT }}</strong><span style="display:block;font-size:13.5px;color:var(--ink-soft);margin-top:2px;line-height:1.45">{{ step.tipS }}</span></div>
               </div>
             </sc-if>
+            <sc-if value="{{ step.showQ }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:14px;padding:15px;border-radius:13px;border:2px dashed var(--accent);background:var(--card-bg)">
+                <div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Petit test</div>
+                <div style="font-size:16px;font-weight:700;line-height:1.4;margin-bottom:11px">{{ step.qT }}</div>
+                <div style="display:flex;gap:9px;flex-wrap:wrap">
+                  <sc-for list="{{ step.qBtns }}" as="q" hint-placeholder-count="2"><button onclick="{{ q.onClick }}" style="{{ q.style }}">{{ q.label }}</button></sc-for>
+                </div>
+                <sc-if value="{{ step.qShowRep }}" hint-placeholder-val="{{ false }}"><div style="{{ step.qRepStyle }}">{{ step.qRepEl }}</div></sc-if>
+              </div>
+            </sc-if>
+            <sc-if value="{{ step.showPro }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:14px;padding:13px 15px;border-radius:13px;background:#EEF3FB;border:1px solid #C9D8F0;color:#1F3A66;font-size:14.5px;line-height:1.5"><b>Point pro —</b> {{ step.proEl }}</div>
+            </sc-if>
             <div onclick="{{ onToggleConfirm }}" style="{{ confirmStyle }}">
               <span style="{{ confirmBoxStyle }}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
               <span style="font-size:15px;font-weight:600">{{ confirmLabel }}</span>
@@ -631,7 +646,7 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;412&quot;,&quot;height&quot;:&quot;880&quot;},&quot;variant&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;clair&quot;,&quot;net&quot;],&quot;default&quot;:&quot;clair&quot;,&quot;tsType&quot;:&quot;'clair'|'net'&quot;},&quot;accentColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#E2001A&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;showJourney&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
 class Component extends DCLogic {
-  state = { stack:['home'], stepIndex:0, platform:'Android', dir:1, nav:0, helpOpen:false, installOpen:false, progress:{},
+  state = { stack:['home'], stepIndex:0, platform:'Android', dir:1, nav:0, helpOpen:false, installOpen:false, progress:{}, quiz:{},
     profil:null, appareil:null,
     form:{nom:'',mail:'',tel:'',modele:'',desc:'',urgency:'',err:''} };
 
@@ -678,9 +693,6 @@ class Component extends DCLogic {
     const navPrec = prevState ? prevState.nav : this._navPrec;
     this._navPrec = this.state.nav;
     if(navPrec !== this.state.nav) this.animateMain();
-    if(this.isDoneNow() && (prevState.stack!==this.state.stack || prevState.stepIndex!==this.state.stepIndex || prevState.platform!==this.state.platform) && !this._firedFor){
-      // fire when reaching done
-    }
     prevState = prevState || this.state;
     const doneNow=this.isDoneNow();
     if(doneNow && !this._wasDone) this.fireConfetti();
@@ -705,7 +717,7 @@ class Component extends DCLogic {
   }
 
   // ---------- navigation ----------
-  go=(key,memo)=>this.setState(s=>({...(memo||{}),stack:[...s.stack,key],stepIndex:0,dir:1,nav:s.nav+1,helpOpen:false}));
+  go=(key,memo)=>this.setState(s=>({...(memo||{}),stack:[...s.stack,key],stepIndex:0,dir:1,nav:s.nav+1,helpOpen:false,carteZone:null}));
   back=()=>this.setState(s=> s.stack.length>1?{stack:s.stack.slice(0,-1),stepIndex:0,dir:-1,nav:s.nav+1,helpOpen:false}:s);
   home=()=>this.setState(s=>({stack:['home'],stepIndex:0,dir:-1,nav:s.nav+1,helpOpen:false,profil:null,appareil:null}));
   jumpTrail=(i)=>this.setState(s=>({stack:s.stack.slice(0,i+1),stepIndex:0,dir:-1,nav:s.nav+1,helpOpen:false}));
@@ -739,7 +751,253 @@ class Component extends DCLogic {
   montrerPhoto=()=>this.setState({vue3d:false});
 
   vueInitiale=()=>{ const v=this._vue3d; if(!v) return;
+    if(v.glb){ if(v.ctl){ v.ctl.reset(); v.pivot.rotation.set(0,0,0); } v.auto=true; return; }
     v.rx=-0.38; v.ry=0.6; v.rz=0; v.zoom=1; v.auto=true; };
+
+  // Catalogue « Accessoires en 3D » : modèles Tripo d'après les photos officielles.
+  ACCESSOIRES = [{"k": "sonnet", "nom": "SONNET, pièce par pièce", "cat": "Processeurs et antennes", "desc": "Touchez chaque pièce du processeur pour savoir ce que c’est et à quoi elle sert."}, {"k": "audiolink", "nom": "AudioLink", "cat": "AudioLink", "desc": "Boîtier de streaming : téléphone, TV, musique et micro à distance."}, {"k": "finetuner", "nom": "FineTuner Echo", "cat": "Streaming et connectivité", "desc": "Télécommande du processeur : volume, programmes, sensibilité."}, {"k": "audiostream", "nom": "Cover AudioStream", "cat": "Streaming et connectivité", "desc": "Se glisse sur le pack-piles du SONNET ou du SONNET 2 pour recevoir le son du téléphone en Bluetooth."}, {"k": "audiostream-adapter", "nom": "Adaptateur AudioStream (RONDO 3)", "cat": "Streaming et connectivité", "desc": "Se branche dans la prise du RONDO 3 pour recevoir le son du téléphone en Bluetooth."}, {"k": "sonnet2-audiostream", "nom": "SONNET 2 + AudioStream", "cat": "Processeurs et antennes", "desc": "Le SONNET 2 équipé du cover AudioStream, qui lui fait recevoir le son du téléphone en Bluetooth."}, {"k": "dl-coil", "nom": "Antenne DL-Coil", "cat": "Processeurs et antennes", "desc": "Se pose sur la tête, au-dessus de l’implant, et tient par un aimant."}, {"k": "aimant-rondo3", "nom": "Aimant du RONDO 3", "cat": "Processeurs et antennes", "desc": "Maintient le RONDO 3 sur la tête, au-dessus de l’implant."}, {"k": "cadre-pile", "nom": "Cadre de pile SONNET", "cat": "Alimentation", "desc": "Reçoit les piles du pack-piles SONNET."}, {"k": "accu-standard", "nom": "Accu rechargeable Standard", "cat": "Alimentation", "desc": "Accu rechargeable du SONNET, à la place des piles jetables."}, {"k": "adaptateur-accu", "nom": "Adaptateur d’accu rechargeable", "cat": "Alimentation", "desc": "Adaptateur du pack-piles pour l’accu rechargeable du SONNET."}, {"k": "couvercle-micro", "nom": "Couvercle Micro", "cat": "Alimentation", "desc": "Couvercle de pack-piles SONNET, format Micro."}, {"k": "couvercle-max", "nom": "Couvercle Max", "cat": "Alimentation", "desc": "Couvercle de pack-piles SONNET, format Max."}, {"k": "chargeur", "nom": "Chargeur SONNET", "cat": "Alimentation", "desc": "Recharge les accus du SONNET."}, {"k": "audiostream-pack", "nom": "Pack AudioStream", "cat": "Streaming et connectivité", "desc": "Le cover AudioStream et son cadre de pile, pour les SONNET et SONNET 2."}, {"k": "audiolinkxt", "nom": "AudioLink XT", "cat": "Streaming et connectivité", "desc": "Boîtier de streaming et micro à distance : TV, téléphone, conversations."}, {"k": "adaptateur-telecoil", "nom": "Adaptateur télécoil", "cat": "Streaming et connectivité", "desc": "Adaptateur pour capter les boucles magnétiques (télécoil)."}, {"k": "adaptateur-fm", "nom": "Adaptateur FM", "cat": "Streaming et connectivité", "desc": "Adaptateur pour brancher un récepteur FM."}, {"k": "tour-de-cou", "nom": "Tour de cou Artone 3 MAX", "cat": "Streaming et connectivité", "desc": "Tour de cou télécoil avec entrée Bluetooth : il transmet le son d’un téléphone par induction."}, {"k": "station-accueil", "nom": "Station d’accueil AudioLink", "cat": "AudioLink", "desc": "Relie la TV ou un lecteur audio à l’AudioLink."}, {"k": "batterie-audiolink", "nom": "Batterie AudioLink", "cat": "AudioLink", "desc": "Batterie de l’AudioLink, qui s’emboîte dans l’unité principale."}, {"k": "clip-audiolink", "nom": "Clip AudioLink", "cat": "AudioLink", "desc": "Pour accrocher l’AudioLink à un vêtement, près de la bouche pendant un appel."}, {"k": "outil-ouverture", "nom": "Outil d’ouverture AudioLink", "cat": "AudioLink", "desc": "Sépare l’unité principale de la batterie. Ne pas le tourner dans la rainure : le boîtier s’abîmerait."}, {"k": "cable-jack", "nom": "Câble jack 3,5 mm", "cat": "AudioLink", "desc": "Relie l’AudioLink ou sa station à un appareil à prise casque."}, {"k": "cable-cinch", "nom": "Câble RCA (Cinch) vers jack 3,5 mm", "cat": "AudioLink", "desc": "Relie la station d’accueil à une TV, pour écouter à plusieurs."}, {"k": "cable-adaptateur", "nom": "Câble adaptateur AudioLink", "cat": "AudioLink", "desc": "Adaptateur de prise pour les câbles de l’AudioLink."}];
+  // Orientation de départ de chaque modèle Tripo (radians, ordre ZXY), réglée à l'œil.
+  // Les absents restent à [0,0,0] (déjà de face) : sonnet2-audiostream, chargeur, audiolinkxt.
+  ROT3D = {
+    'dl-coil':[Math.PI/2,0,-Math.PI/2],
+    'aimant-rondo3':[Math.PI/2,0,0],
+    'cadre-pile':[Math.PI/2,0,-Math.PI/2],
+    'accu-standard':[Math.PI/2,0,0],
+    'adaptateur-accu':[Math.PI/2,0,-Math.PI/2],
+    'couvercle-micro':[Math.PI/2,0,-Math.PI/2],
+    'couvercle-max':[Math.PI/2,0,-Math.PI/2],
+    'audiostream-pack':[Math.PI/2,0,-Math.PI/2],
+    'adaptateur-telecoil':[Math.PI/2,0,-Math.PI/2],
+    'adaptateur-fm':[Math.PI/2,0,0],
+    'tour-de-cou':[Math.PI/2,0,0],
+    'station-accueil':[Math.PI/2,0,0],
+    'batterie-audiolink':[Math.PI/2,0,-Math.PI/2],
+    'clip-audiolink':[Math.PI/2,0,-Math.PI/2],
+    'outil-ouverture':[Math.PI/2,0,-Math.PI/2],
+    'cable-jack':[Math.PI/2,0,-Math.PI/2],
+    'cable-cinch':[Math.PI/2,0,-Math.PI/2],
+    'cable-adaptateur':[Math.PI/2,0,-Math.PI/2]
+  };
+  // ---------- modèles 3D (glb) ----------
+  // Recréés d'après les visuels MED-EL (Tripo), allégés dans Blender, rangés
+  // dans modeles/. Chargés à la demande : rien ne part tant que l'onglet 3D est fermé.
+  MODELES3D = {
+    ...Object.fromEntries(this.ACCESSOIRES.map(a=>[a.k,{url:'modeles/'+a.k+'.glb', rot:(this.ROT3D||{})[a.k]||[0,0,0]}])),
+    audiolink:{url:'modeles/audiolink.glb', rot:[Math.PI/2,0,-Math.PI/2]},
+    finetuner:{url:'modeles/finetuner.glb', rot:[Math.PI/2,0,-Math.PI/2]},
+    audiostream:{url:'modeles/audiostream.glb', rot:[0.9,Math.PI/2,0.35]},
+    'audiostream-adapter':{url:'modeles/audiostream-adapter.glb', rot:[0.75,0.5,0]},
+    // SONNET et SONNET 2 ont les mêmes 13 repères (schéma « SONNET Handling Overview »).
+    sonnet:{url:'modeles/sonnet.glb', rot:[0,0,0], pieces:'sonnet'},
+    s1:{url:'modeles/sonnet.glb', rot:[0,0,0], pieces:'sonnet'},
+    s2:{url:'modeles/sonnet.glb', rot:[0,0,0], pieces:'sonnet'},
+  };
+  // Pièces touchables d'un modèle : clé = nom du nœud glb (voir outils/sonnet_pieces.py).
+  // `vendu` : l'article se trouve sur la boutique MED-EL. Les prix n'y sont visibles
+  // qu'une fois connecté : ils ne sont donc pas recopiés ici.
+  BOUTIQUE = 'https://shop.fr.medel.com/';
+  PIECES3D = { sonnet: {
+    r01_antenne:{n:1, nom:'Antenne', role:'Se pose sur la tête, au-dessus de l’implant, et tient par un aimant. Elle transmet à l’implant, à travers la peau, le son traité par le processeur.', vendu:true},
+    r02_voyant_antenne:{n:2, nom:'Voyant de l’antenne', role:'Petit voyant de l’antenne, à l’endroit où le câble s’y branche. Sa signification est détaillée dans le manuel du processeur.'},
+    r03_cable:{n:3, nom:'Câble de l’antenne', role:'Relie le processeur à l’antenne. Un câble abîmé peut couper le son : il se remplace.', vendu:true},
+    r04_boitier_pile:{n:4, nom:'Boîtier de pile', role:'Contient les piles ou l’accu rechargeable qui alimentent le processeur. C’est aussi là que se glisse le cover AudioStream.', vendu:true},
+    r05_protection_micros:{n:5, nom:'Protection des microphones', role:'Couvre les microphones et les protège de la poussière et de l’humidité. Elle se change.', vendu:true},
+    r06_unite_commande:{n:6, nom:'Unité de commande', role:'Le cœur du processeur : il capte le son, le traite et l’envoie à l’antenne.'},
+    r07_microphones:{n:7, nom:'Microphones', role:'Captent les sons autour de vous.'},
+    r08_voyant_processeur:{n:8, nom:'Voyant du processeur', role:'S’allume ou clignote pour indiquer l’état du processeur.'},
+    r09_ergot_coude:{n:9, nom:'Ergot du coude', role:'Point où le coude se fixe sur le processeur.'},
+    r12_coude_ci:{n:12, nom:'Coude CI', role:'Crochet qui maintient le processeur derrière l’oreille.', vendu:true},
+    r13_entrees_air:{n:13, nom:'Entrées d’air', role:'Laissent passer l’air jusqu’au boîtier de pile : ne pas les boucher.'},
+  } };
+  // Zones de l'arbre d'auto-diagnostic -> pièces du SONNET en 3D (outils/sonnet_pieces.py).
+  ZONES_PIECES = { sonnet: { battery:['r04_boitier_pile'], mic_cover:['r05_protection_micros'], microphones:['r07_microphones'],
+    led:['r08_voyant_processeur'], coil:['r01_antenne'], coil_magnet:['r01_antenne'], antenna_zone:['r01_antenne'], body:['r06_unite_commande'] } };
+  OBJETS3D = {
+    ...Object.fromEntries(this.ACCESSOIRES.map(a=>[a.k,{nom:a.nom}])),
+    audiolink:{nom:'AudioLink',img:'audiolink'}, audiolinkxt:{nom:'AudioLink XT',img:'audiolinkxt'},
+    finetuner:{nom:'FineTuner Echo',img:'finetuner'}, audiostream:{nom:'AudioStream',img:'audiostream'},
+    'audiostream-adapter':{nom:'Adaptateur AudioStream',img:'audiostream-rondo'} };
+  // Ce que montre la vue : l'accessoire du parcours, sinon le processeur choisi.
+  objet3d(node){
+    const n=node||this.node();
+    if(n && n.objet3d && this.OBJETS3D[n.objet3d]) return {cle:n.objet3d, ...this.OBJETS3D[n.objet3d]};
+    const a=this.appareil(); return a ? {cle:this.state.appareil, nom:a.nom, img:a.img, reperes:a.reperes} : null;
+  }
+  // Les écrans de diagnostic surlignent une pièce : seule la vue maison sait le faire.
+  urlGlb(node){ const n=node||this.node(), o=this.objet3d(n);
+    const e=o && this.MODELES3D[o.cle]; if(!e) return null;
+    const z=(n && n.zones)||[], zp=this.ZONES_PIECES[e.pieces];
+    return !z.length || (zp && z.every(k=>zp[k])) ? (e.url||e) : null; }
+  cleVue(node){ const o=this.objet3d(node); return (o?o.cle:'')+'|'+(this.urlGlb(node)||'maison'); }
+
+  monterGlb(hote, url, voulu){
+    hote.innerHTML='<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--ink-soft);font-size:13px;font-weight:600">Chargement du modèle 3D…</div>';
+    const v={hote, glb:true, voulu, raf:0, mort:false, auto:true, zones:(this.node()||{}).zones||[]}; this._vue3d=v; window.__vue3d=v;
+    const rot=(this.MODELES3D[(this.objet3d()||{}).cle]||{}).rot||[0,0,0];
+    const T='https://cdn.jsdelivr.net/npm/three@0.160.0';
+    Promise.all([import(T+'/+esm'), import(T+'/examples/jsm/loaders/GLTFLoader.js/+esm'),
+      import(T+'/examples/jsm/loaders/DRACOLoader.js/+esm'), import(T+'/examples/jsm/controls/TrackballControls.js/+esm')])
+    .then(([THREE,{GLTFLoader},{DRACOLoader},{TrackballControls}])=>{
+      if(v.mort) return;
+      const r=new THREE.WebGLRenderer({antialias:true, alpha:true});
+      r.setPixelRatio(Math.min(devicePixelRatio||1,1.75));
+      r.outputColorSpace=THREE.SRGBColorSpace; r.toneMapping=THREE.ACESFilmicToneMapping; r.toneMappingExposure=1.05;
+      const sc=new THREE.Scene(), cam=new THREE.PerspectiveCamera(32,1,0.01,100); cam.position.set(0,0.35,3.3);
+      sc.add(new THREE.HemisphereLight(0xffffff,0xd8d0d0,1.7));
+      const d1=new THREE.DirectionalLight(0xffffff,2.3); d1.position.set(2,3,4); sc.add(d1);
+      const d2=new THREE.DirectionalLight(0xffffff,0.9); d2.position.set(-3,-1,-3); sc.add(d2);
+      const pivot=new THREE.Group(); sc.add(pivot);
+      // Trackball : la rotation n'a pas d'axe privilégié, l'objet se tourne dans tous les sens.
+      const ctl=new TrackballControls(cam, r.domElement);
+      ctl.rotateSpeed=3.2; ctl.zoomSpeed=1.1; ctl.noPan=true; ctl.staticMoving=false; ctl.dynamicDampingFactor=0.12;
+      ctl.minDistance=1.5; ctl.maxDistance=7;
+      r.domElement.style.cssText='width:100%;height:100%;display:block;touch-action:none;cursor:grab';
+      // La scène vit dans `zone` : la fiche des pièces peut ainsi se placer dessous.
+      const zone=document.createElement('div'); zone.style.cssText='position:relative;width:100%;height:100%;min-height:0;flex:1';
+      const dim=()=>{ const b=zone.getBoundingClientRect(); if(!b.width) return; r.setSize(b.width,b.height,false);
+        cam.aspect=b.width/Math.max(1,b.height); cam.updateProjectionMatrix(); ctl.handleResize(); };
+      v.stop=()=>{ v.auto=false; };
+      r.domElement.addEventListener('pointerdown', v.stop); r.domElement.addEventListener('wheel', v.stop, {passive:true});
+      Object.assign(v,{r,ctl,pivot});
+      const draco=new DRACOLoader().setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+      new GLTFLoader().setDRACOLoader(draco).load(url, g=>{
+        if(v.mort) return;
+        const m=g.scene, box=new THREE.Box3().setFromObject(m);
+        const s=box.getSize(new THREE.Vector3()), c=box.getCenter(new THREE.Vector3());
+        m.position.sub(c); const w=new THREE.Group(); w.scale.setScalar(1.85/Math.max(s.x,s.y,s.z)); w.add(m);
+        // Tripo ne pose pas l'objet face à nous : `rot` le redresse (radians, ordre XYZ).
+        w.rotation.order='ZXY'; w.rotation.set(rot[0],rot[1],rot[2]); pivot.add(w);
+        hote.innerHTML=''; zone.appendChild(r.domElement); hote.appendChild(zone);
+        const pieces=this.PIECES3D[(this.MODELES3D[(this.objet3d()||{}).cle]||{}).pieces];
+        if(pieces) this.brancherPieces(v, THREE, cam, m, pieces);
+        dim();
+        if(window.ResizeObserver){ v.ro=new ResizeObserver(dim); v.ro.observe(zone); }
+        const lent=matchMedia('(prefers-reduced-motion:reduce)').matches;
+        const boucle=()=>{ if(v.mort) return; if(v.auto && !lent) pivot.rotation.y+=0.006; if(v.tick && !lent) v.tick(performance.now()/1000);
+          ctl.update(); r.render(sc,cam); v.raf=requestAnimationFrame(boucle); };
+        boucle();
+      }, undefined, err=>{ console.error('glb:', err); this.vueEchec(v); });
+    }).catch(err=>{ console.error('three:', err); this.vueEchec(v); });
+  }
+  // Toucher une pièce l'allume et ouvre sa fiche. Un glissé fait tourner sans sélectionner.
+  brancherPieces(v, THREE, cam, modele, pieces){
+    const hote=v.hote; hote.style.height='400px'; hote.style.display='flex'; hote.style.flexDirection='column';
+    const cles=Object.keys(pieces), groupes={};
+    modele.traverse(o=>{ if(!o.isMesh) return; let n=o; while(n && !pieces[n.name]) n=n.parent;
+      if(!n) return; o.material=o.material.clone(); o.userData.c0=o.material.color.clone(); (groupes[n.name]=groupes[n.name]||[]).push(o); o.userData.piece=n.name; });
+    const fiche=document.createElement('div');
+    fiche.style.cssText='flex-shrink:0;margin:0 8px 8px;min-height:64px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:11px 13px;font-size:13.5px;line-height:1.45;color:var(--ink)';
+    const vide='<b style="color:var(--accent)">Touchez une pièce</b> pour savoir ce que c’est et à quoi elle sert.';
+    fiche.innerHTML=vide; hote.appendChild(fiche);
+    const montrer=(cle)=>{
+      v.choix=cle; v.tick=null;
+      for(const k in groupes) for(const o of groupes[k]){ o.material.color.copy(o.userData.c0); o.material.emissive=new THREE.Color(k===cle?0xE2001A:0x000000); o.material.emissiveIntensity=k===cle?0.55:0; }
+      if(!cle){ fiche.innerHTML=vide; return; }
+      const p=pieces[cle];
+      fiche.innerHTML='<div style="display:flex;gap:10px;align-items:flex-start"><span style="flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center">'+p.n+'</span>'
+        +'<div style="flex:1"><b style="font-size:15px">'+p.nom+'</b><div style="color:var(--ink-soft);margin-top:3px">'+p.role+'</div>'
+        +(p.vendu ? '<div style="margin-top:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><a href="'+this.BOUTIQUE+'" target="_blank" rel="noopener" style="background:var(--accent);color:#fff;text-decoration:none;font-weight:700;padding:7px 12px;border-radius:10px">Boutique MED-EL</a><span style="font-size:12px;color:var(--ink-soft)">Prix affiché après connexion à votre compte myMED-EL.</span></div>'
+                  : '<div style="margin-top:6px;font-size:12px;color:var(--ink-soft)">Partie du processeur : en cas de souci, demandez l’aide d’un technicien.</div>')
+        +'</div><button aria-label="Fermer" style="border:0;background:none;font-size:18px;line-height:1;cursor:pointer;color:var(--ink-soft)">×</button></div>';
+      fiche.querySelector('button').onclick=()=>montrer(null);
+    };
+    const ray=new THREE.Raycaster(), pt=new THREE.Vector2(); let x0=0,y0=0;
+    v.r.domElement.addEventListener('pointerdown',e=>{ x0=e.clientX; y0=e.clientY; });
+    v.r.domElement.addEventListener('pointerup',e=>{
+      if(Math.hypot(e.clientX-x0,e.clientY-y0)>6) return;
+      const b=v.r.domElement.getBoundingClientRect();
+      pt.set((e.clientX-b.left)/b.width*2-1, -((e.clientY-b.top)/b.height)*2+1); ray.setFromCamera(pt,cam);
+      const hit=ray.intersectObject(modele,true).find(h=>h.object.userData.piece);
+      montrer(hit ? hit.object.userData.piece : null);
+    });
+    v.montrerPiece=montrer;
+    // Écran de diagnostic : la zone concernée s'allume, sans fiche à ouvrir.
+    const zp=this.ZONES_PIECES[(this.MODELES3D[(this.objet3d()||{}).cle]||{}).pieces]||{};
+    v.surligner=(zones)=>{
+      const cles=[...new Set((zones||[]).flatMap(z=>zp[z]||[]))];
+      if(!cles.length){ if(!v.choix) montrer(null); return; }
+      for(const k in groupes) for(const o of groupes[k]){ const on=cles.includes(k); o.material.emissive=new THREE.Color(on?0xE2001A:0x000000); o.material.emissiveIntensity=on?0.9:0; if(on) o.material.color.setHex(0xF2B8BF); }
+      // Pulsation lente de la zone : l'œil la trouve tout de suite.
+      v.tick=(tps)=>{ for(const k of cles) for(const o of groupes[k]||[]) o.material.emissiveIntensity=0.55+0.45*Math.sin(tps*4); };
+      fiche.innerHTML='<b style="color:var(--accent)">En rouge :</b> '+cles.map(k=>pieces[k].nom).join(', ')+'. Touchez une autre pièce pour la découvrir.';
+    };
+    v.surligner(v.zones);
+  }
+  // ---------- gestes animés en 3D (connectivité) ----------
+  // Un objet fixe, un objet mobile qui va de `de` à `a` (unités de scène ; `taille` =
+  // plus grande dimension). Positions réglées à l'œil sur les modèles Tripo.
+  GESTES = {
+    'coil-audiolink':   {fixe:{k:'audiolink',taille:1.6}, mobile:{k:'dl-coil',taille:0.62, de:[1.05,0.75,0.7], a:[0,0.05,0.3]}, legende:'Posez l’antenne au centre du clavier'},
+    'coil-finetuner':   {fixe:{k:'finetuner',taille:1.7}, mobile:{k:'dl-coil',taille:0.62, de:[1.05,0.8,0.7], a:[0,0.3,0.3]}, legende:'Posez l’antenne sur la télécommande'},
+    'proc-xt':          {fixe:{k:'audiolinkxt',taille:1.5, pos:[-0.45,0,0]}, mobile:{k:'sonnet2-audiostream',taille:1.0, de:[1.5,0.3,0.3], a:[0.55,0,0.2]}, legende:'Approchez le processeur de l’AudioLink XT'},
+    'cover-cadre':      {fixe:{k:'cadre-pile',taille:0.95, pos:[0,0.3,0]}, mobile:{k:'audiostream',taille:1.05, rot:[0,Math.PI/2,0], de:[0,-1.0,0.3], a:[0,0.28,0.3]}, legende:'Faites glisser le cover jusqu’au bout'},
+    'audiolink-station':{fixe:{k:'station-accueil',taille:1.1, pos:[0,-0.6,0]}, mobile:{k:'audiolink',taille:1.0, de:[0,1.25,0.2], a:[0,0.15,0.2]}, legende:'Posez l’AudioLink dans sa station'},
+    'cable-station':    {fixe:{k:'station-accueil',taille:1.0, pos:[0.55,0,0]}, mobile:{k:'cable-cinch',taille:0.95, de:[-1.5,0,0.4], a:[0.1,-0.05,0.4]}, legende:'Reliez la station à la TV avec le câble'},
+  };
+  troisD(){
+    if(!this._3d){ const T='https://cdn.jsdelivr.net/npm/three@0.160.0';
+      this._3d=Promise.all([import(T+'/+esm'), import(T+'/examples/jsm/loaders/GLTFLoader.js/+esm'), import(T+'/examples/jsm/loaders/DRACOLoader.js/+esm')])
+        .then(([THREE,{GLTFLoader},{DRACOLoader}])=>({THREE, cache:{},
+          l:new GLTFLoader().setDRACOLoader(new DRACOLoader().setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/'))})); }
+    return this._3d;
+  }
+  // Modèle chargé une fois, cloné, centré, mis à l'échelle et redressé comme dans la visionneuse.
+  glbNormalise(k, taille, rotForcee){
+    return this.troisD().then(({THREE,l,cache})=>{ const e=this.MODELES3D[k], url=e.url||e;
+      cache[url]=cache[url]||new Promise((ok,ko)=>l.load(url,g=>ok(g.scene),undefined,ko));
+      return cache[url].then(src=>{ const m=src.clone(true), box=new THREE.Box3().setFromObject(m);
+        const s=box.getSize(new THREE.Vector3()), c=box.getCenter(new THREE.Vector3()); m.position.sub(c);
+        const w=new THREE.Group(); w.add(m); w.scale.setScalar(taille/Math.max(s.x,s.y,s.z));
+        const r=rotForcee||e.rot||[0,0,0]; w.rotation.order='ZXY'; w.rotation.set(r[0],r[1],r[2]);
+        const g=new THREE.Group(); g.add(w); return g; }); });
+  }
+  gesteEl(nom){
+    this._gesteRefs=this._gesteRefs||{};
+    const ref=this._gesteRefs[nom]=this._gesteRefs[nom]||(el=>this.monterGeste(el,nom));
+    return React.createElement('div',{key:'geste-'+nom, ref, style:{height:'210px',margin:'-6px -6px 18px',borderRadius:'14px',position:'relative',overflow:'hidden',
+      background:'linear-gradient(160deg,#FBF8F8,#F1ECEC)',border:'1px solid var(--line)'}});
+  }
+  detruireGeste(){ const v=this._geste; if(!v) return; v.mort=true; cancelAnimationFrame(v.raf);
+    if(v.ro) v.ro.disconnect(); if(v.r){ v.r.dispose(); v.r.forceContextLoss(); } this._geste=null; }
+  monterGeste(hote, nom){
+    if(!hote){ if(this._geste && this._geste.nom===nom) this.detruireGeste(); return; }
+    if(this._geste && this._geste.hote===hote) return;
+    this.detruireGeste();
+    const G=this.GESTES[nom], v={hote,nom,mort:false,raf:0}; this._geste=v; window.__geste=v;
+    hote.innerHTML='<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--ink-soft);font-size:13px;font-weight:600">Chargement de l’animation…</div>';
+    Promise.all([this.troisD(), this.glbNormalise(G.fixe.k,G.fixe.taille,G.fixe.rot), this.glbNormalise(G.mobile.k,G.mobile.taille,G.mobile.rot)])
+    .then(([{THREE},fixe,mob])=>{ if(v.mort) return;
+      const r=new THREE.WebGLRenderer({antialias:true,alpha:true}); v.r=r;
+      r.setPixelRatio(Math.min(devicePixelRatio||1,1.75)); r.outputColorSpace=THREE.SRGBColorSpace; r.toneMapping=THREE.ACESFilmicToneMapping;
+      const sc=new THREE.Scene(), cam=new THREE.PerspectiveCamera(30,1,0.01,100); cam.position.set(0,0.35,5.2); cam.lookAt(0,0,0);
+      sc.add(new THREE.HemisphereLight(0xffffff,0xd8d0d0,1.7));
+      const d1=new THREE.DirectionalLight(0xffffff,2.3); d1.position.set(2,3,4); sc.add(d1);
+      const monde=new THREE.Group(); sc.add(monde);
+      fixe.position.set(...(G.fixe.pos||[0,0,0])); monde.add(fixe); monde.add(mob); v.fixe=fixe; v.mob=mob;
+      const de=new THREE.Vector3(...G.mobile.de), a=new THREE.Vector3(...G.mobile.a);
+      const anneau=new THREE.Mesh(new THREE.RingGeometry(0.16,0.21,48), new THREE.MeshBasicMaterial({color:0xE2001A,transparent:true,side:THREE.DoubleSide,depthTest:false}));
+      anneau.position.copy(a); anneau.renderOrder=9; monde.add(anneau);
+      hote.innerHTML=''; r.domElement.style.cssText='width:100%;height:100%;display:block'; hote.appendChild(r.domElement);
+      const leg=document.createElement('div'); leg.textContent=G.legende;
+      leg.style.cssText='position:absolute;left:10px;bottom:9px;background:rgba(255,255,255,.92);border-radius:99px;padding:5px 11px;font-size:12px;font-weight:700;color:var(--ink)';
+      hote.appendChild(leg);
+      const dim=()=>{ const b=hote.getBoundingClientRect(); if(!b.width) return; r.setSize(b.width,b.height,false); cam.aspect=b.width/b.height; cam.updateProjectionMatrix(); };
+      dim(); if(window.ResizeObserver){ v.ro=new ResizeObserver(dim); v.ro.observe(hote); }
+      const lent=matchMedia('(prefers-reduced-motion:reduce)').matches, t0=performance.now();
+      const doux=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+      // 3,2 s : attente, déplacement, « clic » (l'anneau s'élargit et s'efface), recommence.
+      const boucle=(now)=>{ if(v.mort) return;
+        const u=(lent||v.figer)?0.99:((now-t0)/3200)%1, k=u<.2?0:u<.65?doux((u-.2)/.45):1;
+        mob.position.lerpVectors(de,a,k);
+        if(k<1){ anneau.scale.setScalar(1); anneau.material.opacity=0.35+0.25*Math.sin(now/180); }
+        else { const f=(u-.65)/.35; anneau.scale.setScalar(1+f*0.9); anneau.material.opacity=0.9*(1-f); }
+        monde.rotation.y=lent?0:0.22*Math.sin(now/2600);
+        r.render(sc,cam); v.raf=requestAnimationFrame(boucle); };
+      v.raf=requestAnimationFrame(boucle);
+    }).catch(err=>{ console.error('geste:',err); if(!v.mort) hote.innerHTML='<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--ink-soft);font-size:13px">Animation indisponible sur cet appareil.</div>'; });
+  }
+  vueEchec(v){ if(v.mort) return;
+    v.hote.innerHTML='<div style="height:100%;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;color:var(--ink-soft);font-size:13px;font-weight:600">Vue 3D indisponible sur cet appareil — voyez l’onglet Photo.</div>'; }
 
   curKey(){ return this.state.stack[this.state.stack.length-1]||'home'; }
   node(){ return this.resoudre(this.DATA[this.curKey()]); }
@@ -770,7 +1028,7 @@ class Component extends DCLogic {
   });
   prev=()=>{ if(this.state.stepIndex>0) this.setState(s=>({stepIndex:s.stepIndex-1,dir:-1,nav:s.nav+1})); else this.back(); };
   jumpStep=(i)=>this.setState(s=>({stepIndex:i,dir:i<s.stepIndex?-1:1,nav:s.nav+1}));
-  restart=()=>this.setState(s=>{ const k=this.pkey(this.curKey()); const p={...s.progress}; delete p[k]; return {progress:p,stepIndex:0,dir:-1,nav:s.nav+1}; });
+  restart=()=>this.setState(s=>{ const k=this.pkey(this.curKey()); const p={...s.progress}; delete p[k]; const q=Object.fromEntries(Object.entries(s.quiz).filter(([x])=>!x.startsWith(k+'#'))); return {quiz:q,progress:p,stepIndex:0,dir:-1,nav:s.nav+1}; });
 
   fireConfetti(){
     if(matchMedia('(prefers-reduced-motion:reduce)').matches) return;
@@ -923,6 +1181,8 @@ class Component extends DCLogic {
   detruireVue3d(){
     const v=this._vue3d; if(!v) return;
     cancelAnimationFrame(v.raf);
+    if(v.glb){ v.mort=true; if(v.ro) v.ro.disconnect(); if(v.ctl) v.ctl.dispose(); if(v.r){ v.r.dispose(); v.r.forceContextLoss(); }
+      this._vue3d=null; return; }
     v.hote.removeEventListener('pointerdown', v.onDown);
     window.removeEventListener('pointermove', v.onMove);
     window.removeEventListener('pointerup', v.onUp);
@@ -932,14 +1192,17 @@ class Component extends DCLogic {
   }
 
   monterVue3d(hote){
-    const cle=this.state.appareil; if(!cle) return;
+    const n=this.node(), url=this.urlGlb(n), voulu=this.cleVue(n);
+    if(url) return this.monterGlb(hote, url, voulu);
+    const cle=this.state.appareil;
+    if(!cle || (n && n.objet3d)){ hote.innerHTML='<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--ink-soft);font-size:13px;font-weight:600">Modèle 3D en préparation</div>'; this._vue3d={hote, glb:true, mort:false, voulu}; return; }
     const canvas=document.createElement('canvas');
     canvas.style.cssText='width:100%;height:100%;display:block;touch-action:none;cursor:grab';
     hote.innerHTML=''; hote.appendChild(canvas);
     const ctx=canvas.getContext('2d');
     const m=this.modele(cle);
 
-    const v={ hote, canvas, ctx, modele:m, cle,
+    const v={ hote, canvas, ctx, modele:m, cle, voulu,
       rx:-0.38, ry:0.6, rz:0, crx:-0.38, cry:0.6, crz:0, zoom:1, czoom:1,
       auto:true, glisse:false, lx:0, ly:0, shift:false, t:0, raf:0, zones:[] };
     this._vue3d=v; window.__vue3d=v; window.__app=this;
@@ -1053,7 +1316,59 @@ class Component extends DCLogic {
     const RM=(valid)=>{const sc=valid?'<path d="M50 44 L57 51 L72 36" fill="none" stroke="'+C.ok+'" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><animate attributeName="stroke-dasharray" values="0 40;40 40" dur="0.5s" fill="freeze"/></path>':'<circle cx="60" cy="44" r="3" fill="'+C.soft+'"/><circle cx="60" cy="44" r="11" fill="none" stroke="'+C.soft+'" stroke-width="2" stroke-dasharray="3 4"><animateTransform attributeName="transform" type="rotate" from="0 60 44" to="360 60 44" dur="2s" repeatCount="indefinite"/></circle>';return '<g><ellipse cx="60" cy="118" rx="34" ry="6" fill="rgba(0,0,0,.05)"/><rect x="38" y="14" width="44" height="92" rx="13" fill="#fff" stroke="'+C.line+'" stroke-width="2"/><rect x="46" y="24" width="28" height="34" rx="6" fill="#EEF6FF" stroke="'+C.line+'"/>'+sc+'<circle cx="50" cy="72" r="5" fill="'+C.soft+'"/><circle cx="70" cy="72" r="5" fill="'+C.soft+'"/><circle cx="50" cy="90" r="5" fill="'+C.soft+'"/><circle cx="70" cy="90" r="5" fill="'+C.soft+'"/></g>';};
     const PH=(mode)=>{const inner=mode==='app'?'<rect x="40" y="30" width="40" height="8" rx="4" fill="'+C.red+'"/><rect x="40" y="46" width="40" height="6" rx="3" fill="'+C.line+'"/><rect x="40" y="58" width="28" height="6" rx="3" fill="'+C.line+'"/><rect x="40" y="78" width="40" height="13" rx="6" fill="'+C.red+'"/>':'<g><path d="M60 40 v26 M60 40 l9 7 l-9 7 M60 66 l9 -7" fill="none" stroke="'+C.blue+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="60" cy="53" r="20" fill="none" stroke="'+C.blue+'" stroke-width="2" opacity=".5"><animate attributeName="r" values="14;26;14" dur="1.8s" repeatCount="indefinite"/><animate attributeName="opacity" values=".5;0;.5" dur="1.8s" repeatCount="indefinite"/></circle></g>';return '<g><rect x="34" y="12" width="52" height="96" rx="13" fill="#fff" stroke="'+C.line+'" stroke-width="2"/><rect x="50" y="16" width="20" height="4" rx="2" fill="'+C.line+'"/>'+inner+'<text x="60" y="104" text-anchor="middle" font-family="Manrope" font-size="9" font-weight="700" fill="'+C.ink+'">'+(mode==='app'?'AudioKey':'Bluetooth')+'</text></g>';};
     const SU=()=>'<g><circle cx="60" cy="56" r="34" fill="'+C.ok+'" opacity=".12"/><circle cx="60" cy="56" r="24" fill="'+C.ok+'"/><path d="M49 56 l7 7 l16 -16" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><animate attributeName="stroke-dasharray" values="0 50;50 50" dur="0.5s" fill="freeze"/></path></g>';
-    const M={off:()=>P('off'),on:()=>P('on'),audiolink:()=>AL(false),'audiolink-bt':()=>AL(true),dock:()=>DK(false),'dock-blink':()=>DK(true),remote:()=>RM(false),'remote-ok':()=>RM(true),'phone-bt':()=>PH('bt'),'phone-app':()=>PH('app'),success:SU};
+    // Scènes animées des parcours AudioStream / AudioLink : boucles SMIL de 3 s,
+    // chaque geste du tutoriel MED-EL rejoué en accéléré.
+    const T=(x,y,s)=>'<text x="'+x+'" y="'+y+'" text-anchor="middle" font-family="Manrope" font-size="'+(s||10)+'" font-weight="700" fill="'+C.ink+'">';
+    const loop=(vals,kt,attr)=>'<animate attributeName="'+(attr||'opacity')+'" values="'+vals+'" keyTimes="'+kt+'" dur="3s" repeatCount="indefinite"/>';
+    const COV=()=>'<g><ellipse cx="60" cy="120" rx="34" ry="6" fill="rgba(0,0,0,.05)"/>'
+      +'<path d="M54 22 C54 8 76 6 78 22" fill="none" stroke="'+C.soft+'" stroke-width="5" stroke-linecap="round"/>'
+      +'<rect x="46" y="20" width="36" height="46" rx="13" fill="#fff" stroke="'+C.line+'" stroke-width="2"/>'
+      +'<circle cx="64" cy="34" r="4" fill="'+C.ok+'" opacity="0">'+loop('0;0;1;.25;1','0;.55;.65;.8;1')+'</circle>'
+      +'<rect x="50" y="62" width="28" height="30" rx="6" fill="'+C.paper+'" stroke="'+C.line+'" stroke-width="2" stroke-dasharray="3 3"/>'
+      +'<g><animateTransform attributeName="transform" type="translate" values="0 38;0 38;0 0;0 0" keyTimes="0;.2;.55;1" dur="3s" repeatCount="indefinite"/>'
+      +'<rect x="46" y="60" width="36" height="40" rx="11" fill="'+C.red+'"/><path d="M56 74 l8 6 l-8 6" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>'+'</g>'
+      +T(60,128)+'Glisser jusqu’au bout</text></g>';
+    const ADP=()=>'<g><ellipse cx="56" cy="118" rx="38" ry="6" fill="rgba(0,0,0,.05)"/>'
+      +'<circle cx="52" cy="62" r="34" fill="#fff" stroke="'+C.line+'" stroke-width="2"/><circle cx="52" cy="62" r="20" fill="none" stroke="'+C.soft+'" stroke-width="2"/>'
+      +'<rect x="82" y="56" width="8" height="12" rx="2" fill="'+C.soft+'"/>'
+      +'<circle cx="52" cy="40" r="3.5" fill="'+C.ok+'" opacity="0">'+loop('0;0;1;.25;1','0;.55;.65;.8;1')+'</circle>'
+      +'<g><animateTransform attributeName="transform" type="translate" values="26 0;26 0;0 0;0 0" keyTimes="0;.2;.55;1" dur="3s" repeatCount="indefinite"/>'
+      +'<rect x="86" y="52" width="24" height="20" rx="6" fill="'+C.red+'"/><rect x="80" y="58" width="8" height="8" rx="1.5" fill="'+C.red+'"/></g>'
+      +T(60,126)+'Brancher l’adaptateur</text></g>';
+    const PAIR=()=>{ let w='';
+      [0,1,2].forEach(i=>{ w+='<path d="M'+(46+i*8)+' 50 q4 10 0 20" fill="none" stroke="'+C.blue+'" stroke-width="3" stroke-linecap="round" opacity="0">'
+        +'<animate attributeName="opacity" values="0;1;0" dur="1.2s" begin="'+(i*0.3)+'s" repeatCount="indefinite"/></path>'; });
+      return '<g><ellipse cx="60" cy="118" rx="46" ry="6" fill="rgba(0,0,0,.05)"/>'
+        +'<rect x="14" y="44" width="26" height="34" rx="10" fill="#fff" stroke="'+C.line+'" stroke-width="2"/><circle cx="27" cy="54" r="3.5" fill="'+C.red+'">'+loop('1;.2;1','0;.5;1')+'</circle>'
+        +w+'<rect x="72" y="18" width="38" height="78" rx="10" fill="#fff" stroke="'+C.line+'" stroke-width="2"/><rect x="84" y="22" width="14" height="3" rx="1.5" fill="'+C.line+'"/>'
+        +'<path d="M91 44 v20 M91 44 l7 5 l-7 5 M91 64 l7 -5" fill="none" stroke="'+C.blue+'" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>'
+        +'<rect x="78" y="74" width="26" height="10" rx="5" fill="'+C.ok+'" opacity="0">'+loop('0;0;1;1','0;.6;.7;1')+'</rect>'
+        +'<path d="M86 79 l3.5 3.5 l7 -7" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0">'+loop('0;0;1;1','0;.6;.7;1')+'</path>'
+        +T(60,126)+'Jumelage</text></g>'; };
+    const NOM=()=>{ let l=''; 'MAMIE'.split('').forEach((c,i)=>{ const k=(0.1+i*0.12).toFixed(2); l+='<tspan opacity="0">'+c+loop('0;0;1;1',('0;'+k+';'+(+k+0.02).toFixed(2)+';1'))+'</tspan>'; });
+      return '<g><rect x="30" y="10" width="60" height="100" rx="13" fill="#fff" stroke="'+C.line+'" stroke-width="2"/><rect x="50" y="14" width="20" height="4" rx="2" fill="'+C.line+'"/>'
+        +T(60,38,8)+'Nom (7 lettres max)</text><rect x="38" y="46" width="44" height="18" rx="5" fill="'+C.paper+'" stroke="'+C.blue+'" stroke-width="2"/>'
+        +'<text x="42" y="59" font-family="Manrope" font-size="11" font-weight="800" fill="'+C.ink+'" letter-spacing="1">'+l+'</text>'
+        +'<rect x="38" y="76" width="44" height="13" rx="6" fill="'+C.red+'"/>'+T(60,85,7).replace(C.ink,'#fff')+'Save</text>'
+        +'<circle cx="60" cy="82" r="10" fill="none" stroke="'+C.red+'" stroke-width="2" opacity="0">'+loop('0;0;.8;0','0;.75;.85;1')+'</circle>'
+        +T(60,126)+'5 lettres : accepté !</text></g>'; };
+    const WAV=(x,y,dir)=>{ let w=''; [0,1,2].forEach(i=>{ const r=6+i*6; w+='<path d="M'+x+' '+(y-r)+' a'+r+' '+r+' 0 0 '+(dir>0?1:0)+' 0 '+(2*r)+'" fill="none" stroke="'+C.red+'" stroke-width="2.4" stroke-linecap="round" opacity="0"><animate attributeName="opacity" values="0;.9;0" dur="1.5s" begin="'+(dir>0?i:2-i)*0.25+'s" repeatCount="indefinite"/></path>'; }); return w; };
+    const TV=()=>'<g><ellipse cx="60" cy="120" rx="48" ry="6" fill="rgba(0,0,0,.05)"/>'
+      +'<rect x="8" y="16" width="62" height="42" rx="5" fill="'+C.ink+'"/><rect x="12" y="20" width="54" height="34" rx="3" fill="#3B4A63"><animate attributeName="fill" values="#3B4A63;#5B6F94;#3B4A63" dur="3s" repeatCount="indefinite"/></rect><rect x="34" y="58" width="10" height="8" fill="'+C.ink+'"/>'
+      +'<path d="M40 66 C40 92 60 94 66 98" fill="none" stroke="'+C.soft+'" stroke-width="3" stroke-dasharray="5 4"><animate attributeName="stroke-dashoffset" values="18;0" dur="0.8s" repeatCount="indefinite"/></path>'
+      +'<rect x="66" y="88" width="40" height="20" rx="7" fill="#fff" stroke="'+C.line+'" stroke-width="2"/><rect x="76" y="66" width="20" height="26" rx="6" fill="'+C.red+'" opacity=".92"/>'
+      +WAV(96,52,1)+T(60,128)+'TV → station</text></g>';
+    const MIC=()=>'<g><ellipse cx="60" cy="120" rx="44" ry="6" fill="rgba(0,0,0,.05)"/>'
+      +'<circle cx="20" cy="40" r="9" fill="'+C.soft+'"/><path d="M6 78 q14 -26 28 0" fill="'+C.soft+'"/>'
+      +WAV(40,48,1)+'<rect x="66" y="24" width="40" height="62" rx="12" fill="#fff" stroke="'+C.line+'" stroke-width="2"/>'
+      +'<circle cx="86" cy="62" r="8" fill="'+C.red+'">'+loop('1;.45;1','0;.5;1')+'</circle><path d="M86 57 v6 M83 61 a3 3 0 0 0 6 0" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>'
+      +T(60,128)+'Micro à distance</text></g>';
+    const APL=()=>'<g><ellipse cx="60" cy="120" rx="34" ry="6" fill="rgba(0,0,0,.05)"/>'
+      +'<g><animateTransform attributeName="transform" type="rotate" values="0 60 60;-7 60 60;7 60 60;-7 60 60;0 60 60;0 60 60" keyTimes="0;.08;.16;.24;.32;1" dur="3s" repeatCount="indefinite"/>'
+      +'<rect x="40" y="18" width="40" height="80" rx="11" fill="#fff" stroke="'+C.line+'" stroke-width="2"/><circle cx="60" cy="48" r="11" fill="'+C.ok+'"/>'
+      +'<path d="M55 44 q0 9 9 9 l2 -3 l-3 -2 l-1.6 1.4 q-3 -1.6 -4.4 -4.4 l1.4 -1.6 l-2 -3 z" fill="#fff"/><rect x="48" y="74" width="24" height="10" rx="5" fill="'+C.ok+'"/></g>'
+      +WAV(86,56,1)+T(60,128)+'Le son arrive !</text></g>';
+    const M={off:()=>P('off'),on:()=>P('on'),audiolink:()=>AL(false),'audiolink-bt':()=>AL(true),dock:()=>DK(false),'dock-blink':()=>DK(true),remote:()=>RM(false),'remote-ok':()=>RM(true),'phone-bt':()=>PH('bt'),'phone-app':()=>PH('app'),success:SU,'as-cover':COV,'as-adapter':ADP,pair:PAIR,nom:NOM,tv:TV,micro:MIC,appel:APL};
     const g = M[kind] ? M[kind]() : '';
     if(!g) return null;
     return React.createElement('div',{style:stage},
@@ -1084,29 +1399,33 @@ class Component extends DCLogic {
       showBack, onBack:this.back, showHome: key!=='home', onHome:this.home,
       showTrail, trail,
       headRight: node.platform ? s.platform : '',
-      isMenu:node.type==='menu', isSteps:node.type==='steps', isForm:node.type==='form', isBilan:node.type==='bilan',
+      isMenu:node.type==='menu', isCarte:node.type==='carte', isSteps:node.type==='steps', isForm:node.type==='form', isBilan:node.type==='bilan',
       isDone:false,
       onInstall:this.toggleInstall, onCloseInstall:this.closeInstall, installOpen:this.state.installOpen,
       hasNativeInstall:!!this._bip, onNativeInstall:this.doNativeInstall,
       ...this._installVM(),
       ...this.vueVM(key, node),
     };
-    if(this._vue3d) this._vue3d.zones = node.zones || [];
+    if(this._vue3d){ const z=node.zones || []; if(this._vue3d.surligner && String(z)!==String(this._vue3d.zones)) setTimeout(()=>this._vue3d && this._vue3d.surligner && this._vue3d.surligner(z),0); this._vue3d.zones = z; }
+    if(this._vue3d && this._vue3d.voulu!==this.cleVue(node)){ const h=this._vue3d.hote; this.detruireVue3d(); setTimeout(()=>{ if(!this._vue3d && h.isConnected) this.monterVue3d(h); },0); }
 
     if(node.type==='menu') Object.assign(vm, this.menuVM(node));
     else if(node.type==='bilan') Object.assign(vm, this.bilanVM(node));
     else if(node.type==='form') Object.assign(vm, this.formVM(node));
+    else if(node.type==='carte') vm.carteEl=this.carteEl();
     else { const r=this.stepsVM(key,node); Object.assign(vm,r); }
     return vm;
   }
 
   // La photo sert à reconnaître son matériel, le volume à situer une pièce.
   vueVM(key, node){
-    const a = this.appareil();
-    const visible = !!this.state.appareil && (key==='aide' || !!node.vue || node.type==='bilan' || !!node.zones);
+    const a = this.objet3d(node);
+    const visible = !!node.objet3d || (!!this.state.appareil && (key==='aide' || !!node.vue || node.type==='bilan' || !!node.zones));
     const photo = a ? this.image(a.img) : null;
     // Par défaut la photo ; l'onglet reste sur le choix du visiteur.
-    const montrePhoto = photo && this.state.vue3d !== true;
+    // Catalogue 3D et zones de diagnostic visibles en 3D : la vue 3D passe d'abord ; ailleurs, la photo.
+    const d3 = key.startsWith('acc_') || (!!(node.zones && node.zones.length) && !!this.urlGlb(node));
+    const montrePhoto = photo && (d3 ? this.state.vue3d === false : this.state.vue3d !== true);
     const onglet = (actif)=>({ flex:1, border:0, fontFamily:'inherit', fontWeight:700, fontSize:'14px',
       padding:'10px', borderRadius:'10px', cursor:'pointer',
       background: actif ? 'var(--accent)' : 'transparent', color: actif ? '#fff' : 'var(--ink-soft)' });
@@ -1124,7 +1443,8 @@ class Component extends DCLogic {
       onMontrerPhoto:this.montrerPhoto, onMontrer3d:this.montrer3d,
       ongletPhotoStyle: onglet(!!montrePhoto), onglet3dStyle: onglet(!montrePhoto),
       setVue3dRef:this.setVue3dRef, onVueInitiale:this.vueInitiale,
-      vue3dAide: 'Glissez pour faire tourner l\u2019appareil \u00b7 Maj + glisser pour le pivoter \u00b7 molette pour zoomer.',
+      vue3dAide: this.urlGlb(node) ? ((this.MODELES3D[(this.objet3d(node)||{}).cle]||{}).pieces ? 'Touchez une pi\u00e8ce pour la d\u00e9couvrir \u00b7 glissez pour tourner \u00b7 pincez pour zoomer.' : 'Glissez dans tous les sens pour tourner l\u2019appareil \u00b7 pincez ou molette pour zoomer.')
+        : 'Glissez pour faire tourner l\u2019appareil \u00b7 Maj + glisser pour le pivoter \u00b7 molette pour zoomer.',
     };
   }
 
@@ -1167,7 +1487,7 @@ class Component extends DCLogic {
         : o.n
         ? React.createElement('span',{style:{fontFamily:'var(--num-font)',fontWeight:'var(--num-weight)',fontSize:'26px',color:'var(--accent)',width:'48px',height:'48px',borderRadius:'13px',background:'var(--accent-soft)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},o.n)
         : React.createElement('span',{style:{width:'48px',height:'48px',borderRadius:'13px',background:o.accent?'var(--accent)':'var(--accent-soft)',color:o.accent?'#fff':'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0},dangerouslySetInnerHTML:{__html:this.I[o.icon]}});
-      return { title:o.title, sub:o.sub, badge, leadEl:lead, onClick:()=>this.go(o.to,o.memo),
+      return { title:o.title, sub:o.sub, badge, leadEl:lead, onClick:()=> o.href ? window.open(o.href,'_blank','noopener') : this.go(o.to,o.memo),
         cardStyle: o.accent ? {...cardBase, background:'linear-gradient(160deg,#FFF,#FFF6F7)', borderColor:'#F4C9CE'} : cardBase };
     });
     const help = node.help || null;
@@ -1207,13 +1527,15 @@ class Component extends DCLogic {
     return { ...base, isDone:false,
       fillStyle:{ height:'100%', background:'linear-gradient(90deg,var(--accent),var(--accent-dark))', borderRadius:'99px', width:pct+'%', transition:'width .5s cubic-bezier(.2,.8,.2,1)' },
       stepLabel:'Étape '+(s.stepIndex+1)+' sur '+total, pct, dots,
-      step:{ sceneEl:this.scene(st.scene), num:s.stepIndex+1, total, h:st.h,
+      step:{ sceneEl: st.geste && this.GESTES[st.geste] ? this.gesteEl(st.geste) : this.scene(st.scene), num:s.stepIndex+1, total, h:st.h,
         pEl:this.H(st.p), hasP2:!!st.p2, p2El: st.p2?this.H(st.p2):null,
         branches:(st.branches||[]).map(b=>({label:b.label, htmlEl:this.H(b.html)})),
         showFbOk:!!(st.fb&&st.fb.ok), fbOk: st.fb&&st.fb.ok?this.H(st.fb.ok):null,
         showFbRetry:!!(st.fb&&st.fb.retry), fbRetry: st.fb&&st.fb.retry?this.H(st.fb.retry):null,
         showVideo:!!st.video, videoUrl: st.video?st.video.url:'', videoLabel: st.video?st.video.label:'',
-        showTip:!!st.tip, tipIconEl: st.tip?this.icon(st.tip.ic):null, tipT: st.tip?st.tip.t:'', tipS: st.tip?st.tip.s:'' },
+        showTip:!!st.tip, tipIconEl: st.tip?this.icon(st.tip.ic):null, tipT: st.tip?st.tip.t:'', tipS: st.tip?st.tip.s:'',
+        showPro: !!st.pro && this.estPro(), proEl: st.pro?this.H(st.pro):null,
+        ...this.quizVM(key,st) },
       onToggleConfirm:this.toggleConfirm,
       confirmLabel: checked?'Étape effectuée':'Marquer cette étape comme faite',
       confirmStyle:{ marginTop:'16px', display:'flex', alignItems:'center', gap:'12px', padding:'13px 15px',
@@ -1222,6 +1544,24 @@ class Component extends DCLogic {
         background:checked?'var(--ok)':'transparent', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'.2s' },
       onPrev:this.prev, prevLabel: s.stepIndex===0?'Retour':'Précédent',
       onNext: s.stepIndex===total-1?this.next:this.next, nextLabel: s.stepIndex===total-1?'Terminer':'Suivant' };
+  }
+
+  // Petit test d'une étape : `q:{t, oui, non, ok, ko}`. Répondre « oui » coche l'étape.
+  quizVM(key,st){
+    if(!st.q) return {showQ:false};
+    const qk=this.pkey(key)+'#'+this.state.stepIndex, rep=this.state.quiz[qk];
+    const repondre=(v)=>this.setState(s=>{
+      const out={quiz:{...s.quiz,[qk]:v}};
+      if(v==='oui'){ const k=this.pkey(key); const a=new Set(s.progress[k]||[]); a.add(s.stepIndex); out.progress={...s.progress,[k]:[...a]}; }
+      return out;
+    });
+    const btn=(v,label)=>({label, onClick:()=>repondre(v), style:{flex:'1 1 120px',fontFamily:'inherit',fontWeight:700,fontSize:'15px',padding:'12px 14px',borderRadius:'12px',cursor:'pointer',
+      border:'2px solid '+(rep===v?(v==='oui'?'var(--ok)':'var(--accent)'):'var(--line)'),
+      background: rep===v?(v==='oui'?'var(--ok-soft)':'var(--accent-soft)'):'var(--page-bg)', color:'var(--ink)', transition:'.18s'}});
+    return { showQ:true, qT:st.q.t, qBtns:[btn('oui',st.q.oui||'Oui'), btn('non',st.q.non||'Non')],
+      qShowRep:!!rep, qRepEl: rep?this.H(rep==='oui'?st.q.ok:st.q.ko):null,
+      qRepStyle:{marginTop:'11px',padding:'12px 14px',borderRadius:'12px',fontSize:'15px',lineHeight:1.5,animation:'melScene .4s cubic-bezier(.2,.8,.2,1)',
+        background: rep==='oui'?'var(--ok-soft)':'var(--accent-soft)', color: rep==='oui'?'#0B6135':'var(--accent-dark)'} };
   }
 
   // ---------- form ----------
@@ -1303,7 +1643,7 @@ class Component extends DCLogic {
   APPAREILS = {
     s1:{img:'s1',vign:'s1-vignette',imgFlux:'audiostream',nom:'Sonnet 1', fam:'Sonnet', sous:'Contour d\u2019oreille, antenne s\u00e9par\u00e9e',
         tech:'Pas de Bluetooth int\u00e9gr\u00e9. Streaming via AudioLink ou cl\u00e9 AudioStream. Pile zinc-air ou accu rechargeable.',
-        connecte:['audiolink','finetuner','audiokey','proc'],
+        connecte:['audiolink','audiolinkxt','finetuner','audiokey','proc','mixte'],
         // Rep\u00e8res du sch\u00e9ma s1.png, dans l'ordre de la page officielle MED-EL
         // « SONNET Handling Overview » (libell\u00e9s anglais traduits, rien de devin\u00e9).
         reperes:[
@@ -1315,7 +1655,7 @@ class Component extends DCLogic {
         ]},
     s2:{img:'s2',vign:'s2-vignette',imgFlux:'audiostream',nom:'Sonnet 2', fam:'Sonnet', sous:'Contour d\u2019oreille, antenne s\u00e9par\u00e9e',
         tech:'Pas de Bluetooth int\u00e9gr\u00e9. Streaming via AudioLink ou cl\u00e9 AudioStream. M\u00eame logique d\u2019appairage que le Sonnet 1.',
-        connecte:['audiolink','finetuner','audiokey','proc'],
+        connecte:['audiolink','audiolinkxt','finetuner','audiokey','proc','mixte'],
         // Sch\u00e9ma s2.png, page « SONNET 2 Overview » : MED-EL y donne exactement
         // les m\u00eames 13 libell\u00e9s, dans le m\u00eame ordre, que pour le Sonnet 1.
         reperes:[
@@ -1327,7 +1667,7 @@ class Component extends DCLogic {
         ]},
     s3:{img:'s3',vign:'s3-vignette',imgFlux:'audiostream',nom:'Sonnet 3', fam:'Sonnet', sous:'Contour d\u2019oreille, Bluetooth int\u00e9gr\u00e9',
         tech:'Bluetooth int\u00e9gr\u00e9 : appairage direct au t\u00e9l\u00e9phone, sans accessoire. AudioLink classique incompatible, AudioLink XT requis.',
-        connecte:['audiolinkxt','audiokey','proc'],
+        connecte:['audiolinkxt','audiokey','proc','mixte'],
         // Sch\u00e9ma s3.jpg, page « SONNET 3 Overview ». L'ordre n'est PAS celui du
         // Sonnet 1 et le vocabulaire diff\u00e8re (« Coil » et non « DL-Coil »,
         // « Touch Key » propre à ce mod\u00e8le) : rien n'est repris de s1.
@@ -1348,7 +1688,7 @@ class Component extends DCLogic {
         ]},
     r3:{img:'r3',vign:'r3-vignette',imgFlux:'audiostream-rondo',nom:'Rondo 3', fam:'Rondo', sous:'Disque unique aimant\u00e9, cl\u00e9 AudioStream',
         tech:'Pas de Bluetooth int\u00e9gr\u00e9. Streaming via cl\u00e9 AudioStream ins\u00e9r\u00e9e dans le processeur.',
-        connecte:['audiolink','finetuner','audiokey','proc'],
+        connecte:['audiolink','audiolinkxt','finetuner','audiokey','proc','mixte'],
         // Sch\u00e9ma r3.jpg, page « RONDO 3 Overview » : le sch\u00e9ma montre les deux
         // faces et la tranche, d'o\u00f9 des rep\u00e8res qui ne sont pas sur la m\u00eame vue.
         reperes:[
@@ -1378,11 +1718,134 @@ class Component extends DCLogic {
     return (this.estPro()?'pro_':'patient_')+base;
   }
   estPro(){ return this.state.profil==='pro'; }
+
+  // ---------- SAV : « Où est le problème ? » ----------
+  // Positions (% de l'image) des pastilles numérotées des schémas officiels, mesurées
+  // automatiquement (détection des pastilles rouges), puis numérotées à l'œil.
+  // `pannes` : repère -> symptômes de départ de l'arbre (clé du nœud ; « * » = pro seul).
+  CARTES = {
+    sonnet12: { points:{1:[78.9,13.1],2:[77.6,86.6],3:[63.4,64.5],4:[63.5,50.4],5:[63.5,39.1],6:[63.5,28.5],7:[63.5,13.8],8:[38,3.7],9:[19.2,13.7],10:[15.7,61.3],11:[10.1,76],12:[29.9,61.3],13:[48.8,95.9]},
+      pannes:{1:['q_son_magnet_1','q_son_noise_1'],3:['q_son_crackle_age_1','q_son_noise_1'],4:['q_son_power_1','q_son_shutoff_1','q_as_1'],
+              5:['diag_son_mic_cover_loose'],6:['*q_son_maestro_1','q_son_power_1'],7:['q_son_noise_1','q_son_crackle_age_1'],8:['q_son_power_1','q_son_shutoff_1'],13:['q_son_power_1']} },
+    s3: { points:{1:[84.4,27.5],2:[86.7,95.5],3:[63.1,95.5],4:[75.4,70.2],5:[75.3,56.5],6:[75.3,31.6],7:[75.3,12.4],8:[42.7,4.2],9:[31.9,4.2],10:[31.9,52.8],11:[13.3,52.8],12:[6.9,60.3],13:[6.8,82.8]},
+      pannes:{1:['q_son_magnet_1','q_son_noise_1'],3:['q_son_crackle_age_1','q_son_noise_1'],4:['q_son_power_1'],5:['q_son_power_1','q_son_shutoff_1'],
+              7:['q_son_noise_1','q_son_crackle_age_1'],8:['diag_son_mic_cover_loose'],9:['q_son_power_1','q_son_shutoff_1'],12:['*q_son_maestro_1','q_son_power_1']} },
+    r3: { points:{1:[2.2,10.9],2:[2.2,33.4],3:[51.7,18.6],4:[30.5,58.2],5:[30.5,92.9],6:[51.7,74.2],7:[97.6,24.8],8:[97.6,44.2]},
+      pannes:{1:['q_sound_1'],2:['q_sound_1'],3:['q_noise_1'],4:['q_crack_other_1'],5:['q_crack_other_1'],6:['q_as_1'],7:['q_magnet_1','diag_crack_magnet'],8:['q_charge_1','*q_maestro_1']} },
+  };
+  carteCle(){ const k=this.state.appareil; return k==='s1'||k==='s2' ? 'sonnet12' : k; }
+  carteEl(){
+    const E=React.createElement, a=this.appareil(), carte=this.CARTES[this.carteCle()], racine=this.DATA[this.racineDiag()];
+    if(!a || !carte || !racine) return E('p',null,'Pas de carte pour ce processeur.');
+    const opts=Object.fromEntries((typeof racine.options==='function'?racine.options(this.state,this):racine.options).map(o=>[o.to,o]));
+    const noms=Object.fromEntries((a.reperes||[]).map(r=>[r.n,r.nom]));
+    const choix=this.state.carteZone, rond=n=>String.fromCharCode(0x2460+n-1);
+    const pannesDe=n=>(carte.pannes[n]||[]).map(k=>k[0]==='*' ? (this.estPro()?k.slice(1):null) : k).filter(k=>k&&opts[k]);
+    const bulles=Object.entries(carte.points).map(([n,[x,y]])=>{ n=+n; const actif=choix===n, utile=pannesDe(n).length>0;
+      return E('button',{key:n, 'aria-label':'Repère '+n+' : '+(noms[n]||''), onClick:()=>this.setState({carteZone:n}),
+        // Anneau transparent autour de la pastille du schéma : le numéro reste lisible.
+        style:{position:'absolute', left:x+'%', top:y+'%', transform:'translate(-50%,-50%)'+(actif?' scale(1.15)':''), width:'28px', height:'28px', borderRadius:'50%',
+          border:'2.5px solid '+(actif?'#fff':(utile?'var(--accent)':'rgba(0,0,0,.25)')), background: actif?'var(--accent)':'transparent',
+          boxShadow: actif?'0 0 0 4px rgba(226,0,26,.35)':'none', cursor:'pointer', padding:0, transition:'transform .2s',
+          animation: utile&&!actif ? 'melPulse 1.6s ease-in-out infinite' : 'none', color:'#fff', fontWeight:800, fontSize:'13px'}}, actif?String(n):''); });
+    const pan=choix ? pannesDe(choix) : [];
+    const bouton=(to,titre,sous,accent)=>E('button',{key:to+titre, onClick:()=>this.go(to),
+      style:{display:'flex',alignItems:'center',gap:'12px',width:'100%',textAlign:'left',fontFamily:'inherit',fontSize:'15.5px',fontWeight:700,
+        padding:'14px 16px',borderRadius:'14px',cursor:'pointer',border:'1px solid '+(accent?'#F4C9CE':'var(--line)'),
+        background:accent?'var(--accent-soft)':'var(--card-bg)',color:'var(--ink)',boxShadow:'var(--shadow)'}},
+      E('span',{style:{flex:1}}, titre, sous?E('span',{style:{display:'block',fontWeight:500,fontSize:'13px',color:'var(--ink-soft)',marginTop:'2px'}},sous):null),
+      E('span',{style:{color:'var(--accent)',fontSize:'20px'}},'›'));
+    const fiche = !choix
+      ? E('div',{style:{fontSize:'15px',color:'var(--ink-soft)',lineHeight:1.5}}, E('b',{style:{color:'var(--accent)'}},'Touchez une bulle'),' sur la pièce qui vous pose problème. Les bulles qui clignotent ont des solutions dans l’assistant.')
+      : E('div',null,
+          E('div',{style:{display:'flex',alignItems:'center',gap:'10px',marginBottom:'10px'}},
+            E('span',{style:{fontSize:'26px',color:'var(--accent)',lineHeight:1}},rond(choix)),
+            E('b',{style:{fontSize:'18px'}}, noms[choix]||('Repère '+choix))),
+          pan.length
+            ? E('div',{style:{display:'flex',flexDirection:'column',gap:'9px'}}, E('div',{style:{fontSize:'14px',color:'var(--ink-soft)'}},'Que se passe-t-il ?'), ...pan.map(k=>bouton(k,opts[k].title)))
+            : E('div',{style:{fontSize:'14.5px',color:'var(--ink-soft)',lineHeight:1.5}},'L’assistant n’a pas encore de diagnostic pour cette pièce. Voyez la liste complète ou demandez l’aide d’un technicien.'));
+    return E('div',null,
+      E('div',{style:{fontSize:'12px',fontWeight:700,letterSpacing:'.14em',textTransform:'uppercase',color:'var(--accent)',marginBottom:'11px'}},'Auto-diagnostic · '+a.nom),
+      E('h1',{style:{fontFamily:'var(--title-font)',fontWeight:'var(--h1-weight)',fontSize:'calc(var(--h1) - 6px)',lineHeight:1.05,margin:'0 0 10px'}},'Où est le ',E('em',{style:{fontStyle:'italic',color:'var(--accent)'}},'problème'),' ?'),
+      E('p',{style:{color:'var(--ink-soft)',fontSize:'15.5px',margin:'0 0 16px',lineHeight:1.5}},'Montrez-nous la pièce : on vous guide ensuite pas à pas.'),
+      E('div',{style:{position:'relative',background:'#fff',border:'1px solid var(--line)',borderRadius:'var(--radius)',boxShadow:'var(--shadow)',padding:'10px',marginBottom:'14px'}},
+        E('div',{style:{position:'relative'}}, E('img',{src:this.image(a.img), alt:'Schéma du '+a.nom, style:{width:'100%',display:'block'}}), ...bulles)),
+      E('div',{style:{background:'var(--card-bg)',border:'1px solid var(--line)',borderRadius:'var(--radius)',padding:'16px',marginBottom:'14px',minHeight:'70px',animation:'melRise .35s ease'}, key:'f'+(choix||0)}, fiche),
+      E('div',{style:{display:'flex',flexDirection:'column',gap:'9px'}},
+        opts['q_ak_1'] ? bouton('q_ak_1','Le problème vient du téléphone','L’application AudioKey ne trouve pas le processeur') : null,
+        bouton(this.racineDiag(),'Je ne sais pas où c’est','Voir tous les problèmes connus', true)));
+  }
   // Encart technique r\u00e9serv\u00e9 au profil professionnel.
   noteTech(html){ return this.estPro() ? html : ''; }
 
   DATA = (()=>{
     const br=(label,html)=>({label,html});
+    // Libellé de bouton : français, puis l'original anglais de la vidéo MED-EL.
+    const K=(fr,en)=>'<b>'+fr+'</b>'+(en&&en!==fr?' <span style="opacity:.6">('+en+')</span>':'');
+    const V=(id,label)=>({url:'https://www.youtube.com/watch?v='+id,label});
+    const avecNotePro=(st,base)=>[base, st.profil==='pro' ? 'MED-EL ne publie pas de tutoriel pour les professionnels sur ce point : ce parcours suit les tutoriels utilisateurs officiels. Les encarts <b>Point pro</b> ajoutent ce qu’il faut vérifier avec le patient.' : ''].filter(Boolean).join('<br><br>');
+    const sav='Toujours rien ? Essayez un autre téléphone. Sinon retournez-nous l’AudioStream : s’il a moins de deux ans, il sera remplacé à neuf.';
+
+    // Sonnet 3, Bluetooth intégré — vidéos P-QCeVF8DRE (iOS), xgRZCRpKlKY (Android).
+    const s3Steps=(apple)=>[
+      {scene:'off',h:'Éteindre et approcher',p:'Éteignez vos Sonnet 3 et posez-les <b>à moins de 3 cm</b> du téléphone. Puis rallumez-les.',
+        tip:{ic:'bluetooth',t:'Une seule fois',s:'Chaque processeur ne s’appaire qu’une fois avec le téléphone.'}},
+      apple
+        ? {scene:'phone-bt',h:'Chercher dans Accessibilité',p:'Activez le <b>Bluetooth</b>, puis '+K('Réglages','Settings')+' → '+K('Accessibilité','Accessibility')+' → '+K('Appareils auditifs','Hearing Devices')+'. Lancez la recherche.'}
+        : {scene:'phone-bt',h:'Chercher en Bluetooth',p:'Activez le <b>Bluetooth</b> du téléphone et lancez la recherche d’appareils Bluetooth.'},
+      {scene:'pair',h:'Jumeler',p:'Vos Sonnet 3 apparaissent : touchez-les pour lancer le jumelage.',video:V(apple?'P-QCeVF8DRE':'xgRZCRpKlKY','Voir la vidéo officielle MED-EL'),
+        q:{t:'Le téléphone affiche vos Sonnet 3 connectés ?',ok:'Bravo, c’est jumelé !',ko:'Rapprochez les Sonnet 3 du téléphone et réessayez.'},
+        branches: apple?[]:[br('Une aide auditive de l’autre côté ?','Android 12 ou plus et aide auditive compatible ASHA : une fois le Sonnet 3 connecté, allumez l’aide auditive et jumelez-la dans le Bluetooth. Si elle gère le <b>Bluetooth LE Audio</b>, désactivez ce réglage. <a href="https://www.youtube.com/watch?v=Lmw3I0Q1Mto" target="_blank" rel="noopener">Vidéo</a>')],
+        pro: apple?'':'Bimodal : liste de téléphones testés sur <b>go.medel.com/sonnet3-bimodal-compatibility</b>.'},
+      {scene:'appel',h:'Téléphoner et écouter',p:'Appelez ou décrochez comme d’habitude : le son arrive dans le Sonnet 3. Le volume se règle <b>sur le téléphone</b>.',video:V('5IsQNF7-U2s','Voir la vidéo : téléphoner'),
+        q:{t:'Petit jeu : pour monter le son d’un appel, je règle…',oui:'Le téléphone',non:'Le processeur',ok:'Exact ! Le volume du streaming se règle sur le téléphone.',ko:'Raté : d’après MED-EL, c’est le volume du téléphone qui compte.'}}
+    ];
+
+    // AudioStream : cover pour Sonnet 1·2 (R=false), adaptateur pour Rondo 3 (R=true).
+    // Vidéos des playlists PLT_--N4wea5D9Qec2QPA1tTrrzPimyDPa et PLT_--N4wea5C6aA7f583X6ArbCSeh4zP5.
+    const asSteps=(R,apple)=>{
+      const app=R?'AudioKey':'AudioKey 2';
+      const id=R?{as:'1wIGRH1BGeo',ios:'RWd83-m6U3w',and:'mxcYVlAiYcY',appel:'qrxoqnQ0Wpg',musique:'8DUIVnY9oB4',bimodal:'vhNSPxRwcaY',liste:'go.medel.com/audiostream-adapter'}
+                :{as:'uRrmI4liHTk',ios:'7lnUBsJcTL4',and:'_9jmG3JN0-g',appel:'Rl8SA7rUr14',musique:'bMQFiFZ6lRk',bimodal:'Rp-dMLu5Bmg',liste:'go.medel.com/audiostream'};
+      const nomBT=R?'AudioStream Adapter':'AudioStream';
+      return [
+        R ? {scene:'as-adapter',h:'Fixer l’adaptateur AudioStream',p:'Sortez l’adaptateur de son étui et retirez son <b>capuchon en caoutchouc</b> en appuyant sur les petits leviers.',
+              p2:'Retirez le Rondo 3 de la tête, ouvrez le <b>cache en caoutchouc</b> de sa prise et branchez-y l’adaptateur.',video:V(id.as,'Voir la vidéo : fixer l’adaptateur'),
+              q:{t:'L’adaptateur est bien enfoncé dans la prise ?',oui:'Oui, il tient',ok:'Parfait ! Maintenant, le téléphone.',ko:'Rouvrez bien le cache en caoutchouc et enfoncez l’adaptateur jusqu’au bout.'},
+              pro:'L’adaptateur AudioStream <b>ne convient pas aux enfants de moins de 3 ans</b> (vidéo MED-EL).'}
+          : {scene:'as-cover',geste:'cover-cadre',h:'Installer le cover AudioStream',p:'Déverrouillez puis faites glisser le <b>couvercle du compartiment à piles</b> pour l’enlever. Déverrouillez le <b>cover AudioStream</b> et faites-le glisser <b>jusqu’au bout</b> : le processeur s’allume.',
+              branches:[br('Pour un enfant','tournez le verrou du couvercle dans le sens des aiguilles d’une montre pour le bloquer.')],video:V(id.as,'Voir la vidéo : installer AudioStream'),
+              q:{t:'Voyez-vous le symbole de compatibilité AudioStream sur le cadre de piles (ou l’adaptateur de batterie) ?',non:'Non / je ne sais pas',ok:'Super, votre cadre est compatible.',ko:'Sans ce symbole, le cadre ne convient pas à AudioStream. Demandez l’aide d’un technicien.'},
+              pro:'Vérifier le symbole de compatibilité du cadre de piles ou de l’adaptateur de batterie. La <b>micro-batterie rechargeable</b> ne se verrouille pas : déconseillée avant 3 ans.'},
+        {scene:'phone-bt',h:'Préparer le téléphone',p:'Installez la <b>dernière version</b> de l’application <b>'+app+'</b> et activez le <b>Bluetooth</b>.',
+          p2:'Puis éteignez AudioStream : '+(R?'débranchez l’adaptateur du Rondo 3.':'faites glisser le cover AudioStream hors du processeur.'),
+          tip:{ic:'phone',t:'Boutons en anglais ?',s:'Les noms de boutons viennent des vidéos MED-EL en anglais : l’original est entre parenthèses.'},
+          pro:'MED-EL tient une liste de téléphones testés : <b>'+id.liste+'</b>.'},
+        {scene:'phone-app',h:'Lancer la configuration',p:'Dans '+app+', touchez le <b>menu</b> en haut à gauche, puis '+K('Options de connectivité','Connectivity Options')+' → '+K('AudioStream','AudioStream')+' → '+K('Configuration','Configuration')+'.',
+          branches:[br('Un seul AudioStream','choisissez le côté où vous le portez.'),br('Un de chaque côté','choisissez '+K('Gauche et droite','Left and Right')+'.')],
+          p2:'Touchez '+K('Suivant','Next')+'.',video:V(apple?id.ios:id.and,'Voir la vidéo : appairage '+(apple?'iPhone':'Android'))},
+        {scene:R?'as-adapter':'as-cover',geste:R?'':'cover-cadre',h:R?'Brancher l’adaptateur':'Remettre le cover',
+          p:R?'Vérifiez que le Rondo 3 est <b>allumé</b>, branchez l’adaptateur, posez le Rondo 3 <b>à côté du téléphone</b> et touchez '+K('Suivant','Next')+'.'
+             :'Faites glisser le cover AudioStream <b>jusqu’au bout</b> sur le processeur, posez-le <b>à côté du téléphone</b> et touchez '+K('Suivant','Next')+'.',
+          q:{t:app+' a trouvé votre AudioStream ?',non:'Non, échec',ok:'Bravo ! Deux AudioStream ? Refaites les étapes 3 et 4 avec le second processeur, en laissant le premier allumé.',
+             ko:'Rapprochez le processeur du téléphone, '+(R?'débranchez puis rebranchez l’adaptateur':'retirez puis remettez le cover')+', puis touchez '+K('Réessayer','Try again')+'.'}},
+        {scene:'nom',h:'Choisir un nom',p:'Tapez un nom de <b>7 lettres maximum</b>, en lettres de l’alphabet latin, puis touchez '+K('Enregistrer','Save')+'.',
+          q:{t:'Petit jeu : quel nom l’appli accepte-t-elle ?',oui:'MAMIE',non:'GRANDMAMAN',ok:'Exact ! MAMIE a 5 lettres.',ko:'Raté : GRANDMAMAN a 10 lettres, c’est trop. 7 lettres maximum !'}},
+        {scene:'phone-bt',h:'Accepter le jumelage',
+          p:(apple?'L’écran ':'Si l’écran ')+K('Demande de jumelage Bluetooth','Bluetooth pairing request')+(apple?' s’affiche':' apparaît')+' : touchez '+K('Jumeler','Pair')+'. Faites de même pour le second AudioStream, puis touchez '+K('OK','OK')+'.'},
+        apple
+          ? {scene:'pair',h:'Vérifier dans les Réglages',p:'Quittez '+app+'. Ouvrez '+K('Réglages','Settings')+' → '+K('Accessibilité','Accessibility')+' → '+K('Appareils auditifs','Hearing Devices')+' et touchez la ligne sous '+K('Appareils auditifs MFi','MFi Hearing Devices')+'.',
+              q:{t:'Après quelques secondes, c’est écrit « connecté » ?',ok:'Gagné ! AudioStream se reconnectera tout seul.',ko:'Reprenez à l’étape 2. '+sav}}
+          : {scene:'pair',h:'Connecter dans le Bluetooth',p:'Quittez '+app+'. Ouvrez les réglages <b>Bluetooth</b> du téléphone (le chemin dépend de la marque) et connectez-vous à <b>'+nomBT+'</b>.',
+              q:{t:'Le téléphone affiche '+nomBT+' connecté ?',ok:'Gagné ! AudioStream se reconnectera tout seul.',ko:'Reprenez à l’étape 2. '+sav},
+              pro:'La vidéo MED-EL ne donne pas de menu Android : il dépend du fabricant du téléphone.'},
+        {scene:'appel',h:'À vous de jouer !',p:'<b>Appel</b> : appelez ou décrochez comme d’habitude, puis parlez dans le micro du téléphone. <a href="https://www.youtube.com/watch?v='+id.appel+'" target="_blank" rel="noopener">Vidéo</a>',
+          p2:'<b>Musique, vidéos</b> : lancez votre appli préférée. Le volume se règle <b>sur le téléphone</b>.',video:V(id.musique,'Voir la vidéo : écouter de la musique'),
+          branches: apple?[]:[br('Une aide auditive de l’autre côté ?','Android 12 ou plus et aide auditive compatible ASHA : éteignez les deux, Bluetooth activé, rallumez AudioStream (il se connecte seul), puis allumez l’aide auditive et jumelez-la dans le Bluetooth. <a href="https://www.youtube.com/watch?v='+id.bimodal+'" target="_blank" rel="noopener">Vidéo</a>')],
+          q:{t:'Lancez une chanson : vous l’entendez dans le processeur ?',ok:'Bravo, vous streamez !',ko:'Montez le volume du téléphone, et vérifiez qu’AudioStream est en place et « connecté » dans le Bluetooth.'},
+          pro: apple?'Les vidéos AudioStream ne traitent le streaming bimodal que sous Android 12 ou plus.':'Bimodal : Android 12+ et aide auditive ASHA ; appareils testés sur <b>'+id.liste+'</b>.'}
+      ];
+    };
     return {
     home:{type:'menu',eyebrow:'Bonjour',title:'Qui a besoin d\u2019<em style="font-style:italic;color:var(--accent)">aide</em> ?',lede:'L\u2019assistant s\u2019adapte : marche \u00e0 suivre pour le porteur, rep\u00e8res techniques pour le professionnel.',
       options:[
@@ -1414,7 +1877,7 @@ class Component extends DCLogic {
         const a=c.appareil(); const liste=[];
         liste.push({to: (a&&a.aucuneConnectivite)?'sans_connect':'connect', n:'1',
           title:'Aide \u00e0 la connectivit\u00e9', sub:'Appairer un accessoire, l\u2019application ou le t\u00e9l\u00e9phone'});
-        liste.push({to:c.racineDiag(), n:'2', title:'Auto-diagnostic',
+        liste.push({to: c.racineDiag()==='sans_diag' ? 'sans_diag' : 'carte_sav', n:'2', title:'Auto-diagnostic',
           sub:'Le processeur ne marche pas comme d\u2019habitude'});
         liste.push({to:'help', icon:'support', title:'Demander l\u2019aide d\u2019un technicien',
           sub:'Envoyez votre besoin par mail ou SMS', accent:true});
@@ -1429,6 +1892,7 @@ class Component extends DCLogic {
         {to:'sans_diag', n:'2', title:'Auto-diagnostic', sub:'Si le processeur lui-m\u00eame pose probl\u00e8me'}
       ]},
 
+    carte_sav:{type:'carte',crumb:'Où est le problème ?',trail:'Où ?'},
     sans_diag:{type:'menu',crumb:'Auto-diagnostic',trail:'Diagnostic',eyebrow:'Auto-diagnostic',
       title:(st,c)=>'Pas d\u2019arbre pour le <em style="font-style:italic;color:var(--accent)">'+(c.appareil()?c.appareil().nom:'ce processeur')+'</em>',
       lede:'L\u2019auto-diagnostic de cet assistant couvre le Rondo 3 et la gamme Sonnet. Pour ce processeur, mieux vaut passer par un technicien que suivre une proc\u00e9dure \u00e9crite pour un autre mod\u00e8le.',
@@ -1449,16 +1913,19 @@ class Component extends DCLogic {
           {to:'opt1',n:'1',title:'AudioLink · FineTuner Echo',sub:'Streaming audio & télécommande'},
           {to:'opt2',icon:'phone',title:'Application AudioKey',sub:'Réglages depuis votre smartphone'},
           {to:'opt3',icon:'chip',title:'Connexion du processeur',sub:'Sonnet 1·2 · Sonnet 3 · Rondo 3'},
+          {to:'accessoires3d',icon:'chip',title:'Accessoires en 3D',sub:'Voir et tourner chaque accessoire'},
           {to:'help',icon:'support',title:'Demander l’aide d’un technicien',sub:'Envoyez votre besoin par mail ou SMS',accent:true}
         ];
         const ok=a.connecte, L=[]; let n=0;
         if(ok.includes('audiolink')) L.push({img:'audiolink',to:'audiolink',n:String(++n),title:'AudioLink',sub:'Boîtier de streaming audio'});
-        if(ok.includes('audiolinkxt')) L.push({img:'audiolinkxt',to:'audiolinkxt',n:String(++n),title:'AudioLink XT',sub:'Boîtier de streaming, génération '+a.nom});
+        if(ok.includes('audiolinkxt')) L.push({img:'audiolinkxt',to:'audiolinkxt',n:String(++n),title:'AudioLink XT',sub:'Boîtier de streaming'+(st.appareil==='s3'?'':' · avec AudioStream')});
         if(ok.includes('finetuner')) L.push({img:'finetuner',to:'finetuner',n:String(++n),title:'FineTuner Echo',sub:'Télécommande'});
         if(ok.includes('audiokey')) L.push({to:'opt2',icon:'phone',title:'Application AudioKey',sub:'Réglages depuis votre smartphone'});
         if(ok.includes('proc')) L.push({to: a.fam==='Sonnet' ? (st.appareil==='s3'?'sonnet3':'sonnet12') : 'rondo3',
           img: st.appareil==='s3' ? a.img : (a.imgFlux||a.img), icon:'chip', title:'Connecter le '+a.nom+' au téléphone',
           sub: st.appareil==='s3' ? 'Bluetooth intégré' : 'Via la clé AudioStream'});
+        if(ok.includes('mixte')) L.push({to:'mixte',icon:'bluetooth',title:'Sonnet 3 + AudioStream',sub:'Un processeur différent de chaque côté'});
+        L.push({to:'accessoires3d',icon:'chip',title:'Accessoires en 3D',sub:'Voir et tourner chaque accessoire'});
         L.push({to:'help',icon:'support',title:'Demander l’aide d’un technicien',sub:'Envoyez votre besoin par mail ou SMS',accent:true});
         return L;
       },
@@ -1474,36 +1941,69 @@ class Component extends DCLogic {
       ],
       help:{label:'AudioLink ou AudioLink XT ?',items:[
         {tag:'Std',name:'AudioLink',desc:'Compatible Sonnet 1 et 2. Incompatible avec le Sonnet 3 et le Rondo 2.'},
-        {tag:'XT',name:'AudioLink XT',desc:'Conçu pour le Sonnet 3. Incompatible avec les Sonnet 1 et 2.'}
+        {tag:'XT',name:'AudioLink XT',desc:'Sonnet 3 en direct. Sonnet 1·2 et Rondo 3 : seulement avec AudioStream.'}
       ]}},
-    audiolink:{type:'steps',crumb:'AudioLink',trail:'AudioLink',title:'AudioLink',
-      notice:'L’AudioLink classique <strong>n’est pas compatible</strong> avec le Sonnet 3 ni le Rondo 2.',
-      steps:[
-        {scene:'off',h:'Éteindre le processeur',p:'Retirez le couvercle de l’alimentation si votre processeur est un <b>Sonnet</b>. Si c’est un <b>Rondo 3</b>, appuyez au centre du processeur pour l’éteindre.'},
-        {scene:'audiolink',h:'Allumer l’AudioLink',p:'Mettez votre AudioLink sous tension.'},
-        {scene:'dock',h:'Poser l’antenne sur l’AudioLink',p:'Posez l’antenne de votre processeur sur l’AudioLink, juste <b>en dessous de la première touche</b>.',branches:[br('Type Sonnet','Posez l’antenne sous la première touche.'),br('Type Rondo','Déposez le Rondo directement sur l’AudioLink, toujours sous la première touche.')]},
-        {scene:'dock-blink',h:'Allumer le processeur',p:'Rallumez votre processeur tout en le laissant posé sur l’AudioLink.',fb:{ok:'L’AudioLink clignote en blanc et indique le côté de votre processeur — la connexion est faite, bravo !',retry:'S’il ne clignote pas, reprenez la procédure depuis le début.'}},
-        {scene:'audiolink-bt',h:'Activer l’appairage Bluetooth',p:'Maintenez les <b>touches 2 et 3</b> qui se font face jusqu’à ce qu’elles <b>clignotent en bleu</b>.'},
-        {scene:'phone-bt',h:'Connecter le smartphone',p:'Sur votre smartphone, activez le <b>Bluetooth</b>, recherchez <b>AudioLink</b> et connectez-vous.'},
-        {scene:'success',h:'Connecté !',p:'Bravo, vous êtes maintenant connecté.'},
-        {scene:'phone-app',h:'Écouter de la musique',p:'Installez l’application <b>Audio2Ear</b> pour écouter la musique de votre téléphone via l’AudioLink.',tip:{ic:'music',t:'Audio2Ear',s:'Diffuse l’audio de votre téléphone vers le processeur.'}}
-      ],
-      done:{h:'Tout est prêt',p:'Votre AudioLink est appairé et Audio2Ear vous permet de streamer votre musique.'}},
-    audiolinkxt:{type:'steps',crumb:'AudioLink XT',trail:'AudioLink XT',title:'AudioLink XT',
-      notice:'L’AudioLink XT <strong>n’est pas compatible</strong> avec le Sonnet 1 ni le Sonnet 2.',
-      steps:[
-        {scene:'off',h:'Éteindre le Sonnet 3',p:'Éteignez votre Sonnet 3 en retirant le capuchon de l’alimentation.'},
-        {scene:'audiolink-bt',h:'Mettre l’XT en appairage',p:'Appuyez sur les <b>touches 2 et 3</b> qui se font face sur l’AudioLink XT. Il se met à clignoter.'},
-        {scene:'dock',h:'Poser l’antenne',p:'Posez l’antenne de votre processeur <b>en dessous de la première touche</b> de l’AudioLink XT.'},
-        {scene:'dock-blink',h:'Allumer & répéter',p:'Allumez votre processeur. L’AudioLink clignote pour le côté que vous venez de connecter.',p2:'Répétez l’opération pour l’autre côté si vous avez deux processeurs.'},
-        {scene:'success',h:'Connecté !',p:'Félicitations, vous êtes connecté.'}
-      ],
-      done:{h:'Connexion réussie',p:'Votre AudioLink XT est appairé à votre Sonnet 3.'}},
-    finetuner:{type:'steps',crumb:'FineTuner Echo',trail:'FineTuner',title:'FineTuner Echo',
+    // ---------- CONNECTIVITE-DEBUT ----------
+    // Parcours repris des tutoriels « Hands-On » de la chaîne YouTube MED-EL
+    // (sous-titres anglais). Rien n'y est ajouté qui ne soit dit dans la vidéo
+    // citée, sauf les conseils SAV déjà présents avant (remplacement < 2 ans).
+    audiolink:{type:'steps',crumb:'AudioLink',objet3d:'audiolink',trail:'AudioLink',title:'AudioLink',
+      notice:(st)=>avecNotePro(st,'L’AudioLink classique <strong>n’est pas compatible</strong> avec le Sonnet 3 ni le Rondo 2.'),
+      steps:(st,c)=>{ const a=c.appareil(), R=a&&a.fam==='Rondo', S=a&&a.fam==='Sonnet';
+        const poserS='Posez l’antenne du processeur <b>au centre du clavier</b> de l’AudioLink, puis éteignez et rallumez le processeur.';
+        const poserR='Éteignez le Rondo 3, posez-le <b>au centre du clavier</b> de l’AudioLink, puis rallumez-le.';
+        return [
+        {scene:'audiolink',h:'Allumer l’AudioLink',p:'Appuyez <b>2 secondes</b> sur le bouton principal. Le voyant d’état s’allume en vert ou en orange.',video:V('yqspNVtnhfw','Voir la vidéo : allumer l’AudioLink'),
+          q:{t:'Le voyant s’allume ?',ok:'C’est parti !',ko:'Mettez l’AudioLink en charge, puis réessayez. Orange qui clignote = batterie faible.'}},
+        {scene:'dock-blink',geste:'coil-audiolink',h:'Le relier au processeur',p:R?poserR:S?poserS:'Selon votre processeur :',branches:(R||S)?[]:[br('Sonnet',poserS),br('Rondo 3',poserR)],
+          video:V(R?'hBVwZHeWGrg':'Y0QVh6rAl64','Voir la vidéo : appairer le processeur'),
+          q:{t:'Les symboles de connexion gauche et droite s’allument ?',ok:'Appairé ! Deux processeurs ? Faites le second juste après, de la même façon.',ko:'Recommencez en posant bien le processeur au centre du clavier.'},
+          pro:'Vidéos MED-EL : AudioLink avec un processeur contour d’oreille (Sonnet) et avec le Rondo 3.'},
+        {scene:'audiolink-bt',h:'Passer en mode Bluetooth',p:'Seul le voyant d’état doit être allumé. Appuyez <b>ensemble 2 secondes</b> sur les touches <b>mix</b> et <b>micro</b> : le symbole Bluetooth clignote.',
+          tip:{ic:'horloge',t:'60 secondes chrono',s:'Sans téléphone trouvé en 60 s, l’AudioLink quitte ce mode. Réappuyez mix + micro.'}},
+        {scene:'pair',h:'Connecter le téléphone',p:'Activez le <b>Bluetooth</b> du téléphone, lancez la recherche et choisissez <b>MED-EL AudioLink</b>. Si un code est demandé, tapez <b>0000</b>.',video:V('w_RLONOLIKE','Voir la vidéo : appairer un téléphone'),
+          q:{t:'Le symbole Bluetooth de l’AudioLink reste allumé sans clignoter ?',ok:'Connecté ! L’appli AudioKey peut maintenant passer par l’AudioLink.',ko:'Les 60 secondes sont peut-être passées : réappuyez mix + micro 2 s et recommencez.'}},
+        {scene:'appel',h:'Téléphoner',p:'Accrochez l’AudioLink <b>près de votre bouche</b> (clip ou cordon). Appel entrant : <b>un appui</b> sur le bouton principal pour décrocher, un autre pour raccrocher. Pour refuser : <b>maintenez 2 secondes</b>.',
+          tip:{ic:'phone',t:'Tout clignote ensemble ?',s:'Les symboles Bluetooth et de connexion clignotent ensemble : c’est un appel entrant.'},video:V('24eQIiyKOUs','Voir la vidéo : téléphoner'),
+          q:{t:'Petit jeu : pour refuser un appel, je…',oui:'Maintiens 2 s',non:'Appuie une fois',ok:'Exact !',ko:'Non : un appui sert à décrocher ou à raccrocher. Pour refuser, maintenez 2 secondes.'}},
+        {scene:'tv',geste:'cable-station',h:'La TV et la musique',p:'Reliez la station d’accueil à la TV avec les câbles fournis : <b>câble audio</b> pour écouter seul, <b>câble RCA</b> pour écouter avec d’autres. Réglez la prise de la TV en <b>sortie</b>, puis allumez la TV.',
+          p2:'Musique : branchez un appareil à prise casque sur l’AudioLink ou sur la station, puis lancez la lecture.',
+          tip:{ic:'music',t:'Sans fil',s:'Des applis comme Audio2Ear diffusent aussi la musique du téléphone.'},video:V('fquzlgrEQnc','Voir la vidéo : regarder la TV'),
+          pro:'Selon le téléviseur, d’autres câbles peuvent être nécessaires (vidéo MED-EL).'},
+        {scene:'micro',geste:'audiolink-station',h:'Le micro à distance',p:'Appuyez sur la touche <b>micro</b> : elle s’allume, l’AudioLink capte la voix autour de lui. Posez-le sur la station pour un groupe, ou clipsez-le sur la personne qui vous parle.',video:V('O61qYt9wWAc','Voir la vidéo : micro à distance'),
+          q:{t:'La touche micro est allumée ?',ok:'Le micro à distance fonctionne.',ko:'Vérifiez que l’AudioLink est bien appairé au processeur (étape 2).'},
+          pro:'AudioKey 3 → '+K('Options de connectivité','Connectivity Options')+' → AudioLink : cochez la case pour entendre le mélange AudioLink + micros du processeur, décochez pour l’AudioLink seul. Touche <b>mix</b> allumée = mélange.'}
+      ]; },
+      done:{h:'Tout est prêt',p:'Votre AudioLink est appairé : téléphone, TV, musique et micro à distance.'}},
+    audiolinkxt:{type:'steps',crumb:'AudioLink XT',objet3d:'audiolinkxt',trail:'AudioLink XT',title:'AudioLink XT',
+      notice:(st)=>avecNotePro(st,'<b>Sonnet 3</b> : en direct. <b>Sonnet 1 et 2</b> : seulement avec un cover AudioStream. <b>Rondo 3</b> : seulement avec l’adaptateur AudioStream.'),
+      steps:(st,c)=>{ const k=st.appareil, s12=k==='s1'||k==='s2', r3=k==='r3', s3=k==='s3';
+        const prep={s3:'Éteignez le Sonnet 3.',s12:'Faites glisser le <b>cover AudioStream</b> hors du processeur : il s’éteint.',r3:'Branchez l’<b>adaptateur AudioStream</b> sur le Rondo 3, puis éteignez le Rondo 3.'};
+        const connu=s3||s12||r3;
+        return [
+        {scene:'off',h:'Préparer le processeur',p:connu?prep[s3?'s3':s12?'s12':'r3']:'Selon votre processeur :',
+          branches:connu?[]:[br('Sonnet 3',prep.s3),br('Sonnet 1 ou 2',prep.s12),br('Rondo 3',prep.r3)]},
+        {scene:'audiolink',h:'Allumer l’AudioLink XT',p:'Appuyez environ <b>2 secondes</b> sur le bouton principal. Seul le voyant d’état doit être allumé.',video:V('WuKWgdfxL6s','Voir la vidéo : allumer l’AudioLink XT')},
+        {scene:'audiolink-bt',h:'Mode appairage',p:'Appuyez <b>ensemble 2 secondes</b> sur les touches <b>télécoil</b> et <b>micro</b>. Les symboles bleus gauche et droite clignotent vite.',
+          tip:{ic:'horloge',t:'60 secondes chrono',s:'L’AudioLink XT reste environ 60 secondes en mode appairage.'}},
+        {scene:'dock-blink',geste:'proc-xt',h:'Approcher et allumer',p:'Posez le processeur près de l’AudioLink XT et allumez-le'+(s12?' en remettant le cover AudioStream':'')+'. Le symbole du côté trouvé arrête de clignoter.',
+          p2:'Deux processeurs ? Recommencez avec le second. Pour quitter le mode appairage, appuyez sur une des trois touches du haut.',
+          video:V(s12?'cJCltlddM_Y':r3?'YC1nb7XwUfw':'HZbbUCjaXb8','Voir la vidéo : appairer l’AudioLink XT'),
+          q:{t:'Le symbole de votre côté a arrêté de clignoter ?',ok:'Appairé, bravo !',ko:'Recommencez à l’étape 3. Toujours rien ? Effacez les anciens appairages : mode appairage (télécoil + micro 2 s), puis <b>volume +</b> et <b>volume −</b> ensemble.'},
+          pro:'Réinitialisation usine (vidéo MED-EL) : bouton principal + volume + + micro ensemble, relâcher quand les touches s’allument.'},
+        {scene:'micro',h:'À vous de jouer !',p:'<b>TV</b> : reliez la station d’accueil à la TV (câble audio pour vous seul, RCA pour écouter à plusieurs), prise TV réglée en <b>sortie</b>.',
+          p2:'<b>Micro à distance</b> : appuyez sur la touche micro, elle s’allume. Station pour un groupe, clip pour une conversation à deux. Réappuyez pour arrêter.',
+          branches:s3?[br('Une aide auditive de l’autre côté ?','Coupez le Bluetooth du téléphone. Mettez l’XT en appairage (télécoil + micro 2 s), posez Sonnet 3 et aide auditive à côté et allumez-les. <a href="https://www.youtube.com/watch?v=S8XaskywIcI" target="_blank" rel="noopener">Vidéo</a>')]:[],
+          video:V('ABR6r3XMCQM','Voir la vidéo : micro à distance'),
+          q:{t:'Petit jeu : le voyant d’état est orange et fixe. Ça veut dire…',oui:'Il charge',non:'Il est en panne',ok:'Exact ! Orange fixe = en charge, vert fixe = chargé.',ko:'Pas de panique : orange fixe veut dire qu’il est en charge. Vert fixe = chargé.'},
+          pro:'AudioKey 3 → '+K('Options de connectivité','Connectivity Options')+' → AudioLink XT → '+K('Configurer','Configure')+' ; mode configuration : volume + et bouton principal 2 s. Réglages : bip, arrêt du streaming après X minutes de silence.'}
+      ]; },
+      done:{h:'Connexion réussie',p:'Votre AudioLink XT est appairé à votre processeur.'}},
+    finetuner:{type:'steps',crumb:'FineTuner Echo',objet3d:'finetuner',trail:'FineTuner',title:'FineTuner Echo',
       steps:[
         {scene:'remote',h:'Réinitialiser la télécommande',p:'Maintenez ensemble <b>Volume +</b>, <b>Volume −</b> et la <b>demi-lune</b> de la colonne gauche. Une lumière verte doit s’allumer puis s’éteindre seule.'},
         {scene:'off',h:'Éteindre le processeur',p:'Retirez le capuchon si c’est un <b>Sonnet</b>, ou appuyez au centre si c’est un <b>Rondo 3</b>.'},
-        {scene:'remote',h:'Poser sur la télécommande',p:'Posez l’antenne du processeur sur la télécommande (Sonnet), ou déposez le Rondo 3 <b>sous l’écran</b>, puis allumez-le.'},
+        {scene:'remote',geste:'coil-finetuner',h:'Poser sur la télécommande',p:'Posez l’antenne du processeur sur la télécommande (Sonnet), ou déposez le Rondo 3 <b>sous l’écran</b>, puis allumez-le.'},
         {scene:'remote-ok',h:'Vérifier la validation',p:'Une flèche de validation apparaît à l’écran.',fb:{ok:'La flèche « validé » est affichée — c’est bon !',retry:'Sinon, retirez la pile de la télécommande et recommencez.'}}
       ],
       done:{h:'Télécommande appairée',p:'Votre FineTuner Echo est prêt à piloter votre processeur.'}},
@@ -1531,45 +2031,46 @@ class Component extends DCLogic {
         {tag:'1·2',name:'Sonnet 1·2 / Rondo 3',desc:'Pas de Bluetooth intégré : nécessite la clé AudioStream insérée dans le processeur.'}
       ]}},
     sonnet3:{type:'steps',crumb:'Sonnet 3',trail:'Sonnet 3',title:'Sonnet 3',platform:true,
-      stepsAndroid:[
-        {scene:'on',h:'Allumer le Sonnet 3',p:'Mettez votre Sonnet 3 sous tension.'},
-        {scene:'phone-bt',h:'Activer le Bluetooth',p:'Dans les <b>Réglages</b>, activez le <b>Bluetooth</b>, puis recherchez <b>Sonnet 3</b>.'},
-        {scene:'success',h:'Se connecter',p:'Sélectionnez Sonnet 3 et connectez-vous.'}
-      ],
-      stepsApple:[
-        {scene:'on',h:'Allumer le Sonnet 3',p:'Mettez votre Sonnet 3 sous tension et gardez-le à portée du téléphone.'},
-        {scene:'phone-bt',h:'Réglages d’accessibilité',p:'<b>Réglages</b> → <b>Accessibilité</b> → <b>Appareils auditifs</b> (Bluetooth activé).'},
-        {scene:'phone-bt',h:'Sélectionner le processeur',p:'Votre <b>Sonnet 3</b> apparaît dans la liste. Touchez son nom puis acceptez le jumelage (une fois par côté).'},
-        {scene:'success',h:'Confirmer',p:'Une fois « Connecté » affiché, l’audio de l’iPhone est diffusé vers votre Sonnet 3.',video:{url:'https://www.youtube.com/watch?v=P-QCeVF8DRE',label:'Voir la vidéo officielle MED-EL'}}
-      ],
+      notice:(st)=>avecNotePro(st,''),
+      stepsAndroid:(st)=>s3Steps(false),
+      stepsApple:(st)=>s3Steps(true),
       done:{h:'Sonnet 3 connecté',p:'Votre processeur reçoit le son de votre téléphone.'}},
+    mixte:{type:'steps',crumb:'Sonnet 3 + AudioStream',trail:'Mixte',title:'Sonnet 3 d’un côté, AudioStream de l’autre',
+      notice:(st)=>avecNotePro(st,'Pour qui porte un <b>Sonnet 3</b> d’un côté et un <b>Sonnet, Sonnet 2 ou Rondo 3</b> avec AudioStream de l’autre : le son arrive des deux côtés.'),
+      steps:[
+        {scene:'off',h:'Tout éteindre',p:'Éteignez le Sonnet 3 et l’AudioStream. Ils ne doivent être connectés à <b>aucun</b> appareil.',p2:'Activez le <b>Bluetooth</b> du téléphone et ouvrez la <b>dernière version</b> d’AudioKey.',video:V('Ii2Wxo-Pt40','Voir la vidéo officielle MED-EL')},
+        {scene:'phone-app',h:'Choisir le Sonnet 3',p:'Dans AudioKey : '+K('Options de connectivité','Connectivity Options')+' → '+K('SONNET 3','SONNET 3')+' → '+K('Configurer','Configure')+', puis '+K('Suivant','Next')+'.'},
+        {scene:'on',h:'Allumer le Sonnet 3',p:'Faites glisser le couvercle du compartiment à piles sur le Sonnet 3 pour l’allumer, posez-le <b>à côté du téléphone</b> et touchez '+K('Suivant','Next')+'.'},
+        {scene:'as-cover',h:'Brancher l’AudioStream',p:'Mettez le cover ou l’adaptateur AudioStream sur l’<b>autre</b> processeur, posez-le à côté du téléphone et touchez '+K('Configurer','Configure')+'.'},
+        {scene:'pair',h:'Jumeler',p:'Si l’écran '+K('Demande de jumelage Bluetooth','Bluetooth pairing request')+' apparaît, touchez '+K('Jumeler','Pair')+'.',
+          q:{t:'Lancez une chanson : elle arrive dans les deux oreilles ?',ok:'Stéréo des deux côtés, bravo !',ko:'Reprenez à l’étape 1 en vérifiant que rien n’est déjà connecté. Sinon, demandez l’aide d’un technicien.'},
+          pro:'La vidéo dit seulement « dernière version d’AudioKey » (sans numéro).'}
+      ],
+      done:{h:'Les deux côtés sont connectés',p:'Le son du téléphone arrive au Sonnet 3 et à l’AudioStream.'}},
+    accessoires3d:{type:'menu',crumb:'Accessoires en 3D',trail:'Accessoires 3D',eyebrow:'Accessoires',
+      title:'Le matériel en <em style="font-style:italic;color:var(--accent)">3D</em>',
+      lede:'Touchez un accessoire pour le voir en 3D, le tourner dans tous les sens et savoir à quoi il sert.',
+      options:(st,c)=>c.ACCESSOIRES.map(a=>({to:'acc_'+a.k, icon:'chip', title:a.nom, sub:a.cat}))},
+    ...Object.fromEntries(this.ACCESSOIRES.map(a=>['acc_'+a.k, {type:'menu', objet3d:a.k, crumb:a.nom, trail:a.nom, eyebrow:a.cat,
+      title:a.nom, lede:a.desc,
+      options:[
+        {href:this.BOUTIQUE, icon:'support', title:'Boutique MED-EL', sub:'Prix affiché après connexion à votre compte myMED-EL', accent:true},
+        {to:'help', icon:'support', title:'Demander l’aide d’un technicien', sub:'Envoyez votre besoin par mail ou SMS'}
+      ]}])),
     p_legacy:{type:'menu',crumb:'Sonnet 1·2 · Rondo 3',trail:'AudioStream',eyebrow:'AudioStream',title:'Quel <em style="font-style:italic;color:var(--accent)">modèle</em> ?',lede:'La connexion se fait via l’accessoire AudioStream.',
       options:[
-        {to:'sonnet12',n:'1',title:'Sonnet 1 et 2',sub:'Via AudioStream'},
-        {to:'rondo3',n:'2',title:'Rondo 3',sub:'Via AudioStream'}
+        {to:'sonnet12',n:'1',title:'Sonnet 1 et 2',sub:'Cover AudioStream'},
+        {to:'rondo3',n:'2',title:'Rondo 3',sub:'Adaptateur AudioStream'}
       ]},
-    sonnet12:{type:'steps',crumb:'Sonnet 1 et 2',trail:'Sonnet 1·2',title:'Sonnet 1 & 2',platform:true,
-      stepsAndroid:[
-        {scene:'off',h:'Insérer l’AudioStream & redémarrer',p:'Vérifiez que l’<b>AudioStream</b> est bien inséré, puis éteignez et rallumez le processeur.'},
-        {scene:'phone-bt',h:'Rechercher dans le Bluetooth',p:'Allez dans le menu <b>Bluetooth</b> et recherchez <b>AudioStream</b>.'},
-        {scene:'success',h:'Se connecter',p:'Sélectionnez AudioStream et connectez-vous.',fb:{retry:'Si vous ne trouvez pas l’AudioStream, essayez un autre appareil. Sinon retournez-le-nous : s’il a moins de deux ans, il sera remplacé à neuf.'}}
-      ],
-      stepsApple:[
-        {scene:'off',h:'Insérer l’AudioStream & redémarrer',p:'Vérifiez que l’<b>AudioStream</b> est bien inséré, puis éteignez et rallumez le processeur.'},
-        {scene:'phone-bt',h:'Ouvrir les Réglages',p:'Activez le <b>Bluetooth</b>, puis <b>Réglages</b> → <b>Accessibilité</b> → <b>Appareils auditifs</b> pour rechercher l’AudioStream.'},
-        {scene:'success',h:'Se connecter',p:'Sélectionnez l’AudioStream et acceptez le jumelage.',video:{url:'https://www.youtube.com/watch?v=uRrmI4liHTk&list=PLT_--N4wea5D9Qec2QPA1tTrrzPimyDPa',label:'Voir la vidéo Sonnet 2 (Apple)'},fb:{retry:'Si vous ne trouvez pas l’AudioStream, essayez un autre appareil. Sinon retournez-le-nous : s’il a moins de deux ans, il sera remplacé à neuf.'}}
-      ],
-      done:{h:'Sonnet connecté',p:'L’AudioStream relaie le son vers votre processeur.'}},
-    rondo3:{type:'steps',crumb:'Rondo 3',trail:'Rondo 3',title:'Rondo 3',platform:true,
-      stepsAndroid:[
-        {scene:'off',h:'Insérer l’AudioStream & redémarrer',p:'Vérifiez que l’<b>AudioStream</b> est bien inséré, puis éteignez et rallumez le processeur.'},
-        {scene:'success',h:'Rechercher dans le Bluetooth',p:'Allez dans le menu <b>Bluetooth</b>, recherchez <b>AudioStream</b> et connectez-vous.'}
-      ],
-      stepsApple:[
-        {scene:'off',h:'Insérer l’AudioStream & redémarrer',p:'Vérifiez que l’<b>AudioStream</b> est bien inséré, puis éteignez et rallumez le processeur.'},
-        {scene:'phone-bt',h:'Suivre la vidéo Apple',p:'L’appairage du Rondo 3 sur iPhone se fait via les Réglages d’accessibilité. Suivez la vidéo officielle ci-dessous.',video:{url:'https://www.youtube.com/watch?v=1wIGRH1BGeo&list=PLT_--N4wea5C6aA7f583X6ArbCSeh4zP5',label:'Voir la vidéo Rondo 3 (Apple)'}}
-      ],
-      done:{h:'Rondo 3 connecté',p:'L’AudioStream relaie le son vers votre processeur.'}},
+    sonnet12:{type:'steps',crumb:'Sonnet 1 et 2',objet3d:'audiostream',trail:'Sonnet 1·2',title:'Sonnet 1 & 2 · AudioStream',platform:true,
+      notice:(st)=>avecNotePro(st,''),
+      stepsAndroid:()=>asSteps(false,false), stepsApple:()=>asSteps(false,true),
+      done:{h:'Sonnet connecté',p:'AudioStream se reconnectera tout seul dès qu’il sera allumé et le Bluetooth actif.'}},
+    rondo3:{type:'steps',crumb:'Rondo 3',objet3d:'audiostream-adapter',trail:'Rondo 3',title:'Rondo 3 · AudioStream',platform:true,
+      notice:(st)=>avecNotePro(st,''),
+      stepsAndroid:()=>asSteps(true,false), stepsApple:()=>asSteps(true,true),
+      done:{h:'Rondo 3 connecté',p:'L’adaptateur se reconnectera tout seul dès qu’il sera branché et le Bluetooth actif.'}},
+    // ---------- CONNECTIVITE-FIN ----------
     // ---------- ARBRE-DEBUT ----------
     // Arbre d'auto-diagnostic repris du prototype « Processor Viewer ».
     // Ne pas éditer à la main : régénérer avec
