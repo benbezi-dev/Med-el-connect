@@ -319,13 +319,16 @@
 </style>
 <style>
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  @keyframes melPulse{0%,100%{box-shadow:0 0 0 4px var(--accent-soft)}50%{box-shadow:0 0 0 7px rgba(226,0,26,.08)}}
+  /* Pulse en transform/opacity (composité) : un box-shadow animé repeint à chaque image. */
+  .mel-pulse::after{content:'';position:absolute;inset:-3px;border-radius:50%;border:3px solid rgba(226,0,26,.3);pointer-events:none;animation:melOnde 1.6s cubic-bezier(.2,.6,.3,1) infinite}
+  .mel-pulse.lent::after{animation-duration:2.4s}
+  @keyframes melOnde{from{transform:scale(.85);opacity:1}to{transform:scale(1.6);opacity:0}}
   @keyframes melRise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
   @keyframes melRing{0%{transform:scale(.85);opacity:.6}100%{transform:scale(1.25);opacity:0}}
   @keyframes melPop{0%{transform:scale(0)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
   @keyframes melScene{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
   @keyframes melFall{to{transform:translateY(110vh) rotate(720deg);opacity:.2}}
-  @media(prefers-reduced-motion:reduce){*{animation:none!important}}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important}.mel-pulse::after{display:none}}
 </style>
 </helmet>
 <div style="{{ rootStyle }}">
@@ -339,7 +342,7 @@
           </button>
         </sc-if>
         <div style="display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.02em;font-size:16px">
-          <span style="width:11px;height:11px;border-radius:50%;background:var(--accent);flex-shrink:0;box-shadow:0 0 0 4px var(--accent-soft);animation:melPulse 2.4s ease-in-out infinite"></span>
+          <span style="width:11px;height:11px;border-radius:50%;background:var(--accent);flex-shrink:0;box-shadow:0 0 0 4px var(--accent-soft);position:relative" class="mel-pulse lent"></span>
           <div>MED-EL Connect<small style="display:block;font-weight:500;font-size:11px;color:var(--ink-soft);letter-spacing:0;margin-top:-2px">{{ crumb }}</small></div>
         </div>
         <button onclick="{{ onInstall }}" aria-label="Installer l’application" title="Installer l’application" style="margin-left:auto;border:1px solid var(--line);background:var(--card-bg);width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--accent);transition:transform .18s,border-color .18s" style-hover="border:1px solid var(--accent);transform:translateY(-1px)">
@@ -713,8 +716,8 @@ class Component extends DCLogic {
     const kids=[...blocs.slice(0,-1), ...(ecran && ecran.children.length ? [...ecran.children] : [ecran||el])];
     kids.forEach((k,i)=>{
       k.animate(
-        [{opacity:0,transform:'translate3d(0,48px,0)'},{opacity:1,transform:'none'}],
-        {duration:1000,delay:Math.min(i*100,500),easing:ease,fill:'backwards'}
+        [{opacity:0,transform:'translate3d(0,14px,0)'},{opacity:1,transform:'none'}],
+        {duration:420,delay:Math.min(i*45,180),easing:ease,fill:'backwards'}
       );
     });
   }
@@ -877,7 +880,8 @@ class Component extends DCLogic {
         dim();
         if(window.ResizeObserver){ v.ro=new ResizeObserver(dim); v.ro.observe(zone); }
         const lent=matchMedia('(prefers-reduced-motion:reduce)').matches;
-        const boucle=()=>{ if(v.mort) return; if(v.auto && !lent) pivot.rotation.y+=0.006; if(v.tick && !lent) v.tick(performance.now()/1000);
+        let avant=performance.now();
+        const boucle=(now=performance.now())=>{ if(v.mort) return; const dt=Math.min(0.05,(now-avant)/1000); avant=now; if(v.auto && !lent) pivot.rotation.y+=0.36*dt; if(v.tick && !lent) v.tick(performance.now()/1000);
           ctl.update(); r.render(sc,cam); v.raf=requestAnimationFrame(boucle); };
         boucle();
       }, undefined, err=>{ console.error('glb:', err); this.vueEchec(v); });
@@ -943,25 +947,29 @@ class Component extends DCLogic {
     audiolinkAbsent:{img:'ak-audiolink-absent', r:250/360},
   };
   ecransEl(liste){
-    const E=React.createElement, n=liste.length, dur=2.8*n, id='ak'+liste.map(e=>e.e+(e.tap||'')).join('').replace(/[^a-z0-9]/gi,'').slice(0,40);
+    // S s par écran, dont T s de fondu croisé : l'écran suivant entre pendant que l'autre sort (plus de blanc entre deux).
+    const S=3, T=0.5, E=React.createElement, n=liste.length, dur=S*n, id='ak'+liste.map(e=>e.e+(e.tap||'')).join('').replace(/[^a-z0-9]/gi,'').slice(0,40);
+    const anim=nom=>nom+' '+dur+'s cubic-bezier(.4,0,.2,1) infinite';
     // Cadre de 180 px de large, rétréci pour qu'un écran haut tienne en 380 px.
     const rMax=Math.max(...liste.map(e=>this.ECRANS[e.e].r)), larg=Math.min(180, Math.round(368/rMax)+12), haut=Math.round((larg-12)*rMax)+12;  // bordure de 6 px comprise
     let css='';
-    liste.forEach((e,i)=>{ const a=i/n*100, b=(i+1)/n*100, f=x=>x.toFixed(2)+'%';
-      css+= n>1 ? '@keyframes '+id+'e'+i+'{0%{opacity:0;transform:translateX(14%)}'+(a>0?f(a)+'{opacity:0;transform:translateX(14%)}':'')
-               +f(a+2.5)+'{opacity:1;transform:none}'+f(b-2.5)+'{opacity:1;transform:none}'+f(b)+'{opacity:0;transform:translateX(-14%)}100%{opacity:0}}' : '';
-      const t0=a+(b-a)*0.35, t1=a+(b-a)*0.8;
-      css+='@keyframes '+id+'t'+i+'{0%,'+f(t0)+'{opacity:0;transform:translate(-50%,-50%) scale(.5)}'+f(t0+3)+'{opacity:1;transform:translate(-50%,-50%) scale(1)}'
-          +f(t1)+'{opacity:1;transform:translate(-50%,-50%) scale(1)}'+f(Math.min(t1+5,b))+'{opacity:0;transform:translate(-50%,-50%) scale(1.9)}100%{opacity:0}}';
+    liste.forEach((e,i)=>{ const a=i*S, b=a+S, p=s=>(s/dur*100).toFixed(2)+'%';
+      const vu='{opacity:1;transform:none}', avant='{opacity:0;transform:translateX(8%)}', apres='{opacity:0;transform:translateX(-8%)}';
+      if(n>1) css+='@keyframes '+id+'e'+i+'{'+(i===0
+          ? '0%'+vu+p(b-T)+vu+p(b)+apres+p(dur-T)+avant+'100%'+vu
+          : '0%'+avant+p(a-T)+avant+p(a)+vu+p(b-T)+vu+(b<dur?p(b)+apres:'')+'100%'+apres)+'}';
+      const tr='transform:translate(-50%,-50%) scale(';
+      css+='@keyframes '+id+'t'+i+'{0%,'+p(a+0.9)+'{opacity:0;'+tr+'.6)}'+p(a+1.2)+'{opacity:1;'+tr+'1)}'
+          +p(a+1.9)+'{opacity:1;'+tr+'1)}'+p(a+2.4)+'{opacity:0;'+tr+'1.8)}100%{opacity:0;'+tr+'1.8)}}';
     });
     css+='@media (prefers-reduced-motion:reduce){.'+id+' *{animation:none!important}}';
     const couche=(e,i)=>{ const ec=this.ECRANS[e.e];
-      return E('div',{key:i,style:{position:'absolute',inset:0,opacity:i===0?1:0,animation:n>1?id+'e'+i+' '+dur+'s infinite':'none'}},
+      return E('div',{key:i,style:{position:'absolute',inset:0,opacity:i===0?1:0,willChange:n>1?'opacity,transform':'auto',animation:n>1?anim(id+'e'+i):'none'}},
         E('img',{src:this.image(ec.img),alt:e.legende||'',style:{width:'100%',display:'block'}}),
         e.tap ? E('span',{style:{position:'absolute',left:e.tap[0]+'%',top:(e.tap[1]*ec.r*(larg-12)/(haut-12))+'%',width:'34px',height:'34px',borderRadius:'50%',
           border:'3px solid #E2001A',background:'rgba(226,0,26,.25)',boxShadow:'0 0 0 6px rgba(226,0,26,.12)',opacity:0,transform:'translate(-50%,-50%)',
-          animation:id+'t'+i+' '+dur+'s infinite'}}) : null); };
-    const leg=(e,i)=>E('div',{key:i,style:{position:n>1?'absolute':'static',inset:0,textAlign:'center',opacity:n>1?(i===0?1:0):1,animation:n>1?id+'e'+i+' '+dur+'s infinite':'none'}},
+          animation:anim(id+'t'+i)}}) : null); };
+    const leg=(e,i)=>E('div',{key:i,style:{position:n>1?'absolute':'static',inset:0,textAlign:'center',opacity:n>1?(i===0?1:0):1,animation:n>1?anim(id+'e'+i):'none'}},
       E('b',{style:{color:'var(--accent)'}},(i+1)+'/'+n+' '), e.legende||'');
     return E('div',{className:id,style:{display:'flex',flexDirection:'column',alignItems:'center',margin:'16px 0 4px'}},
       E('style',null,css),
@@ -1275,9 +1283,11 @@ class Component extends DCLogic {
     hote.addEventListener('wheel', v.onWheel, {passive:false});
 
     const lent=matchMedia('(prefers-reduced-motion:reduce)').matches;
-    const boucle=()=>{ v.t+=0.016;
-      if(v.auto && !lent) v.ry+=0.0045;
-      const k=lent?1:0.12;
+    // Vitesses par seconde (et non par image) : même mouvement à 30, 60 ou 120 i/s.
+    let avant=performance.now();
+    const boucle=(now=performance.now())=>{ const dt=Math.min(0.05,(now-avant)/1000); avant=now; v.t+=dt;
+      if(v.auto && !lent) v.ry+=0.27*dt;
+      const k=lent?1:1-Math.pow(0.88,dt*60);
       v.crx+=(v.rx-v.crx)*k; v.cry+=(v.ry-v.cry)*k;
       v.crz+=(v.rz-v.crz)*k; v.czoom+=(v.zoom-v.czoom)*k;
       try{ this.dessinerVue3d(v); }catch(err){ console.error('vue3d:', err && err.stack || err); }
@@ -1873,12 +1883,12 @@ class Component extends DCLogic {
     const choix=this.state.carteZone, rond=n=>String.fromCharCode(0x2460+n-1);
     const pannesDe=n=>(carte.pannes[n]||[]).map(k=>k[0]==='*' ? (this.estPro()?k.slice(1):null) : k).filter(k=>k&&opts[k]);
     const bulles=Object.entries(carte.points).map(([n,[x,y]])=>{ n=+n; const actif=choix===n, utile=pannesDe(n).length>0;
-      return E('button',{key:n, 'aria-label':'Repère '+n+' : '+(noms[n]||''), onClick:()=>this.setState({carteZone:n}),
+      return E('button',{key:n, className:utile&&!actif?'mel-pulse':undefined, 'aria-label':'Repère '+n+' : '+(noms[n]||''), onClick:()=>this.setState({carteZone:n}),
         // Anneau transparent autour de la pastille du schéma : le numéro reste lisible.
         style:{position:'absolute', left:x+'%', top:y+'%', transform:'translate(-50%,-50%)'+(actif?' scale(1.15)':''), width:'28px', height:'28px', borderRadius:'50%',
           border:'2.5px solid '+(actif?'#fff':(utile?'var(--accent)':'rgba(0,0,0,.25)')), background: actif?'var(--accent)':'rgba(255,255,255,.92)',
           boxShadow: actif?'0 0 0 4px rgba(226,0,26,.35)':'none', cursor:'pointer', padding:0, transition:'transform .2s',
-          animation: utile&&!actif ? 'melPulse 1.6s ease-in-out infinite' : 'none', color:actif?'#fff':'var(--accent)', fontWeight:800, fontSize:'13px'}}, String(n)); });
+          color:actif?'#fff':'var(--accent)', fontWeight:800, fontSize:'13px'}}, String(n)); });
     const pan=choix ? pannesDe(choix) : [];
     const bouton=(to,titre,sous,accent)=>E('button',{key:to+titre, onClick:()=>this.go(to),
       style:{display:'flex',alignItems:'center',gap:'12px',width:'100%',textAlign:'left',fontFamily:'inherit',fontSize:'15.5px',fontWeight:700,
@@ -2030,7 +2040,7 @@ class Component extends DCLogic {
       lede:'Deux chemins : brancher le mat\u00e9riel, ou chercher d\u2019o\u00f9 vient une panne.',
       options:(st,c)=>{
         const a=c.appareil(); const liste=[];
-        liste.push({to: (a&&a.aucuneConnectivite)?'sans_connect':'connect', n:'1',
+        liste.push({to: (a&&a.aucuneConnectivite)?'sans_connect':'telephone', n:'1',
           title:'Aide \u00e0 la connectivit\u00e9', sub:'Appairer un accessoire, l\u2019application ou le t\u00e9l\u00e9phone'});
         liste.push({to: c.racineDiag()==='sans_diag' ? 'sans_diag' : 'carte_sav', n:'2', title:'Auto-diagnostic',
           sub:'Le processeur ne marche pas comme d\u2019habitude'});
@@ -2054,6 +2064,15 @@ class Component extends DCLogic {
       options:[
         {to:'help', icon:'support', title:'Demander l\u2019aide d\u2019un technicien', sub:'D\u00e9crivez le sympt\u00f4me, on vous rappelle', accent:true},
         {to:'appareil', icon:'proc', title:'Changer de processeur', sub:'Ce n\u2019est pas le bon mod\u00e8le'}
+      ]},
+
+    // Le téléphone d'abord : il fixe Android / iPhone pour tous les parcours qui suivent.
+    telephone:{type:'menu',crumb:'T\u00e9l\u00e9phone',trail:'T\u00e9l\u00e9phone',eyebrow:'\u00c9tape 4',
+      title:'Quel <em style="font-style:italic;color:var(--accent)">t\u00e9l\u00e9phone</em> avez-vous ?',
+      lede:'Les menus ne sont pas les m\u00eames sur iPhone et sur Android : je vous montre ceux de votre t\u00e9l\u00e9phone.',
+      options:[
+        {to:'connect',icon:'phone',title:'iPhone',sub:'Apple',memo:{platform:'Apple'}},
+        {to:'connect',icon:'phone',title:'Android',sub:'Samsung, Google Pixel, Xiaomi, Oppo, Huawei\u2026',memo:{platform:'Android'}}
       ]},
 
     connect:{type:'menu',crumb:'Connectivit\u00e9',trail:'Connectivit\u00e9',eyebrow:'Connectivit\u00e9',
