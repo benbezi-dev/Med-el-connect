@@ -379,7 +379,7 @@
             <div style="height:244px;border-radius:var(--radius);background:#fff;border:1px solid var(--line);overflow:hidden;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;padding:14px">
               {{ photoEl }}
             </div>
-            <p style="margin:9px 2px 0;font-size:12.5px;color:var(--ink-soft);line-height:1.45">{{ photoAlt }} — visuel officiel MED-EL.</p>
+            <p style="margin:9px 2px 0;font-size:12.5px;color:var(--ink-soft);line-height:1.45">{{ photoLegende }}</p>
             <sc-if value="{{ aLegende }}" hint-placeholder-val="{{ false }}">
               <p style="margin:7px 2px 0;font-size:12.5px;color:var(--ink-soft);line-height:1.7">{{ legendeReperes }}</p>
             </sc-if>
@@ -508,6 +508,7 @@
             <h2 style="font-size:20px;font-weight:700;letter-spacing:-.01em;margin:0 0 11px;line-height:1.3">{{ step.h }}</h2>
             <div style="color:var(--ink-soft);font-size:16px;line-height:1.55">{{ step.pEl }}</div>
             <sc-if value="{{ step.hasP2 }}" hint-placeholder-val="{{ false }}"><div style="color:var(--ink-soft);font-size:16px;line-height:1.55;margin-top:10px">{{ step.p2El }}</div></sc-if>
+            <sc-if value="{{ step.hasEcrans }}" hint-placeholder-val="{{ false }}"><div>{{ step.ecransEl }}</div></sc-if>
             <sc-for list="{{ step.branches }}" as="b" hint-placeholder-count="0">
               <div style="margin-top:11px;padding:13px 15px;border-radius:13px;background:var(--page-bg);border:1px solid var(--line);font-size:15px;line-height:1.5"><b style="color:var(--ink)">{{ b.label }} —</b> {{ b.htmlEl }}</div>
             </sc-for>
@@ -685,7 +686,8 @@ class Component extends DCLogic {
 
   // ---------- helpers ----------
   H(html, tag='span'){ return React.createElement(tag,{dangerouslySetInnerHTML:{__html:html}}); }
-  setMainRef = (el)=>{ this._main = el; };
+  // window.__medel : accès au composant pour les contrôles automatiques (sans effet pour l'utilisateur).
+  setMainRef = (el)=>{ this._main = el; window.__medel = this; };
 
   componentDidUpdate(prevProps, prevState){
     // Le runtime n'appelle pas toujours ce hook avec prevState : on garde le
@@ -738,13 +740,14 @@ class Component extends DCLogic {
   }
   doNativeInstall=()=>{ var e=this._bip; if(e){ e.prompt(); e.userChoice&&e.userChoice.then(()=>{ this._bip=null; this.closeInstall(); }); } };
   _installVM(){ var os=this.platformInfo().os;
-    var mk=function(n,t){return {n:n,t:t};};
+    // Le gabarit affiche st.tEl (texte en HTML) : la clé t seule restait vide à l'écran.
+    var mk=(n,t)=>({n:n, tEl:this.H(t)});
     return {
       isIOS:os==='ios', isAndroid:os==='android', isMac:os==='mac', isDesktop:os==='desktop',
-      stepsIOS:[mk('1','Touchez le bouton <b>Partager/b> en bas de Safari (carré + flèche vers le haut).'),mk('2','Faites défiler puis touchez <b>« Sur l’écran d’accueil »/b>.'),mk('3','Touchez <b>Ajouter/b> en haut à droite. L’icône apparaît.')],
-      stepsAndroid:[mk('1','Touchez le menu <b>⋮/b> (trois points) en haut à droite de Chrome.'),mk('2','Touchez <b>« Ajouter à l’écran d’accueil »/b> (ou « Installer l’application »).'),mk('3','Confirmez avec <b>Ajouter/b>. L’icône apparaît.')],
-      stepsMac:[mk('1','Dans la barre de menus Safari, ouvrez <b>Fichier/b>.'),mk('2','Choisissez <b>« Ajouter au Dock »/b> (Safari 17 et plus).'),mk('3','L’application s’ouvre depuis le Dock, dans sa propre fenêtre.')],
-      stepsDesktop:[mk('1','Cliquez sur le menu <b>⋮/b> (Chrome) ou <b>···/b> (Edge) en haut à droite.'),mk('2','Choisissez <b>« Installer cette page comme application »/b>.'),mk('3','Validez avec <b>Installer/b>. Un raccourci est créé.')]
+      stepsIOS:[mk('1','Touchez le bouton <b>Partager</b> en bas de Safari (carré + flèche vers le haut).'),mk('2','Faites défiler puis touchez <b>« Sur l’écran d’accueil »</b>.'),mk('3','Touchez <b>Ajouter</b> en haut à droite. L’icône apparaît.')],
+      stepsAndroid:[mk('1','Touchez le menu <b>⋮</b> (trois points) en haut à droite de Chrome.'),mk('2','Touchez <b>« Ajouter à l’écran d’accueil »</b> (ou « Installer l’application »).'),mk('3','Confirmez avec <b>Ajouter</b>. L’icône apparaît.')],
+      stepsMac:[mk('1','Dans la barre de menus Safari, ouvrez <b>Fichier</b>.'),mk('2','Choisissez <b>« Ajouter au Dock »</b> (Safari 17 et plus).'),mk('3','L’application s’ouvre depuis le Dock, dans sa propre fenêtre.')],
+      stepsDesktop:[mk('1','Cliquez sur le menu <b>⋮</b> (Chrome) ou <b>···</b> (Edge) en haut à droite.'),mk('2','Choisissez <b>« Installer cette page comme application »</b>.'),mk('3','Validez avec <b>Installer</b>. Un raccourci est créé.')]
     };
   }
 
@@ -924,6 +927,49 @@ class Component extends DCLogic {
     };
     v.surligner(v.zones);
   }
+  // ---------- démo animée des écrans AudioKey ----------
+  // Captures réelles de l'appli (source/images/ak-*.jpg), enchaînées en CSS pur :
+  // l'écran glisse, un rond rouge touche le bouton à presser, la légende suit.
+  // `tap` = [x%, y%] dans la capture recadrée. Mouvement réduit : 1er écran fixe.
+  ECRANS = {
+    options:        {img:'ak-options', r:651/360},
+    audiostream:    {img:'ak-audiostream', r:292/360},
+    sonnet3:        {img:'ak-sonnet3', r:221/360},
+    audiolinkxt:    {img:'ak-audiolinkxt', r:221/360},
+    profil:         {img:'ak-profil', r:647/360},
+    type:           {img:'ak-type-connexion', r:484/360},
+    bimodalS3:      {img:'ak-bimodal-sonnet3', r:834/360},
+    bimodalAS:      {img:'ak-bimodal-audiostream', r:834/360},
+    audiolinkAbsent:{img:'ak-audiolink-absent', r:250/360},
+  };
+  ecransEl(liste){
+    const E=React.createElement, n=liste.length, dur=2.8*n, id='ak'+liste.map(e=>e.e+(e.tap||'')).join('').replace(/[^a-z0-9]/gi,'').slice(0,40);
+    // Cadre de 180 px de large, rétréci pour qu'un écran haut tienne en 380 px.
+    const rMax=Math.max(...liste.map(e=>this.ECRANS[e.e].r)), larg=Math.min(180, Math.round(368/rMax)+12), haut=Math.round((larg-12)*rMax)+12;  // bordure de 6 px comprise
+    let css='';
+    liste.forEach((e,i)=>{ const a=i/n*100, b=(i+1)/n*100, f=x=>x.toFixed(2)+'%';
+      css+= n>1 ? '@keyframes '+id+'e'+i+'{0%{opacity:0;transform:translateX(14%)}'+(a>0?f(a)+'{opacity:0;transform:translateX(14%)}':'')
+               +f(a+2.5)+'{opacity:1;transform:none}'+f(b-2.5)+'{opacity:1;transform:none}'+f(b)+'{opacity:0;transform:translateX(-14%)}100%{opacity:0}}' : '';
+      const t0=a+(b-a)*0.35, t1=a+(b-a)*0.8;
+      css+='@keyframes '+id+'t'+i+'{0%,'+f(t0)+'{opacity:0;transform:translate(-50%,-50%) scale(.5)}'+f(t0+3)+'{opacity:1;transform:translate(-50%,-50%) scale(1)}'
+          +f(t1)+'{opacity:1;transform:translate(-50%,-50%) scale(1)}'+f(Math.min(t1+5,b))+'{opacity:0;transform:translate(-50%,-50%) scale(1.9)}100%{opacity:0}}';
+    });
+    css+='@media (prefers-reduced-motion:reduce){.'+id+' *{animation:none!important}}';
+    const couche=(e,i)=>{ const ec=this.ECRANS[e.e];
+      return E('div',{key:i,style:{position:'absolute',inset:0,opacity:i===0?1:0,animation:n>1?id+'e'+i+' '+dur+'s infinite':'none'}},
+        E('img',{src:this.image(ec.img),alt:e.legende||'',style:{width:'100%',display:'block'}}),
+        e.tap ? E('span',{style:{position:'absolute',left:e.tap[0]+'%',top:(e.tap[1]*ec.r*(larg-12)/(haut-12))+'%',width:'34px',height:'34px',borderRadius:'50%',
+          border:'3px solid #E2001A',background:'rgba(226,0,26,.25)',boxShadow:'0 0 0 6px rgba(226,0,26,.12)',opacity:0,transform:'translate(-50%,-50%)',
+          animation:id+'t'+i+' '+dur+'s infinite'}}) : null); };
+    const leg=(e,i)=>E('div',{key:i,style:{position:n>1?'absolute':'static',inset:0,textAlign:'center',opacity:n>1?(i===0?1:0):1,animation:n>1?id+'e'+i+' '+dur+'s infinite':'none'}},
+      E('b',{style:{color:'var(--accent)'}},(i+1)+'/'+n+' '), e.legende||'');
+    return E('div',{className:id,style:{display:'flex',flexDirection:'column',alignItems:'center',margin:'16px 0 4px'}},
+      E('style',null,css),
+      E('div',{style:{position:'relative',width:larg+'px',height:haut+'px',borderRadius:'22px',border:'6px solid #1E1E22',background:'#EEEEEE',overflow:'hidden',boxShadow:'0 10px 26px rgba(0,0,0,.18)'}},
+        ...liste.map(couche)),
+      E('div',{style:{position:'relative',width:'100%',minHeight:'22px',marginTop:'10px',fontSize:'13.5px',color:'var(--ink-soft)'}}, ...liste.map(leg)));
+  }
+
   // ---------- gestes animés en 3D (connectivité) ----------
   // Un objet fixe, un objet mobile qui va de `de` à `a` (unités de scène ; `taille` =
   // plus grande dimension). Positions réglées à l'œil sur les modèles Tripo.
@@ -1436,11 +1482,12 @@ class Component extends DCLogic {
     const reperes = (a && a.reperes) ? a.reperes.map(r=>rond(r.n)+'\u00a0'+r.nom).join('\u00a0 \u00b7 ') : '';
     return {
       aVue3d: visible, aPhoto: !!photo,
-      aLegende: !!(montrePhoto && reperes), legendeReperes: reperes,
+      aLegende: false, legendeReperes: reperes,
       montrePhoto: !!montrePhoto, montre3d: !montrePhoto,
       photoEl: photo ? React.createElement('img',{src:photo, alt:(a?a.nom:''),
         style:{maxWidth:'100%',maxHeight:'100%',objectFit:'contain'}}) : null,
       photoAlt: a ? a.nom : '',
+      photoLegende: a ? (a.legendePhoto || a.nom+' — visuel officiel MED-EL.') : '',
       onMontrerPhoto:this.montrerPhoto, onMontrer3d:this.montrer3d,
       ongletPhotoStyle: onglet(!!montrePhoto), onglet3dStyle: onglet(!montrePhoto),
       setVue3dRef:this.setVue3dRef, onVueInitiale:this.vueInitiale,
@@ -1607,6 +1654,7 @@ class Component extends DCLogic {
       stepLabel:'Étape '+(s.stepIndex+1)+' sur '+total, pct, dots,
       step:{ sceneEl: st.geste && this.GESTES[st.geste] ? this.gesteEl(st.geste) : this.scene(st.scene), num:s.stepIndex+1, total, h:st.h,
         pEl:this.H(st.p), hasP2:!!st.p2, p2El: st.p2?this.H(st.p2):null,
+        hasEcrans:!!(st.ecrans&&st.ecrans.length), ecransEl: st.ecrans&&st.ecrans.length ? this.ecransEl(st.ecrans) : null,
         branches:(st.branches||[]).map(b=>({label:b.label, htmlEl:this.H(b.html)})),
         showFbOk:!!(st.fb&&st.fb.ok), fbOk: st.fb&&st.fb.ok?this.H(st.fb.ok):null,
         showFbRetry:!!(st.fb&&st.fb.retry), fbRetry: st.fb&&st.fb.retry?this.H(st.fb.retry):null,
@@ -1691,6 +1739,15 @@ class Component extends DCLogic {
   // à partir de source/images/ : ne pas la modifier à la main.
   IMAGES = {
     "adaptateur-batterie": "177dbbdc-1423-e687-85c2-b943f46f4829",
+    "ak-audiolink-absent": "8459ce05-8701-451a-0256-7b4be39f6b63",
+    "ak-audiolinkxt": "389c7062-304d-21e3-e3ad-367dfb5d21ae",
+    "ak-audiostream": "5907d8b7-3060-e7d9-a545-8d12fc92a7cb",
+    "ak-bimodal-audiostream": "e29b51cd-0d93-85c2-fe77-db0cc3a14118",
+    "ak-bimodal-sonnet3": "de1a2441-cf55-5dd3-e3cc-37fe52d65281",
+    "ak-options": "80bd6138-b24b-dddf-5c5c-fa3c2037e56e",
+    "ak-profil": "10a6e87d-42bc-2a0d-cecc-b2b15b4792b4",
+    "ak-sonnet3": "32190e5f-6716-6117-810b-adad159c11c3",
+    "ak-type-connexion": "d1425c60-e3fe-cecf-07d6-c9697b5ad788",
     "audiolink": "efe252a6-bd8e-a62a-4f37-4fa3742d277f",
     "audiolinkxt": "50e55463-fe04-3f34-80bc-96c30e2bae1d",
     "audiostream-rondo": "844a9ab2-29c0-97a7-cd3d-25d1341e0ba5",
@@ -1700,13 +1757,8 @@ class Component extends DCLogic {
     "finetuner": "63a12c09-72ee-adbb-46a2-a41b07fc3386",
     "r2-vignette": "3a3f5a01-ae0c-46f4-63ce-49dfadafc441",
     "r2": "b95baa59-6131-7513-b7a1-e3447e798624",
-    "r3-vignette": "74f7aafb-1d4b-70c4-3858-afc1082b4c9b",
     "r3": "df1f5e3e-98fb-a239-5e5f-a2c7f1052236",
-    "s1-vignette": "7979763f-8f5c-82fd-af6e-131a23309407",
-    "s1": "8686c060-baf7-91a7-ffb0-3c4bc61a4abe",
-    "s2-vignette": "32a1acc3-934d-81c0-f863-622d5da36463",
-    "s2": "b6b93b3e-4d96-546a-f6f7-be8bdcb564bd",
-    "s3-vignette": "caaecee2-c6b8-c6a9-d5ef-db20414de564",
+    "s2": "cc358234-0f56-68ab-5790-ba64f10c9c39",
     "s3": "3ee4fc56-a680-b338-35d5-fbce5d6f9624",
   };
   // ---------- IMAGES-FIN ----------
@@ -1719,7 +1771,8 @@ class Component extends DCLogic {
   // qui n'y figuraient pas ne sont PAS devinées : voir APPAREILS.r2 et la note
   // `aucuneConnectivite`.
   APPAREILS = {
-    s1:{img:'s1',vign:'s1-vignette',imgFlux:'audiostream',nom:'Sonnet 1', fam:'Sonnet', sous:'Contour d\u2019oreille, antenne s\u00e9par\u00e9e',
+    // Pas encore de photo propre du SONNET 1 : celle du SONNET 2, signalée comme telle.
+    s1:{img:'s2',vign:'s2',legendePhoto:'Photo du SONNET 2, en attendant une photo du SONNET 1.',imgFlux:'audiostream',nom:'Sonnet 1', fam:'Sonnet', sous:'Contour d\u2019oreille, antenne s\u00e9par\u00e9e',
         tech:'Pas de Bluetooth int\u00e9gr\u00e9. Streaming via AudioLink ou cl\u00e9 AudioStream. Pile zinc-air ou accu rechargeable.',
         connecte:['audiolink','audiolinkxt','finetuner','audiokey','proc','mixte'],
         // Rep\u00e8res du sch\u00e9ma s1.png, dans l'ordre de la page officielle MED-EL
@@ -1731,7 +1784,7 @@ class Component extends DCLogic {
           {n:9,nom:'Ergot du coude'},{n:10,nom:'Coude EAS'},{n:11,nom:'Verrou du couvercle de pile'},
           {n:12,nom:'Coude CI'},{n:13,nom:'Entr\u00e9es d\u2019air'},
         ]},
-    s2:{img:'s2',vign:'s2-vignette',imgFlux:'audiostream',nom:'Sonnet 2', fam:'Sonnet', sous:'Contour d\u2019oreille, antenne s\u00e9par\u00e9e',
+    s2:{img:'s2',vign:'s2',imgFlux:'audiostream',nom:'Sonnet 2', fam:'Sonnet', sous:'Contour d\u2019oreille, antenne s\u00e9par\u00e9e',
         tech:'Pas de Bluetooth int\u00e9gr\u00e9. Streaming via AudioLink ou cl\u00e9 AudioStream. M\u00eame logique d\u2019appairage que le Sonnet 1.',
         connecte:['audiolink','audiolinkxt','finetuner','audiokey','proc','mixte'],
         // Sch\u00e9ma s2.png, page « SONNET 2 Overview » : MED-EL y donne exactement
@@ -1743,7 +1796,7 @@ class Component extends DCLogic {
           {n:9,nom:'Ergot du coude'},{n:10,nom:'Coude EAS'},{n:11,nom:'Verrou du couvercle de pile'},
           {n:12,nom:'Coude CI'},{n:13,nom:'Entr\u00e9es d\u2019air'},
         ]},
-    s3:{img:'s3',vign:'s3-vignette',imgFlux:'audiostream',nom:'Sonnet 3', fam:'Sonnet', sous:'Contour d\u2019oreille, Bluetooth int\u00e9gr\u00e9',
+    s3:{img:'s3',vign:'s3',imgFlux:'audiostream',nom:'Sonnet 3', fam:'Sonnet', sous:'Contour d\u2019oreille, Bluetooth int\u00e9gr\u00e9',
         tech:'Bluetooth int\u00e9gr\u00e9 : appairage direct au t\u00e9l\u00e9phone, sans accessoire. AudioLink classique incompatible, AudioLink XT requis.',
         connecte:['audiolinkxt','audiokey','proc','mixte'],
         // Sch\u00e9ma s3.jpg, page « SONNET 3 Overview ». L'ordre n'est PAS celui du
@@ -1764,7 +1817,7 @@ class Component extends DCLogic {
           {n:1,nom:'Voyants'},{n:2,nom:'Couvercle'},{n:3,nom:'Bouton marche/arr\u00eat'},{n:4,nom:'Microphone'},
           {n:5,nom:'Unit\u00e9 de traitement'},
         ]},
-    r3:{img:'r3',vign:'r3-vignette',imgFlux:'audiostream-rondo',nom:'Rondo 3', fam:'Rondo', sous:'Disque unique aimant\u00e9, cl\u00e9 AudioStream',
+    r3:{img:'r3',vign:'r3',imgFlux:'audiostream-rondo',nom:'Rondo 3', fam:'Rondo', sous:'Disque unique aimant\u00e9, cl\u00e9 AudioStream',
         tech:'Pas de Bluetooth int\u00e9gr\u00e9. Streaming via cl\u00e9 AudioStream ins\u00e9r\u00e9e dans le processeur.',
         connecte:['audiolink','audiolinkxt','finetuner','audiokey','proc','mixte'],
         // Sch\u00e9ma r3.jpg, page « RONDO 3 Overview » : le sch\u00e9ma montre les deux
@@ -1798,17 +1851,17 @@ class Component extends DCLogic {
   estPro(){ return this.state.profil==='pro'; }
 
   // ---------- SAV : « Où est le problème ? » ----------
-  // Positions (% de l'image) des pastilles numérotées des schémas officiels, mesurées
-  // automatiquement (détection des pastilles rouges), puis numérotées à l'œil.
+  // Bulles posées à l'œil sur les pièces visibles des photos (sans flèches ni numéros) ;
+  // les autres pièces sont proposées en boutons sous l'image.
   // `pannes` : repère -> symptômes de départ de l'arbre (clé du nœud ; « * » = pro seul).
   CARTES = {
-    sonnet12: { points:{1:[78.9,13.1],2:[77.6,86.6],3:[63.4,64.5],4:[63.5,50.4],5:[63.5,39.1],6:[63.5,28.5],7:[63.5,13.8],8:[38,3.7],9:[19.2,13.7],10:[15.7,61.3],11:[10.1,76],12:[29.9,61.3],13:[48.8,95.9]},
+    sonnet12: { points:{12:[13,28],9:[18,17],6:[60,24],4:[66,68]},
       pannes:{1:['q_son_magnet_1','q_son_noise_1'],3:['q_son_crackle_age_1','q_son_noise_1'],4:['q_son_power_1','q_son_shutoff_1','q_as_1'],
               5:['diag_son_mic_cover_loose'],6:['*q_son_maestro_1','q_son_power_1'],7:['q_son_noise_1','q_son_crackle_age_1'],8:['q_son_power_1','q_son_shutoff_1'],13:['q_son_power_1']} },
-    s3: { points:{1:[84.4,27.5],2:[86.7,95.5],3:[63.1,95.5],4:[75.4,70.2],5:[75.3,56.5],6:[75.3,31.6],7:[75.3,12.4],8:[42.7,4.2],9:[31.9,4.2],10:[31.9,52.8],11:[13.3,52.8],12:[6.9,60.3],13:[6.8,82.8]},
+    s3: { points:{1:[73.5,73.7],2:[52,73],3:[12.5,75],5:[33,66],12:[36,28],9:[54,24],10:[65,40],13:[41,81],7:[48,9]},
       pannes:{1:['q_son_magnet_1','q_son_noise_1'],3:['q_son_crackle_age_1','q_son_noise_1'],4:['q_son_power_1'],5:['q_son_power_1','q_son_shutoff_1'],
               7:['q_son_noise_1','q_son_crackle_age_1'],8:['diag_son_mic_cover_loose'],9:['q_son_power_1','q_son_shutoff_1'],12:['*q_son_maestro_1','q_son_power_1']} },
-    r3: { points:{1:[2.2,10.9],2:[2.2,33.4],3:[51.7,18.6],4:[30.5,58.2],5:[30.5,92.9],6:[51.7,74.2],7:[97.6,24.8],8:[97.6,44.2]},
+    r3: { points:{3:[40,55],2:[60,30],4:[88,58]},
       pannes:{1:['q_sound_1'],2:['q_sound_1'],3:['q_noise_1'],4:['q_crack_other_1'],5:['q_crack_other_1'],6:['q_as_1'],7:['q_magnet_1','diag_crack_magnet'],8:['q_charge_1','*q_maestro_1']} },
   };
   carteCle(){ const k=this.state.appareil; return k==='s1'||k==='s2' ? 'sonnet12' : k; }
@@ -1823,9 +1876,9 @@ class Component extends DCLogic {
       return E('button',{key:n, 'aria-label':'Repère '+n+' : '+(noms[n]||''), onClick:()=>this.setState({carteZone:n}),
         // Anneau transparent autour de la pastille du schéma : le numéro reste lisible.
         style:{position:'absolute', left:x+'%', top:y+'%', transform:'translate(-50%,-50%)'+(actif?' scale(1.15)':''), width:'28px', height:'28px', borderRadius:'50%',
-          border:'2.5px solid '+(actif?'#fff':(utile?'var(--accent)':'rgba(0,0,0,.25)')), background: actif?'var(--accent)':'transparent',
+          border:'2.5px solid '+(actif?'#fff':(utile?'var(--accent)':'rgba(0,0,0,.25)')), background: actif?'var(--accent)':'rgba(255,255,255,.92)',
           boxShadow: actif?'0 0 0 4px rgba(226,0,26,.35)':'none', cursor:'pointer', padding:0, transition:'transform .2s',
-          animation: utile&&!actif ? 'melPulse 1.6s ease-in-out infinite' : 'none', color:'#fff', fontWeight:800, fontSize:'13px'}}, actif?String(n):''); });
+          animation: utile&&!actif ? 'melPulse 1.6s ease-in-out infinite' : 'none', color:actif?'#fff':'var(--accent)', fontWeight:800, fontSize:'13px'}}, String(n)); });
     const pan=choix ? pannesDe(choix) : [];
     const bouton=(to,titre,sous,accent)=>E('button',{key:to+titre, onClick:()=>this.go(to),
       style:{display:'flex',alignItems:'center',gap:'12px',width:'100%',textAlign:'left',fontFamily:'inherit',fontSize:'15.5px',fontWeight:700,
@@ -1847,7 +1900,12 @@ class Component extends DCLogic {
       E('h1',{style:{fontFamily:'var(--title-font)',fontWeight:'var(--h1-weight)',fontSize:'calc(var(--h1) - 6px)',lineHeight:1.05,margin:'0 0 10px'}},'Où est le ',E('em',{style:{fontStyle:'italic',color:'var(--accent)'}},'problème'),' ?'),
       E('p',{style:{color:'var(--ink-soft)',fontSize:'15.5px',margin:'0 0 16px',lineHeight:1.5}},'Montrez-nous la pièce : on vous guide ensuite pas à pas.'),
       E('div',{style:{position:'relative',background:'#fff',border:'1px solid var(--line)',borderRadius:'var(--radius)',boxShadow:'var(--shadow)',padding:'10px',marginBottom:'14px'}},
-        E('div',{style:{position:'relative'}}, E('img',{src:this.image(a.img), alt:'Schéma du '+a.nom, style:{width:'100%',display:'block'}}), ...bulles)),
+        E('div',{style:{position:'relative'}}, E('img',{src:this.image(a.img), alt:'Photo du '+a.nom, style:{width:'100%',display:'block'}}), ...bulles),
+        // Pièces absentes de la photo (dessous, intérieur, accessoires) : touchables ici.
+        (()=>{ const hors=Object.keys(carte.pannes).map(Number).filter(n=>!carte.points[n] && pannesDe(n).length);
+          return hors.length ? E('div',{style:{display:'flex',flexWrap:'wrap',gap:'7px',marginTop:'10px'}},
+            ...hors.map(n=>E('button',{key:'h'+n,onClick:()=>this.setState({carteZone:n}),style:{fontFamily:'inherit',fontSize:'13px',fontWeight:700,padding:'7px 11px',borderRadius:'99px',cursor:'pointer',
+              border:'1.5px solid '+(choix===n?'var(--accent)':'var(--line)'),background:choix===n?'var(--accent)':'var(--card-bg)',color:choix===n?'#fff':'var(--ink)'}}, rond(n)+' '+(noms[n]||'')))) : null; })()),
       E('div',{style:{background:'var(--card-bg)',border:'1px solid var(--line)',borderRadius:'var(--radius)',padding:'16px',marginBottom:'14px',minHeight:'70px',animation:'melRise .35s ease'}, key:'f'+(choix||0)}, fiche),
       E('div',{style:{display:'flex',flexDirection:'column',gap:'9px'}},
         opts['q_ak_1'] ? bouton('q_ak_1','Le problème vient du téléphone','L’application AudioKey ne trouve pas le processeur') : null,
@@ -1873,8 +1931,10 @@ class Component extends DCLogic {
         : {scene:'phone-bt',h:'Chercher en Bluetooth',p:'Activez le <b>Bluetooth</b> du téléphone et lancez la recherche d’appareils Bluetooth.'},
       {scene:'pair',h:'Jumeler',p:'Vos Sonnet 3 apparaissent : touchez-les pour lancer le jumelage.',video:V(apple?'P-QCeVF8DRE':'xgRZCRpKlKY','Voir la vidéo officielle MED-EL'),
         q:{t:'Le téléphone affiche vos Sonnet 3 connectés ?',ok:'Bravo, c’est jumelé !',ko:'Rapprochez les Sonnet 3 du téléphone et réessayez.'},
-        branches: apple?[]:[br('Une aide auditive de l’autre côté ?','Android 12 ou plus et aide auditive compatible ASHA : une fois le Sonnet 3 connecté, allumez l’aide auditive et jumelez-la dans le Bluetooth. Si elle gère le <b>Bluetooth LE Audio</b>, désactivez ce réglage. <a href="https://www.youtube.com/watch?v=Lmw3I0Q1Mto" target="_blank" rel="noopener">Vidéo</a>')],
-        pro: apple?'':'Bimodal : liste de téléphones testés sur <b>go.medel.com/sonnet3-bimodal-compatibility</b>.'},
+        branches: apple?[]:[br('Une aide auditive de l’autre côté ?','Android 12 ou plus et aide auditive compatible ASHA : une fois le Sonnet 3 connecté, allumez l’aide auditive et jumelez-la dans le Bluetooth. Si elle gère le <b>Bluetooth LE Audio</b>, désactivez ce réglage. <a href="https://www.youtube.com/watch?v=Lmw3I0Q1Mto" target="_blank" rel="noopener">Vidéo</a>'),
+          br('Aide auditive Starkey ?','Dans AudioKey : '+K('Options de connectivité')+' → <b>Aides auditives</b> → <b>Starkey + SONNET 3</b>, puis '+K('Suivant')+'.')],
+        pro: apple?'':'Bimodal : liste de téléphones testés sur <b>go.medel.com/sonnet3-bimodal-compatibility</b>.',
+        ecrans: apple?[]:[{e:'options',tap:[50,94.2],legende:'Aide Starkey : Starkey + SONNET 3'},{e:'bimodalS3',tap:[73,95],legende:'Lisez puis touchez Suivant'}]},
       {scene:'appel',h:'Téléphoner et écouter',p:'Appelez ou décrochez comme d’habitude : le son arrive dans le Sonnet 3. Le volume se règle <b>sur le téléphone</b>.',video:V('5IsQNF7-U2s','Voir la vidéo : téléphoner'),
         q:{t:'Petit jeu : pour monter le son d’un appel, je règle…',oui:'Le téléphone',non:'Le processeur',ok:'Exact ! Le volume du streaming se règle sur le téléphone.',ko:'Raté : d’après MED-EL, c’est le volume du téléphone qui compte.'}}
     ];
@@ -1886,7 +1946,7 @@ class Component extends DCLogic {
       const id=R?{as:'1wIGRH1BGeo',ios:'RWd83-m6U3w',and:'mxcYVlAiYcY',appel:'qrxoqnQ0Wpg',musique:'8DUIVnY9oB4',bimodal:'vhNSPxRwcaY',liste:'go.medel.com/audiostream-adapter'}
                 :{as:'uRrmI4liHTk',ios:'7lnUBsJcTL4',and:'_9jmG3JN0-g',appel:'Rl8SA7rUr14',musique:'bMQFiFZ6lRk',bimodal:'Rp-dMLu5Bmg',liste:'go.medel.com/audiostream'};
       const nomBT=R?'AudioStream Adapter':'AudioStream';
-      return [
+      const L=[
         R ? {scene:'as-adapter',h:'Fixer l’adaptateur AudioStream',p:'Sortez l’adaptateur de son étui et retirez son <b>capuchon en caoutchouc</b> en appuyant sur les petits leviers.',
               p2:'Retirez le Rondo 3 de la tête, ouvrez le <b>cache en caoutchouc</b> de sa prise et branchez-y l’adaptateur.',video:V(id.as,'Voir la vidéo : fixer l’adaptateur'),
               q:{t:'L’adaptateur est bien enfoncé dans la prise ?',oui:'Oui, il tient',ok:'Parfait ! Maintenant, le téléphone.',ko:'Rouvrez bien le cache en caoutchouc et enfoncez l’adaptateur jusqu’au bout.'},
@@ -1899,14 +1959,15 @@ class Component extends DCLogic {
           p2:'Puis éteignez AudioStream : '+(R?'débranchez l’adaptateur du Rondo 3.':'faites glisser le cover AudioStream hors du processeur.'),
           tip:{ic:'phone',t:'Boutons en anglais ?',s:'Les noms de boutons viennent des vidéos MED-EL en anglais : l’original est entre parenthèses.'},
           pro:'MED-EL tient une liste de téléphones testés : <b>'+id.liste+'</b>.'},
-        {scene:'phone-app',h:'Lancer la configuration',p:'Dans '+app+', touchez le <b>menu</b> en haut à gauche, puis '+K('Options de connectivité','Connectivity Options')+' → '+K('AudioStream','AudioStream')+' → '+K('Configuration','Configuration')+'.',
+        {scene:'phone-app',h:'Lancer la configuration',p:'Dans '+app+', touchez le <b>menu</b> en haut à gauche, puis '+K('Options de connectivité')+' → '+K('AudioStream')+' → '+K('Configurer')+'.',
+          ecrans:[{e:'options',tap:[50,48.7],legende:'Options de connectivité → AudioStream'},{e:'audiostream',tap:[50,38.6],legende:'Touchez Configurer'}],
           branches:[br('Un seul AudioStream','choisissez le côté où vous le portez.'),br('Un de chaque côté','choisissez '+K('Gauche et droite','Left and Right')+'.')],
-          p2:'Touchez '+K('Suivant','Next')+'.',video:V(apple?id.ios:id.and,'Voir la vidéo : appairage '+(apple?'iPhone':'Android'))},
+          p2:'Touchez '+K('Suivant')+'.',video:V(apple?id.ios:id.and,'Voir la vidéo : appairage '+(apple?'iPhone':'Android'))},
         {scene:R?'as-adapter':'as-cover',geste:R?'':'cover-cadre',h:R?'Brancher l’adaptateur':'Remettre le cover',
-          p:R?'Vérifiez que le Rondo 3 est <b>allumé</b>, branchez l’adaptateur, posez le Rondo 3 <b>à côté du téléphone</b> et touchez '+K('Suivant','Next')+'.'
-             :'Faites glisser le cover AudioStream <b>jusqu’au bout</b> sur le processeur, posez-le <b>à côté du téléphone</b> et touchez '+K('Suivant','Next')+'.',
+          p:R?'Vérifiez que le Rondo 3 est <b>allumé</b>, branchez l’adaptateur, posez le Rondo 3 <b>à côté du téléphone</b> et touchez '+K('Suivant')+'.'
+             :'Faites glisser le cover AudioStream <b>jusqu’au bout</b> sur le processeur, posez-le <b>à côté du téléphone</b> et touchez '+K('Suivant')+'.',
           q:{t:app+' a trouvé votre AudioStream ?',non:'Non, échec',ok:'Bravo ! Deux AudioStream ? Refaites les étapes 3 et 4 avec le second processeur, en laissant le premier allumé.',
-             ko:'Rapprochez le processeur du téléphone, '+(R?'débranchez puis rebranchez l’adaptateur':'retirez puis remettez le cover')+', puis touchez '+K('Réessayer','Try again')+'.'}},
+             ko:'Rapprochez le processeur du téléphone, '+(R?'débranchez puis rebranchez l’adaptateur':'retirez puis remettez le cover')+', puis touchez '+K('Réessayer')+'.'}},
         {scene:'nom',h:'Choisir un nom',p:'Tapez un nom de <b>7 lettres maximum</b>, en lettres de l’alphabet latin, puis touchez '+K('Enregistrer','Save')+'.',
           q:{t:'Petit jeu : quel nom l’appli accepte-t-elle ?',oui:'MAMIE',non:'GRANDMAMAN',ok:'Exact ! MAMIE a 5 lettres.',ko:'Raté : GRANDMAMAN a 10 lettres, c’est trop. 7 lettres maximum !'}},
         {scene:'phone-bt',h:'Accepter le jumelage',
@@ -1919,10 +1980,26 @@ class Component extends DCLogic {
               pro:'La vidéo MED-EL ne donne pas de menu Android : il dépend du fabricant du téléphone.'},
         {scene:'appel',h:'À vous de jouer !',p:'<b>Appel</b> : appelez ou décrochez comme d’habitude, puis parlez dans le micro du téléphone. <a href="https://www.youtube.com/watch?v='+id.appel+'" target="_blank" rel="noopener">Vidéo</a>',
           p2:'<b>Musique, vidéos</b> : lancez votre appli préférée. Le volume se règle <b>sur le téléphone</b>.',video:V(id.musique,'Voir la vidéo : écouter de la musique'),
-          branches: apple?[]:[br('Une aide auditive de l’autre côté ?','Android 12 ou plus et aide auditive compatible ASHA : éteignez les deux, Bluetooth activé, rallumez AudioStream (il se connecte seul), puis allumez l’aide auditive et jumelez-la dans le Bluetooth. <a href="https://www.youtube.com/watch?v='+id.bimodal+'" target="_blank" rel="noopener">Vidéo</a>')],
+          branches: apple?[]:[br('Une aide auditive de l’autre côté ?','Android 12 ou plus et aide auditive compatible ASHA : éteignez les deux, Bluetooth activé, rallumez AudioStream (il se connecte seul), puis allumez l’aide auditive et jumelez-la dans le Bluetooth. <a href="https://www.youtube.com/watch?v='+id.bimodal+'" target="_blank" rel="noopener">Vidéo</a>'),
+            br('Aide auditive Starkey ?','Dans AudioKey : '+K('Options de connectivité')+' → <b>Aides auditives</b> → <b>Starkey + AudioStream</b>. Lisez les informations puis touchez '+K('Suivant')+'.')],
+          ecrans: apple?[]:[{e:'options',tap:[50,83.3],legende:'Aides auditives → Starkey + AudioStream'},{e:'bimodalAS',tap:[73,95],legende:'Lisez puis touchez Suivant'}],
           q:{t:'Lancez une chanson : vous l’entendez dans le processeur ?',ok:'Bravo, vous streamez !',ko:'Montez le volume du téléphone, et vérifiez qu’AudioStream est en place et « connecté » dans le Bluetooth.'},
           pro: apple?'Les vidéos AudioStream ne traitent le streaming bimodal que sous Android 12 ou plus.':'Bimodal : Android 12+ et aide auditive ASHA ; appareils testés sur <b>'+id.liste+'</b>.'}
       ];
+      if(apple) return L;
+      // Android, d'après l'auteur (terrain) : tout se fait dans les Réglages Bluetooth,
+      // sans passer par AudioKey. On garde l'installation (L[0]) et l'utilisation (dernière).
+      const nomListe=R?'AudioStream (ou AudioStream Adapter)':'AudioStream';
+      return [L[0],
+        {scene:'phone-bt',h:'Ouvrir le Bluetooth',p:'Sur le téléphone, ouvrez '+K('Réglages')+' → '+K('Bluetooth')+' et activez-le.',
+          tip:{ic:'bluetooth',t:'Le processeur allumé, tout près',s:'Gardez '+(R?'le Rondo 3 avec son adaptateur':'le processeur avec son cover AudioStream')+' allumé, à côté du téléphone.'}},
+        {scene:'pair',h:'Choisir AudioStream',p:'Dans la liste des <b>appareils disponibles</b>, touchez <b>'+nomListe+'</b>.',
+          q:{t:'Vous voyez AudioStream dans la liste ?',ok:'Parfait, touchez-le.',ko:'Rapprochez le processeur du téléphone, '+(R?'débranchez puis rebranchez l’adaptateur':'retirez puis remettez le cover')+' et attendez quelques secondes. Toujours rien ? '+sav},
+          pro:'Les tutoriels MED-EL configurent d’abord l’AudioStream dans '+app+' ('+K('Options de connectivité')+' → AudioStream → '+K('Configurer')+'). Si l’AudioStream n’apparaît pas dans le Bluetooth, faites cette configuration.'},
+        {scene:'phone-bt',h:'Autoriser l’appairage',p:'Le téléphone demande l’autorisation : touchez <b>Autoriser</b> (ou <b>Associer</b>, selon la marque).'},
+        {scene:'success',h:'Connecté',p:'Sous AudioStream, le téléphone affiche <b>Connecté</b>.',
+          q:{t:'C’est écrit « Connecté » ?',ok:'Gagné ! AudioStream se reconnectera tout seul dès qu’il sera allumé et le Bluetooth actif.',ko:'Reprenez à l’étape 2. '+sav}},
+        L[L.length-1]];
     };
     return {
     home:{type:'menu',eyebrow:'Bonjour',title:'Qui a besoin d\u2019<em style="font-style:italic;color:var(--accent)">aide</em> ?',lede:'L\u2019assistant s\u2019adapte : marche \u00e0 suivre pour le porteur, rep\u00e8res techniques pour le professionnel.',
@@ -2040,7 +2117,8 @@ class Component extends DCLogic {
         {scene:'audiolink-bt',h:'Passer en mode Bluetooth',p:'Seul le voyant d’état doit être allumé. Appuyez <b>ensemble 2 secondes</b> sur les touches <b>mix</b> et <b>micro</b> : le symbole Bluetooth clignote.',
           tip:{ic:'horloge',t:'60 secondes chrono',s:'Sans téléphone trouvé en 60 s, l’AudioLink quitte ce mode. Réappuyez mix + micro.'}},
         {scene:'pair',h:'Connecter le téléphone',p:'Activez le <b>Bluetooth</b> du téléphone, lancez la recherche et choisissez <b>MED-EL AudioLink</b>. Si un code est demandé, tapez <b>0000</b>.',video:V('w_RLONOLIKE','Voir la vidéo : appairer un téléphone'),
-          q:{t:'Le symbole Bluetooth de l’AudioLink reste allumé sans clignoter ?',ok:'Connecté ! L’appli AudioKey peut maintenant passer par l’AudioLink.',ko:'Les 60 secondes sont peut-être passées : réappuyez mix + micro 2 s et recommencez.'}},
+          ecrans:[{e:'audiolinkAbsent',legende:'Si AudioKey affiche ceci : l’AudioLink n’est pas encore jumelé'}],
+          q:{t:'Le symbole Bluetooth de l’AudioLink reste allumé sans clignoter ?',ok:'Connecté ! L’appli AudioKey peut maintenant passer par l’AudioLink.',ko:'Les 60 secondes sont peut-être passées : réappuyez mix + micro 2 s et recommencez. Dans AudioKey, l’écran « Aucun AudioLink n’est jumelé » veut dire la même chose : refaites l’étape 3 puis touchez <b>Réessayer</b>.'}},
         {scene:'appel',h:'Téléphoner',p:'Accrochez l’AudioLink <b>près de votre bouche</b> (clip ou cordon). Appel entrant : <b>un appui</b> sur le bouton principal pour décrocher, un autre pour raccrocher. Pour refuser : <b>maintenez 2 secondes</b>.',
           tip:{ic:'phone',t:'Tout clignote ensemble ?',s:'Les symboles Bluetooth et de connexion clignotent ensemble : c’est un appel entrant.'},video:V('24eQIiyKOUs','Voir la vidéo : téléphoner'),
           q:{t:'Petit jeu : pour refuser un appel, je…',oui:'Maintiens 2 s',non:'Appuie une fois',ok:'Exact !',ko:'Non : un appui sert à décrocher ou à raccrocher. Pour refuser, maintenez 2 secondes.'}},
@@ -2050,7 +2128,7 @@ class Component extends DCLogic {
           pro:'Selon le téléviseur, d’autres câbles peuvent être nécessaires (vidéo MED-EL).'},
         {scene:'micro',geste:'audiolink-station',h:'Le micro à distance',p:'Appuyez sur la touche <b>micro</b> : elle s’allume, l’AudioLink capte la voix autour de lui. Posez-le sur la station pour un groupe, ou clipsez-le sur la personne qui vous parle.',video:V('O61qYt9wWAc','Voir la vidéo : micro à distance'),
           q:{t:'La touche micro est allumée ?',ok:'Le micro à distance fonctionne.',ko:'Vérifiez que l’AudioLink est bien appairé au processeur (étape 2).'},
-          pro:'AudioKey 3 → '+K('Options de connectivité','Connectivity Options')+' → AudioLink : cochez la case pour entendre le mélange AudioLink + micros du processeur, décochez pour l’AudioLink seul. Touche <b>mix</b> allumée = mélange.'}
+          pro:'AudioKey → '+K('Options de connectivité')+' → AudioLink : cochez la case pour entendre le mélange AudioLink + micros du processeur, décochez pour l’AudioLink seul. Touche <b>mix</b> allumée = mélange.'}
       ]; },
       done:{h:'Tout est prêt',p:'Votre AudioLink est appairé : téléphone, TV, musique et micro à distance.'}},
     audiolinkxt:{type:'steps',crumb:'AudioLink XT',objet3d:'audiolinkxt',trail:'AudioLink XT',title:'AudioLink XT',
@@ -2074,7 +2152,7 @@ class Component extends DCLogic {
           branches:s3?[br('Une aide auditive de l’autre côté ?','Coupez le Bluetooth du téléphone. Mettez l’XT en appairage (télécoil + micro 2 s), posez Sonnet 3 et aide auditive à côté et allumez-les. <a href="https://www.youtube.com/watch?v=S8XaskywIcI" target="_blank" rel="noopener">Vidéo</a>')]:[],
           video:V('ABR6r3XMCQM','Voir la vidéo : micro à distance'),
           q:{t:'Petit jeu : le voyant d’état est orange et fixe. Ça veut dire…',oui:'Il charge',non:'Il est en panne',ok:'Exact ! Orange fixe = en charge, vert fixe = chargé.',ko:'Pas de panique : orange fixe veut dire qu’il est en charge. Vert fixe = chargé.'},
-          pro:'AudioKey 3 → '+K('Options de connectivité','Connectivity Options')+' → AudioLink XT → '+K('Configurer','Configure')+' ; mode configuration : volume + et bouton principal 2 s. Réglages : bip, arrêt du streaming après X minutes de silence.'}
+          pro:'AudioKey → '+K('Options de connectivité')+' → AudioLink XT → '+K('Configurer')+' ; mode configuration : volume + et bouton principal 2 s. Réglages : bip, arrêt du streaming après X minutes de silence.'}
       ]; },
       done:{h:'Connexion réussie',p:'Votre AudioLink XT est appairé à votre processeur.'}},
     finetuner:{type:'steps',crumb:'FineTuner Echo',objet3d:'finetuner',trail:'FineTuner',title:'FineTuner Echo',
@@ -2089,14 +2167,22 @@ class Component extends DCLogic {
       stepsAndroid:[
         {scene:'phone-bt',h:'Activer localisation & Bluetooth',p:'Sur Android, assurez-vous que la <b>géolocalisation</b> et le <b>Bluetooth</b> sont activés avant d’aller plus loin.'},
         {scene:'phone-app',h:'Ouvrir et se connecter',p:'Ouvrez l’application AudioKey et connectez-vous.'},
-        {scene:'phone-app',h:'Connecter mes appareils',p:'Appuyez sur les <b>3 traits horizontaux</b> en haut à gauche, puis sur le bouton rouge <b>« Connecter mes appareils »</b>. Éteignez puis rallumez votre processeur.'},
-        {scene:'success',h:'Suivre les instructions',p:'Appuyez sur le bouton rouge et suivez les instructions.',p2:'Refaites la même chose avec votre second processeur si vous en avez un.',tip:{ic:'sliders',t:'Ce que permet AudioKey',s:'Naviguer dans vos réglages, régler le volume et la sensibilité.'}}
+        {scene:'phone-app',h:'Ajouter un audio processeur',p:'Dans le <b>Profil d’utilisateur</b>, touchez le bouton rouge <b>Ajouter un audio processeur</b>.',
+          ecrans:[{e:'profil',tap:[50,61],legende:'Touchez Ajouter un audio processeur'}]},
+        {scene:'success',h:'Choisir le type de connexion',p:'Choisissez <b>AudioLink</b> si vous passez par votre AudioLink, ou <b>Directe</b> (Bluetooth basse consommation) pour vous connecter sans boîtier. Touchez <b>Suivant</b> et suivez les instructions.',
+          p2:'Refaites la même chose avec votre second processeur si vous en avez un.',
+          ecrans:[{e:'type',tap:[83,57.3],legende:'Directe : sans boîtier'},{e:'type',tap:[69,88],legende:'Puis Suivant'}],
+          tip:{ic:'sliders',t:'Ce que permet AudioKey',s:'Naviguer dans vos réglages, régler le volume et la sensibilité.'}}
       ],
       stepsApple:[
         {scene:'phone-app',h:'Autoriser la position',p:'<b>Réglages</b> → <b>Applications</b> → <b>AudioKey</b> → <b>Position</b>, cochez <b>« Toujours »</b>. Activez ensuite le <b>Bluetooth</b>.'},
         {scene:'phone-app',h:'Ouvrir et se connecter',p:'Ouvrez l’application AudioKey et connectez-vous.'},
-        {scene:'phone-app',h:'Connecter mes appareils',p:'Appuyez sur les <b>3 traits horizontaux</b> en haut à gauche, puis sur <b>« Connecter mes appareils »</b>. Éteignez puis rallumez votre processeur.'},
-        {scene:'success',h:'Suivre les instructions',p:'Appuyez sur le bouton rouge et suivez les instructions.',p2:'Refaites la même chose avec votre second processeur si vous en avez un.',tip:{ic:'sliders',t:'Ce que permet AudioKey',s:'Naviguer dans vos réglages, régler le volume et la sensibilité.'}}
+        {scene:'phone-app',h:'Ajouter un audio processeur',p:'Dans le <b>Profil d’utilisateur</b>, touchez le bouton rouge <b>Ajouter un audio processeur</b>.',
+          ecrans:[{e:'profil',tap:[50,61],legende:'Touchez Ajouter un audio processeur'}]},
+        {scene:'success',h:'Choisir le type de connexion',p:'Choisissez <b>AudioLink</b> si vous passez par votre AudioLink, ou <b>Directe</b> (Bluetooth basse consommation) pour vous connecter sans boîtier. Touchez <b>Suivant</b> et suivez les instructions.',
+          p2:'Refaites la même chose avec votre second processeur si vous en avez un.',
+          ecrans:[{e:'type',tap:[83,57.3],legende:'Directe : sans boîtier'},{e:'type',tap:[69,88],legende:'Puis Suivant'}],
+          tip:{ic:'sliders',t:'Ce que permet AudioKey',s:'Naviguer dans vos réglages, régler le volume et la sensibilité.'}}
       ],
       done:{h:'AudioKey est prête',p:'Vous pouvez piloter vos processeurs depuis votre téléphone.'}},
     opt3:{type:'menu',crumb:'Connexion du processeur',trail:'Option 3',eyebrow:'Option 3',title:'Quel <em style="font-style:italic;color:var(--accent)">processeur</em> ?',lede:'Le choix dépend de votre modèle.',
@@ -2117,9 +2203,10 @@ class Component extends DCLogic {
       notice:(st)=>avecNotePro(st,'Pour qui porte un <b>Sonnet 3</b> d’un côté et un <b>Sonnet, Sonnet 2 ou Rondo 3</b> avec AudioStream de l’autre : le son arrive des deux côtés.'),
       steps:[
         {scene:'off',h:'Tout éteindre',p:'Éteignez le Sonnet 3 et l’AudioStream. Ils ne doivent être connectés à <b>aucun</b> appareil.',p2:'Activez le <b>Bluetooth</b> du téléphone et ouvrez la <b>dernière version</b> d’AudioKey.',video:V('Ii2Wxo-Pt40','Voir la vidéo officielle MED-EL')},
-        {scene:'phone-app',h:'Choisir le Sonnet 3',p:'Dans AudioKey : '+K('Options de connectivité','Connectivity Options')+' → '+K('SONNET 3','SONNET 3')+' → '+K('Configurer','Configure')+', puis '+K('Suivant','Next')+'.'},
-        {scene:'on',h:'Allumer le Sonnet 3',p:'Faites glisser le couvercle du compartiment à piles sur le Sonnet 3 pour l’allumer, posez-le <b>à côté du téléphone</b> et touchez '+K('Suivant','Next')+'.'},
-        {scene:'as-cover',h:'Brancher l’AudioStream',p:'Mettez le cover ou l’adaptateur AudioStream sur l’<b>autre</b> processeur, posez-le à côté du téléphone et touchez '+K('Configurer','Configure')+'.'},
+        {scene:'phone-app',h:'Choisir le Sonnet 3',p:'Dans AudioKey : '+K('Options de connectivité')+' → '+K('SONNET 3')+' → '+K('Configurer')+', puis '+K('Suivant')+'.',
+          ecrans:[{e:'options',tap:[50,59.6],legende:'Options de connectivité → SONNET 3'},{e:'sonnet3',tap:[50,51],legende:'Touchez Configurer'}]},
+        {scene:'on',h:'Allumer le Sonnet 3',p:'Faites glisser le couvercle du compartiment à piles sur le Sonnet 3 pour l’allumer, posez-le <b>à côté du téléphone</b> et touchez '+K('Suivant')+'.'},
+        {scene:'as-cover',h:'Brancher l’AudioStream',p:'Mettez le cover ou l’adaptateur AudioStream sur l’<b>autre</b> processeur, posez-le à côté du téléphone et touchez '+K('Configurer')+'.'},
         {scene:'pair',h:'Jumeler',p:'Si l’écran '+K('Demande de jumelage Bluetooth','Bluetooth pairing request')+' apparaît, touchez '+K('Jumeler','Pair')+'.',
           q:{t:'Lancez une chanson : elle arrive dans les deux oreilles ?',ok:'Stéréo des deux côtés, bravo !',ko:'Reprenez à l’étape 1 en vérifiant que rien n’est déjà connecté. Sinon, demandez l’aide d’un technicien.'},
           pro:'La vidéo dit seulement « dernière version d’AudioKey » (sans numéro).'}
